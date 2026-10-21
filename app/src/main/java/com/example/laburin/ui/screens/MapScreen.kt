@@ -1,25 +1,31 @@
 package com.example.laburin.ui.screens
 
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -34,34 +40,59 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.laburin.ui.components.LaburinNavigationBar
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 
 data class Offer(
     val title: String,
     val category: String,
-    val distance: Int
+    val distance: Int,
+    val location: GeoPoint,
+    val address: String
 )
 
 @Composable
 fun MapScreen() {
     var rubro by remember { mutableStateOf("Todos") }
     var radio by remember { mutableStateOf("2") }
-    val offerList = listOf(Offer("Ayudante de taller", "Mecanica", 3000), Offer("Mozo", "Gastronomia", 700))
+    
+    val offerList = listOf(
+        Offer("Ayudante de taller", "Mecanica", 5, GeoPoint(-34.6080, -58.3712), "Av. Corrientes 1234"),
+        Offer("Mozo", "Gastronomia", 700, GeoPoint(-34.5997, -58.3819), "Calle Ficticia 456"),
+        Offer("Repositor", "Repositor", 1200, GeoPoint(-34.6120, -58.3900), "Av. Rivadavia 2000")
+    )
+    
     val filteredOffersByRubro = offerList.filter { rubro == "Todos" || it.category == rubro }
     val filteredOffersByRadio = filteredOffersByRubro.filter { it.distance <= radio.toInt() * 1000 }
     var textToSearch by remember { mutableStateOf("") }
     val filteredOffersByText = filteredOffersByRadio.filter { it.title.contains(textToSearch, ignoreCase = true) }
 
-    // Scaffold con bottomBar para que la barra quede fija abajo de todo y topBar arriba
     Scaffold(
         topBar = {
-            Column {
-                SearchBar(textToSearch, onTextChange = {textToSearch = it}, modifier = Modifier.statusBarsPadding())
-                FilterButtons(
-                    rubro = rubro, onRubroChange = { rubro = it },
-                    radio = radio, onRadioChange = { radio = it }
-                )
-                PublishButton()
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color.White,
+                shadowElevation = 6.dp,
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(vertical = 8.dp)
+                ) {
+                    SearchBar(textToSearch, onTextChange = { textToSearch = it })
+                    FilterButtons(
+                        rubro = rubro, onRubroChange = { rubro = it },
+                        radio = radio, onRadioChange = { radio = it }
+                    )
+                    PublishButton()
+                }
             }
         },
         bottomBar = {
@@ -73,17 +104,63 @@ fun MapScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            Surface(modifier = Modifier.fillMaxSize(), shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)) {
-                LazyColumn() {
-                    item {
-                        Text(
-                            "${filteredOffersByText.size} búsquedas destacadas",
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(15.dp)
+            DisplayMap(
+                offers = filteredOffersByText,
+                modifier = Modifier.fillMaxSize()
+            )
+            
+            FloatingActionButton(
+                onClick = {}, 
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 260.dp), 
+                shape = CircleShape
+            ) {
+                Text("QR", fontWeight = FontWeight.Bold)
+            }
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.42f)
+                    .align(Alignment.BottomCenter), 
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                shadowElevation = 16.dp,
+                color = Color.White
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(40.dp)
+                                .height(4.dp)
+                                .background(Color.LightGray, RoundedCornerShape(2.dp))
                         )
                     }
-                    items(filteredOffersByText) { offer ->
-                        OfferItem(offer.title, offer.category, offer.distance)
+
+                    Text(
+                        "${filteredOffersByText.size} búsquedas destacadas",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(filteredOffersByText) { offer ->
+                            OfferItem(offer.title, offer.category, offer.distance, offer.address)
+                        }
                     }
                 }
             }
@@ -92,14 +169,13 @@ fun MapScreen() {
 }
 
 @Composable
-fun SearchBar(textToSearch: String ,onTextChange: (String) -> Unit, modifier: Modifier = Modifier){
+fun SearchBar(textToSearch: String, onTextChange: (String) -> Unit, modifier: Modifier = Modifier){
     OutlinedTextField(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 10.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
         shape = RoundedCornerShape(24.dp),
         value = textToSearch,
         onValueChange = onTextChange,
-        label = { Text("Buscar Zona o Puesto") },
-        placeholder = { Text("Buscar Zona o puesto") }
+        placeholder = { Text("Buscar zona o puesto") }
     )
 }
 
@@ -117,7 +193,7 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(
@@ -130,7 +206,7 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically){
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center){
                             Text("Radio: $radio km")
                             Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
                         }
@@ -164,7 +240,7 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically){
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center){
                             Text("Rubro: $rubro")
                             Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
                         }
@@ -193,21 +269,65 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
 
 @Composable
 fun PublishButton(modifier: Modifier = Modifier){
-    OutlinedButton(onClick = {}, modifier.fillMaxWidth().padding(horizontal = 10.dp), content = {Text("¿Buscás empleados? Publicá gratis")})
+    Button(
+        onClick = {}, 
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Text("¿Buscás empleados? Publicá gratis", fontWeight = FontWeight.Bold)
+    }
 }
 
 @Composable
-fun OfferItem(title: String, category: String, distance: Int, modifier: Modifier = Modifier){
+fun OfferItem(title: String, category: String, distance: Int, address: String, modifier: Modifier = Modifier){
     Card(
-        modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 5.dp).border(1.dp, Color.Gray,
-            RoundedCornerShape(20.dp)),
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9F9)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ){
-        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween){
-            Column() {
-                Text(title, fontWeight = FontWeight.Bold)
-                Text(category)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp), 
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            Column {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(category, color = Color.Gray, fontSize = 13.sp)
+                Text(address, fontSize = 12.sp, color = Color.DarkGray)
             }
-            Text("$distance metros")
+            Text("$distance m", fontWeight = FontWeight.Bold, color = Color.DarkGray)
         }
     }
+}
+
+@Composable
+fun DisplayMap(offers: List<Offer>, modifier: Modifier = Modifier){
+    AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            Configuration.getInstance().userAgentValue = "Laburin"
+            MapView(context).apply {
+                setTileSource(TileSourceFactory.MAPNIK)
+                setMultiTouchControls(true)
+                controller.setZoom(14.0)
+                controller.setCenter(GeoPoint(-34.6037, -58.3816))
+            }
+        },
+        update = { mapView ->
+            mapView.overlays.clear()
+            offers.forEach { offer ->
+                val marker = Marker(mapView).apply {
+                    position = offer.location
+                    title = offer.title
+                    snippet = "${offer.category} - ${offer.address}"
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                }
+                mapView.overlays.add(marker)
+            }
+            mapView.invalidate()
+        }
+    )
 }

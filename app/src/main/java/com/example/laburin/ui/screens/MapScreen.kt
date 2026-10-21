@@ -39,18 +39,28 @@ import com.example.laburin.ui.components.LaburinNavigationBar
 data class Offer(
     val title: String,
     val category: String,
-    val distance: String
+    val distance: Int
 )
-val offerList = listOf(Offer("Ayudante de taller", "Mecanico", "500"), Offer("Mozo", "Gastronomia", "700"))
 
 @Composable
 fun MapScreen() {
+    var rubro by remember { mutableStateOf("Todos") }
+    var radio by remember { mutableStateOf("2") }
+    val offerList = listOf(Offer("Ayudante de taller", "Mecanica", 3000), Offer("Mozo", "Gastronomia", 700))
+    val filteredOffersByRubro = offerList.filter { rubro == "Todos" || it.category == rubro }
+    val filteredOffersByRadio = filteredOffersByRubro.filter { it.distance <= radio.toInt() * 1000 }
+    var textToSearch by remember { mutableStateOf("") }
+    val filteredOffersByText = filteredOffersByRadio.filter { it.title.contains(textToSearch, ignoreCase = true) }
+
     // Scaffold con bottomBar para que la barra quede fija abajo de todo y topBar arriba
     Scaffold(
         topBar = {
             Column {
-                SearchBar(Modifier.statusBarsPadding())
-                FilterButtons()
+                SearchBar(textToSearch, onTextChange = {textToSearch = it}, modifier = Modifier.statusBarsPadding())
+                FilterButtons(
+                    rubro = rubro, onRubroChange = { rubro = it },
+                    radio = radio, onRadioChange = { radio = it }
+                )
                 PublishButton()
             }
         },
@@ -67,12 +77,12 @@ fun MapScreen() {
                 LazyColumn() {
                     item {
                         Text(
-                            "${offerList.size} búsquedas destacadas",
+                            "${filteredOffersByText.size} búsquedas destacadas",
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(15.dp)
                         )
                     }
-                    items(offerList) { offer ->
+                    items(filteredOffersByText) { offer ->
                         OfferItem(offer.title, offer.category, offer.distance)
                     }
                 }
@@ -82,24 +92,22 @@ fun MapScreen() {
 }
 
 @Composable
-fun SearchBar(modifier: Modifier = Modifier){
-    var textToSearch by remember { mutableStateOf("") }
-
+fun SearchBar(textToSearch: String ,onTextChange: (String) -> Unit, modifier: Modifier = Modifier){
     OutlinedTextField(
         modifier = modifier.fillMaxWidth().padding(horizontal = 10.dp),
         shape = RoundedCornerShape(24.dp),
         value = textToSearch,
-        onValueChange = {textToSearch = it},
+        onValueChange = onTextChange,
         label = { Text("Buscar Zona o Puesto") },
         placeholder = { Text("Buscar Zona o puesto") }
     )
 }
 
 @Composable
-fun FilterButtons(modifier: Modifier = Modifier){
-    var radio by remember { mutableStateOf("2") }
-    var rubro by remember { mutableStateOf("Todos") }
-    
+fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
+                  radio: String, onRadioChange: (String) -> Unit,
+                  modifier: Modifier = Modifier){
+
     var expandedRadio by remember { mutableStateOf(false) }
     var expandedRubro by remember { mutableStateOf(false) }
     
@@ -139,7 +147,7 @@ fun FilterButtons(modifier: Modifier = Modifier){
                     DropdownMenuItem(
                         text = { Text("$option km") },
                         onClick = {
-                            radio = option
+                            onRadioChange(option)
                             expandedRadio = false
                         }
                     )
@@ -173,7 +181,7 @@ fun FilterButtons(modifier: Modifier = Modifier){
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            rubro = option
+                            onRubroChange(option)
                             expandedRubro = false
                         }
                     )
@@ -189,7 +197,7 @@ fun PublishButton(modifier: Modifier = Modifier){
 }
 
 @Composable
-fun OfferItem(title: String, category: String, distance: String, modifier: Modifier = Modifier){
+fun OfferItem(title: String, category: String, distance: Int, modifier: Modifier = Modifier){
     Card(
         modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 5.dp).border(1.dp, Color.Gray,
             RoundedCornerShape(20.dp)),

@@ -20,8 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -42,20 +40,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.laburin.model.Offer
 import com.example.laburin.ui.components.LaburinNavigationBar
+import com.example.laburin.ui.components.OfferItem
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
-
-data class Offer(
-    val title: String,
-    val category: String,
-    val distance: Int,
-    val location: GeoPoint,
-    val address: String
-)
 
 @Composable
 fun MapScreen() {
@@ -63,13 +55,13 @@ fun MapScreen() {
     var radio by remember { mutableStateOf("2") }
     
     val offerList = listOf(
-        Offer("Ayudante de taller", "Mecanica", 5, GeoPoint(-34.6080, -58.3712), "Av. Corrientes 1234"),
-        Offer("Mozo", "Gastronomia", 700, GeoPoint(-34.5997, -58.3819), "Calle Ficticia 456"),
-        Offer("Repositor", "Repositor", 1200, GeoPoint(-34.6120, -58.3900), "Av. Rivadavia 2000")
+        Offer("Ayudante de taller", "Mecánica", "300 m", 300, "Av. Corrientes 1234", GeoPoint(-34.6080, -58.3712)),
+        Offer("Mozo", "Gastronomía", "700 m", 700, "Calle Ficticia 456", GeoPoint(-34.5997, -58.3819)),
+        Offer("Repositor", "Repositor", "1,2 km", 1200, "Av. Rivadavia 2000", GeoPoint(-34.6120, -58.3900))
     )
     
     val filteredOffersByRubro = offerList.filter { rubro == "Todos" || it.category == rubro }
-    val filteredOffersByRadio = filteredOffersByRubro.filter { it.distance <= radio.toInt() * 1000 }
+    val filteredOffersByRadio = filteredOffersByRubro.filter { it.distanceMeters <= radio.toInt() * 1000 }
     var textToSearch by remember { mutableStateOf("") }
     val filteredOffersByText = filteredOffersByRadio.filter { it.title.contains(textToSearch, ignoreCase = true) }
 
@@ -159,7 +151,7 @@ fun MapScreen() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(filteredOffersByText) { offer ->
-                            OfferItem(offer.title, offer.category, offer.distance, offer.address)
+                            OfferItem(offer = offer)
                         }
                     }
                 }
@@ -279,31 +271,6 @@ fun PublishButton(modifier: Modifier = Modifier){
 }
 
 @Composable
-fun OfferItem(title: String, category: String, distance: Int, address: String, modifier: Modifier = Modifier){
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9F9)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ){
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp), 
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            Column {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(category, color = Color.Gray, fontSize = 13.sp)
-                Text(address, fontSize = 12.sp, color = Color.DarkGray)
-            }
-            Text("$distance m", fontWeight = FontWeight.Bold, color = Color.DarkGray)
-        }
-    }
-}
-
-@Composable
 fun DisplayMap(offers: List<Offer>, modifier: Modifier = Modifier){
     AndroidView(
         modifier = modifier,
@@ -319,13 +286,15 @@ fun DisplayMap(offers: List<Offer>, modifier: Modifier = Modifier){
         update = { mapView ->
             mapView.overlays.clear()
             offers.forEach { offer ->
-                val marker = Marker(mapView).apply {
-                    position = offer.location
-                    title = offer.title
-                    snippet = "${offer.category} - ${offer.address}"
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                offer.location?.let { loc ->
+                    val marker = Marker(mapView).apply {
+                        position = loc
+                        title = offer.title
+                        snippet = "${offer.category} - ${offer.address}"
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    }
+                    mapView.overlays.add(marker)
                 }
-                mapView.overlays.add(marker)
             }
             mapView.invalidate()
         }

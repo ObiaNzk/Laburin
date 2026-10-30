@@ -8,5 +8,6 @@ data class Offer(
     val distanceText: String,
     val distanceMeters: Int,
     val address: String,
-    val location: GeoPoint? = null
+    val location: GeoPoint? = null,
+    val description: String = ""
 )

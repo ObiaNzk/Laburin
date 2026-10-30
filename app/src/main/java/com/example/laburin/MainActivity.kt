@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.laburin.ui.components.LaburinNavigationBar
 import com.example.laburin.ui.screens.MapScreen
+import com.example.laburin.ui.screens.NoConnectionMapScreen
+import com.example.laburin.ui.screens.ScanScreen
 import com.example.laburin.ui.theme.LaburinTheme
 
 class MainActivity : ComponentActivity() {
@@ -23,24 +25,10 @@ class MainActivity : ComponentActivity() {
             LaburinTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     MapScreen()
+                    //NoConnectionMapScreen()
+                    ScanScreen()
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    LaburinTheme {
-        Greeting("Android")
     }
 }

@@ -11,13 +11,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun LaburinNavigationBar() {
+fun LaburinNavigationBar(isLoggedIn: Boolean = false) {
+    val thirdLabel = if (isLoggedIn) "Perfil" else "Ingresar"
+
     Column(modifier = Modifier.fillMaxWidth()) {
         HorizontalDivider(
             thickness = 1.dp,
@@ -53,11 +56,11 @@ fun LaburinNavigationBar() {
                 onClick = {},
                 icon = {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Login,
-                        contentDescription = "Ingresar"
+                        imageVector = if(isLoggedIn) {Icons.Default.Person} else {Icons.AutoMirrored.Filled.Login},
+                        contentDescription = thirdLabel
                     )
                 },
-                label = { Text("Ingresar") }
+                label = { Text(thirdLabel) }
             )
         }
     }

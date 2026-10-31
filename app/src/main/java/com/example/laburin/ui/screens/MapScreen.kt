@@ -39,15 +39,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.example.laburin.model.Offer
+import com.example.laburin.ui.components.DisplayMap
 import com.example.laburin.ui.components.LaburinNavigationBar
 import com.example.laburin.ui.components.OfferItem
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 
 @Composable
 fun MapScreen() {
@@ -55,9 +51,9 @@ fun MapScreen() {
     var radio by remember { mutableStateOf("2") }
     
     val offerList = listOf(
-        Offer("Ayudante de taller", "Mecánica", "300 m", 300, "Av. Corrientes 1234", GeoPoint(-34.6080, -58.3712)),
-        Offer("Mozo", "Gastronomía", "700 m", 700, "Calle Ficticia 456", GeoPoint(-34.5997, -58.3819)),
-        Offer("Repositor", "Repositor", "1,2 km", 1200, "Av. Rivadavia 2000", GeoPoint(-34.6120, -58.3900))
+        Offer("Ayudante de taller", "Mecánica", 300, "Av. Corrientes 1234", GeoPoint(-34.6080, -58.3712)),
+        Offer("Mozo", "Gastronomía", 700, "Calle Ficticia 456", GeoPoint(-34.5997, -58.3819)),
+        Offer("Repositor", "Repositor", 1200, "Av. Rivadavia 2000", GeoPoint(-34.6120, -58.3900))
     )
     
     val filteredOffersByRubro = offerList.filter { rubro == "Todos" || it.category == rubro }
@@ -180,7 +176,7 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
     var expandedRubro by remember { mutableStateOf(false) }
     
     val radioOptions = listOf("2", "5", "10", "15")
-    val rubroOptions = listOf("Todos", "Gastronomia", "Mecanica", "Repositor")
+    val rubroOptions = listOf("Todos", "Gastronomía", "Mecánica", "Repositor")
 
     Row(
         modifier = modifier
@@ -268,35 +264,4 @@ fun PublishButton(modifier: Modifier = Modifier){
     ) {
         Text("¿Buscás empleados? Publicá gratis", fontWeight = FontWeight.Bold)
     }
-}
-
-@Composable
-fun DisplayMap(offers: List<Offer>, modifier: Modifier = Modifier){
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            Configuration.getInstance().userAgentValue = "Laburin"
-            MapView(context).apply {
-                setTileSource(TileSourceFactory.MAPNIK)
-                setMultiTouchControls(true)
-                controller.setZoom(14.0)
-                controller.setCenter(GeoPoint(-34.6037, -58.3816))
-            }
-        },
-        update = { mapView ->
-            mapView.overlays.clear()
-            offers.forEach { offer ->
-                offer.location?.let { loc ->
-                    val marker = Marker(mapView).apply {
-                        position = loc
-                        title = offer.title
-                        snippet = "${offer.category} - ${offer.address}"
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    }
-                    mapView.overlays.add(marker)
-                }
-            }
-            mapView.invalidate()
-        }
-    )
 }

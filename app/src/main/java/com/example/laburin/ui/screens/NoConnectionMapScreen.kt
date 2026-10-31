@@ -33,9 +33,9 @@ import com.example.laburin.ui.components.OfferItem
 @Composable
 fun NoConnectionMapScreen(){
     val savedOffers = listOf(
-        Offer("Ayudante de taller", "Mecánica", "400 m", 400, "Av. Corrientes 1234"),
-        Offer("Mozo/a fin de semana", "Gastronomía", "1,2 km", 1200, "Calle Ficticia 456"),
-        Offer("Vendedor/a", "Indumentaria", "1,8 km", 1800, "Av. Rivadavia 2000")
+        Offer("Ayudante de taller", "Mecánica", 400, "Av. Corrientes 1234"),
+        Offer("Mozo/a fin de semana", "Gastronomía", 1200, "Calle Ficticia 456"),
+        Offer("Vendedor/a", "Indumentaria", 1800, "Av. Rivadavia 2000")
     )
 
     Scaffold(
@@ -49,7 +49,7 @@ fun NoConnectionMapScreen(){
                 contentAlignment = Alignment.Center
             ){
                 Text(
-                    text = "Sin conexión - Cargando datos en memoria",
+                    text = "Sin conexión · datos de hace 15 min",
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     fontSize = 14.sp
@@ -68,7 +68,6 @@ fun NoConnectionMapScreen(){
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Tarjeta con borde punteado (Dashed border) indicando que el mapa no está disponible
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

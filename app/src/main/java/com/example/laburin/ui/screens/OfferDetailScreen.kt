@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AssistChip
@@ -24,6 +27,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +46,7 @@ import java.util.Locale
 
 @Composable
 fun OfferDetailScreen(offer: Offer, isLoggedIn: Boolean) {
+    var showRegister by rememberSaveable() { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
@@ -59,79 +67,66 @@ fun OfferDetailScreen(offer: Offer, isLoggedIn: Boolean) {
             Spacer(Modifier.height(16.dp))
             Text(offer.title, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
-                if (isLoggedIn) {
-                    offer.businessName
-                } else {
-                    offer.category
-                } + " · a " + offer.distanceText
+                offer.businessName
             )
 
-            if (isLoggedIn) {
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AssistChip(
-                        onClick = {},
-                        label = {
-                            Text(offer.category.replaceFirstChar {
-                                if (it.isLowerCase()) it.titlecase(
-                                    Locale.ROOT
-                                ) else it.toString()
-                            })
-                        })
-                    AssistChip(
-                        onClick = {},
-                        label = {
-                            Text(offer.jobType.replaceFirstChar {
-                                if (it.isLowerCase()) it.titlecase(
-                                    Locale.ROOT
-                                ) else it.toString()
-                            })
-                        })
-                }
-
-                Spacer(Modifier.height(16.dp))
-                Text("Horario", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(offer.schedule)
-
-                Spacer(Modifier.height(16.dp))
-                Text("Qué buscamos", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(offer.description)
-
-                Spacer(Modifier.height(16.dp))
-                Text("Ubicación", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                
-                DisplayMap(
-                    offers = listOf(offer),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    zoomLevel = 15.0,
-                    initialCenter = offer.location ?: GeoPoint(-34.6037, -58.3816)
-                )
-
-                Button(
+            Spacer(Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AssistChip(
                     onClick = {},
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp).height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(Color.DarkGray)
-                ) {
-                    Text("Postularme", fontWeight = FontWeight.Bold)
-                }
-            } else {
-                Spacer(Modifier.height(16.dp))
-                Box(Modifier.height(16.dp).background(Color.LightGray, RoundedCornerShape(5.dp)).fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-                Box(Modifier.height(16.dp).background(Color.LightGray, RoundedCornerShape(5.dp)).fillMaxWidth(0.9f))
-                Spacer(Modifier.height(8.dp))
-                Box(Modifier.height(16.dp).background(Color.LightGray, RoundedCornerShape(5.dp)).fillMaxWidth(0.7f))
+                    label = {
+                        Text(offer.category.replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(
+                                Locale.ROOT
+                            ) else it.toString()
+                        })
+                    })
+                AssistChip(
+                    onClick = {},
+                    label = {
+                        Text(offer.jobType.replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(
+                                Locale.ROOT
+                            ) else it.toString()
+                        })
+                    })
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Text("Horario", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(offer.schedule)
+
+            Spacer(Modifier.height(16.dp))
+            Text("Qué buscamos", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(offer.description)
+
+            Spacer(Modifier.height(16.dp))
+            Text("Ubicación", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+
+            DisplayMap(
+                offers = listOf(offer),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                zoomLevel = 15.0,
+                initialCenter = offer.location ?: GeoPoint(-34.6037, -58.3816)
+            )
+
+            Button(
+                onClick = {showRegister = true},
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp).height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(Color.DarkGray)
+            ) {
+                Text("Postularme", fontWeight = FontWeight.Bold)
             }
         }
 
-        if (!isLoggedIn) {
+        if (!isLoggedIn && showRegister) {
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -165,6 +160,9 @@ fun OfferDetailScreen(offer: Offer, isLoggedIn: Boolean) {
                 }
                 OutlinedButton(onClick = {}, Modifier.fillMaxWidth()) {
                     Text("Ya tengo cuenta")
+                }
+                TextButton(onClick = {showRegister = false}) {
+                    Text("Ahora no")
                 }
             }
         }

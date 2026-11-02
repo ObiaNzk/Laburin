@@ -419,11 +419,11 @@ private fun ResultsSheet(
 private fun EmptyResults(state: MapUiState, onWidenRadius: () -> Unit, onShowAllCategories: () -> Unit) {
     val nextRadius = SearchFilters.RADIUS_OPTIONS_KM.firstOrNull { it > state.radiusKm }
     CenteredMessage(
-        title = stringResource(
-            R.string.map_empty_title,
-            stringResource(state.category.labelRes()).lowercase(),
-            state.radiusKm,
-        ),
+        title = if (state.category == null) {
+            stringResource(R.string.map_empty_title_all_categories, state.radiusKm)
+        } else {
+            stringResource(R.string.map_empty_title, stringResource(state.category.labelRes()).lowercase(), state.radiusKm)
+        },
         body = stringResource(R.string.map_empty_body),
         action = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

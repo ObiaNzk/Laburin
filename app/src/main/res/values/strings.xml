@@ -20,6 +20,7 @@
     </plurals>
     <string name="map_location_fallback">Sin ubicación: mostrando la zona por defecto</string>
     <string name="map_empty_title">No hay búsquedas de %1$s a menos de %2$d km</string>
+    <string name="map_empty_title_all_categories">No hay búsquedas a menos de %1$d km</string>
     <string name="map_empty_body">Probá ampliar el radio o cambiar el rubro.</string>
     <string name="map_widen_radius">Ampliar a %1$d km</string>
     <string name="map_show_all_categories">Ver todos los rubros</string>

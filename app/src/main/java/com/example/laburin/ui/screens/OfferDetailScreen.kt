@@ -33,8 +33,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.laburin.model.Offer
+import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.ui.components.DisplayMap
-import org.osmdroid.util.GeoPoint
+import com.example.laburin.ui.components.MapMarker
+import com.example.laburin.ui.screens.map.MapUiState
 import java.util.Locale
 
 @Composable
@@ -103,14 +105,16 @@ fun OfferDetailScreen(offer: Offer, isLoggedIn: Boolean) {
                 Text("Ubicación", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
                 
+                val position = offer.location?.let { GeoLocation(it.latitude, it.longitude) }
+                    ?: MapUiState.DEFAULT_CENTER
                 DisplayMap(
-                    offers = listOf(offer),
+                    markers = listOf(MapMarker(offer.title, position, offer.title, offer.address)),
+                    center = position,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp)
                         .clip(RoundedCornerShape(12.dp)),
                     zoomLevel = 15.0,
-                    initialCenter = offer.location ?: GeoPoint(-34.6037, -58.3816)
                 )
 
                 Button(

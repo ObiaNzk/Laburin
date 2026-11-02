@@ -4,30 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.laburin.ui.components.LaburinNavigationBar
-import com.example.laburin.ui.screens.MapScreen
-import com.example.laburin.ui.screens.NoConnectionMapScreen
-import com.example.laburin.ui.screens.ScanScreen
+import com.example.laburin.ui.screens.map.MapRoute
 import com.example.laburin.ui.theme.LaburinTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             LaburinTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MapScreen()
-                    //NoConnectionMapScreen()
-                    ScanScreen()
-                }
+                MapRoute()
             }
         }
     }

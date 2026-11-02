@@ -28,3 +28,16 @@ replay_pid*
 
 .idea
 .gradle
+# Android / Gradle local files
+local.properties
+build/
+.gradle/
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# The wrapper jar must be committed so ./gradlew works on a fresh clone
+!gradle/wrapper/gradle-wrapper.jar

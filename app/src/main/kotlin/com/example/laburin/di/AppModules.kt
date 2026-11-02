@@ -19,10 +19,12 @@ import com.example.laburin.data.remote.FakeOfferRemoteDataSource
 import com.example.laburin.data.remote.OfferApi
 import com.example.laburin.data.remote.OfferRemoteDataSource
 import com.example.laburin.data.repository.OfflineFirstOfferRepository
+import com.example.laburin.data.session.InMemorySessionRepository
 import com.example.laburin.domain.repository.ConnectivityObserver
 import com.example.laburin.domain.repository.FiltersRepository
 import com.example.laburin.domain.repository.LocationProvider
 import com.example.laburin.domain.repository.OfferRepository
+import com.example.laburin.domain.repository.SessionRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import dagger.Binds
@@ -119,11 +121,20 @@ abstract class DataModule {
     abstract fun bindOfferRemoteDataSource(impl: FakeOfferRemoteDataSource): OfferRemoteDataSource
 
     @Binds
-    abstract fun bindLocationProvider(impl: FusedLocationProvider): LocationProvider
-
-    @Binds
     abstract fun bindConnectivityObserver(impl: AndroidConnectivityObserver): ConnectivityObserver
 
     @Binds
     abstract fun bindFiltersRepository(impl: DataStoreFiltersRepository): FiltersRepository
+
+    @Binds
+    abstract fun bindSessionRepository(impl: InMemorySessionRepository): SessionRepository
+}
+
+/** Separate so instrumented tests can replace the device location with @TestInstallIn. */
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class LocationModule {
+
+    @Binds
+    abstract fun bindLocationProvider(impl: FusedLocationProvider): LocationProvider
 }

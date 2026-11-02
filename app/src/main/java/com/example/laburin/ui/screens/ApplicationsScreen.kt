@@ -62,9 +62,18 @@ val sampleApplications = listOf(
 )
 
 @Composable
-fun ApplicationsScreen() {
+fun ApplicationsScreen(
+    onSearchClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
     val pendingCount = sampleApplications.count({ it.status == ApplicationStatus.PENDING })
-    Scaffold(bottomBar = { LaburinNavigationBar(true) }) { innerPadding ->
+    Scaffold(bottomBar = {
+        LaburinNavigationBar(
+            isLoggedIn = true,
+            onSearchClick = onSearchClick,
+            onLoginClick = onProfileClick
+        )
+    }) { innerPadding ->
         Column(
             Modifier
                 .fillMaxSize()

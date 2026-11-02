@@ -31,7 +31,11 @@ import com.example.laburin.ui.components.LaburinNavigationBar
 import com.example.laburin.ui.components.OfferItem
 
 @Composable
-fun NoConnectionMapScreen(){
+fun NoConnectionMapScreen(
+    onLoginClick: () -> Unit,
+    onApplicationClick: () -> Unit,
+    onOfferClick: (Offer) -> Unit
+){
     val savedOffers = listOf(
         Offer("Ayudante de taller", "Mecánica", 400, "Av. Corrientes 1234"),
         Offer("Mozo/a fin de semana", "Gastronomía", 1200, "Calle Ficticia 456"),
@@ -57,7 +61,7 @@ fun NoConnectionMapScreen(){
             }
         },
         bottomBar = {
-            LaburinNavigationBar()
+            LaburinNavigationBar(onLoginClick = onLoginClick, onApplicationClick = onApplicationClick)
         }
     ) { innerPadding ->
         Column(
@@ -97,7 +101,7 @@ fun NoConnectionMapScreen(){
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 savedOffers.forEach { offer ->
-                    OfferItem(offer = offer)
+                    OfferItem(onClick = { onOfferClick(offer) }, offer = offer)
                 }
             }
 

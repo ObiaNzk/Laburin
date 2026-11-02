@@ -12,7 +12,8 @@ data class Offer(
     val description: String = "",
     val schedule: String = "",
     val jobType: String = "",
-    val businessName: String = ""
+    val businessName: String = "",
+    val businessId: String = ""
 ) {
     val distanceText: String
         get() = if (distanceMeters >= 1000) {

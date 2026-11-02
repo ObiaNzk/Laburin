@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.laburin.model.Offer
+import com.example.laburin.model.User
+import com.example.laburin.model.UserType
 import com.example.laburin.ui.components.LaburinNavigationBar
 import com.example.laburin.ui.components.OfferItem
 
@@ -42,8 +44,20 @@ val sampleMyOffers = listOf(
 )
 
 @Composable
-fun ProfileScreen() {
-    Scaffold(bottomBar = { LaburinNavigationBar(true) }) { innerPadding ->
+fun ProfileScreen(
+    onSearchClick: () -> Unit,
+    onApplicationClick: () -> Unit,
+    onOfferClick: (Offer) -> Unit,
+    onLogout: () -> Unit,
+    user: User
+) {
+    Scaffold(bottomBar = {
+        LaburinNavigationBar(
+            isLoggedIn = true,
+            onSearchClick = onSearchClick,
+            onApplicationClick = onApplicationClick
+        )
+    }) { innerPadding ->
         LazyColumn(
             Modifier
                 .fillMaxSize()
@@ -62,41 +76,60 @@ fun ProfileScreen() {
                     )
                     Spacer(Modifier.width(16.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Usuario Demo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("usuario@demo.com", color = Color.Gray)
+                        Text(
+                            "${user.firstName} ${user.lastName}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                        Text(user.email, color = Color.Gray)
                     }
                     TextButton(onClick = {}) {
                         Text("Editar")
                     }
                 }
                 Spacer(Modifier.height(16.dp))
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Color.LightGray.copy(alpha = 0.3f),
-                            RoundedCornerShape(12.dp)
-                        )
-                        .padding(16.dp)
-                ) {
-                    Text("Mi CV", fontWeight = FontWeight.Bold)
-                    Text("Todavía no cargaste tu CV. Solo se aceptan archivos PDF.")
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = {}) {
-                        Text("Cargar CV")
+                if (user.type == UserType.CANDIDATE) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Color.LightGray.copy(alpha = 0.3f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(16.dp)
+                    ) {
+                        Text("Mi CV", fontWeight = FontWeight.Bold)
+                        Text("Todavía no cargaste tu CV. Solo se aceptan archivos PDF.")
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(onClick = {}) {
+                            Text("Cargar CV")
+                        }
                     }
                 }
-                Spacer(Modifier.height(24.dp))
-                Text("Mis publicaciones (${sampleMyOffers.size})", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+
+                if (user.type == UserType.BUSINESS) {
+                    Text(
+                        "Mis publicaciones (${sampleMyOffers.size})",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+
             }
-            items(sampleMyOffers) { offer ->
-                OfferItem(offer = offer)
+
+            if (user.type == UserType.BUSINESS) {
+                items(sampleMyOffers) { offer ->
+                    OfferItem(onClick = { onOfferClick(offer) }, offer = offer)
+                }
             }
+
             item {
                 Spacer(Modifier.height(16.dp))
                 OutlinedButton(
-                    onClick = {},
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    onClick = { onLogout() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text("Cerrar sesión")

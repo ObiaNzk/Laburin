@@ -18,7 +18,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun LaburinNavigationBar(isLoggedIn: Boolean = false) {
+fun LaburinNavigationBar(
+    isLoggedIn: Boolean = false,
+    onLoginClick: () -> Unit = {},
+    onApplicationClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {}
+) {
     val thirdLabel = if (isLoggedIn) "Perfil" else "Ingresar"
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -29,7 +34,7 @@ fun LaburinNavigationBar(isLoggedIn: Boolean = false) {
         NavigationBar {
             NavigationBarItem(
                 selected = true,
-                onClick = {},
+                onClick = { onSearchClick() },
                 icon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -41,7 +46,7 @@ fun LaburinNavigationBar(isLoggedIn: Boolean = false) {
 
             NavigationBarItem(
                 selected = false,
-                onClick = {},
+                onClick = { onApplicationClick() },
                 icon = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Assignment,
@@ -53,10 +58,14 @@ fun LaburinNavigationBar(isLoggedIn: Boolean = false) {
 
             NavigationBarItem(
                 selected = false,
-                onClick = {},
+                onClick = { onLoginClick() },
                 icon = {
                     Icon(
-                        imageVector = if(isLoggedIn) {Icons.Default.Person} else {Icons.AutoMirrored.Filled.Login},
+                        imageVector = if (isLoggedIn) {
+                            Icons.Default.Person
+                        } else {
+                            Icons.AutoMirrored.Filled.Login
+                        },
                         contentDescription = thirdLabel
                     )
                 },

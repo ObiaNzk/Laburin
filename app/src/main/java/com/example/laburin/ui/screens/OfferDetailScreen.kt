@@ -10,13 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AssistChip
@@ -40,12 +37,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.laburin.model.Offer
+import com.example.laburin.model.User
 import com.example.laburin.ui.components.DisplayMap
 import org.osmdroid.util.GeoPoint
 import java.util.Locale
 
 @Composable
-fun OfferDetailScreen(offer: Offer, isLoggedIn: Boolean) {
+fun OfferDetailScreen(
+    offer: Offer, currentUser: User?,
+    onBack: () -> Unit = {},
+    onCreateAccount: () -> Unit = {},
+    onLogin: () -> Unit = {}
+) {
     var showRegister by rememberSaveable() { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         Column(
@@ -54,7 +57,7 @@ fun OfferDetailScreen(offer: Offer, isLoggedIn: Boolean) {
                 .statusBarsPadding()
                 .padding(16.dp)
         ) {
-            TextButton(onClick = {}) {
+            TextButton(onClick = { onBack()}) {
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                 Text("Volver")
             }
@@ -117,8 +120,11 @@ fun OfferDetailScreen(offer: Offer, isLoggedIn: Boolean) {
             )
 
             Button(
-                onClick = {showRegister = true},
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp).height(52.dp),
+                onClick = { showRegister = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
+                    .height(52.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(Color.DarkGray)
             ) {
@@ -126,7 +132,7 @@ fun OfferDetailScreen(offer: Offer, isLoggedIn: Boolean) {
             }
         }
 
-        if (!isLoggedIn && showRegister) {
+        if (currentUser == null && showRegister) {
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -152,16 +158,16 @@ fun OfferDetailScreen(offer: Offer, isLoggedIn: Boolean) {
                 )
                 Spacer(Modifier.height(12.dp))
                 Button(
-                    onClick = {},
+                    onClick = {onCreateAccount() },
                     Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                 ) {
                     Text("Crear cuenta")
                 }
-                OutlinedButton(onClick = {}, Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = { onLogin() }, Modifier.fillMaxWidth()) {
                     Text("Ya tengo cuenta")
                 }
-                TextButton(onClick = {showRegister = false}) {
+                TextButton(onClick = { showRegister = false }) {
                     Text("Ahora no")
                 }
             }

@@ -34,12 +34,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(
+    onBack: () -> Unit = {},
+    onSignUpClick: () -> Unit = {},
+    onLogin: (String) -> Unit
+) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
-    Column(Modifier.fillMaxSize().statusBarsPadding().padding(16.dp)) {
-        IconButton(onClick = {}) {
+    Column(Modifier
+        .fillMaxSize()
+        .statusBarsPadding()
+        .padding(16.dp)) {
+        IconButton(onClick = { onBack() }) {
             Icon(imageVector = Icons.Default.Close, contentDescription = "Cerrar")
         }
         Spacer(Modifier.height(16.dp))
@@ -70,8 +77,10 @@ fun LoginScreen() {
 
         Spacer(Modifier.height(24.dp))
         Button(
-            onClick = {},
-            modifier = Modifier.fillMaxWidth().height(55.dp),
+            onClick = { onLogin(email) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
             shape = RoundedCornerShape(16.dp)
         ) {
@@ -81,7 +90,9 @@ fun LoginScreen() {
         Spacer(Modifier.height(12.dp))
         OutlinedButton(
             onClick = {},
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
             Text("Continuar con Google")
@@ -89,7 +100,7 @@ fun LoginScreen() {
 
         Spacer(Modifier.height(8.dp))
         TextButton(
-            onClick = {},
+            onClick = { onSignUpClick() },
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
             Text("No tengo cuenta")

@@ -1,5 +1,9 @@
 package com.example.laburin.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -38,7 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun PublishSearchScreen() {
+fun PublishSearchScreen(
+    onBack: () -> Unit = {}
+) {
     var title by rememberSaveable() { mutableStateOf("") }
     var rubro by rememberSaveable() { mutableStateOf("") }
     var schedule by rememberSaveable() { mutableStateOf("") }
@@ -46,15 +52,25 @@ fun PublishSearchScreen() {
     var businessName by rememberSaveable() { mutableStateOf("") }
     var jobType by rememberSaveable() { mutableStateOf("") }
     var address by rememberSaveable() { mutableStateOf("") }
+    var photoUri by rememberSaveable() { mutableStateOf<Uri?>(null) }
 
-    Column(Modifier
-        .fillMaxSize()
-        .statusBarsPadding()
-        .imePadding()
-        .verticalScroll(rememberScrollState())
-        .padding(16.dp)) {
+    val photoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> photoUri = uri }
+
+    val isComplete = listOf(title, rubro, schedule, businessName, jobType, address)
+        .all { it.isNotBlank() }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = {}) {
+            IconButton(onClick = { onBack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
             }
             Text("Nueva búsqueda", fontSize = 16.sp)
@@ -67,12 +83,20 @@ fun PublishSearchScreen() {
                 .height(120.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
-                .clickable { },
+                .clickable {
+                    photoPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Default.Add, contentDescription = null)
-                Text("Agregar foto del comercio", color = Color.Gray, fontSize = 14.sp)
+                Text(
+                    if (photoUri == null) "Agregar foto del comercio" else "Foto seleccionada",
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
                 Spacer(Modifier.height(16.dp))
             }
         }
@@ -128,9 +152,15 @@ fun PublishSearchScreen() {
             modifier = Modifier.height(200.dp)
         )
 
-        Button(onClick = {}, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+        Button(
+            onClick = { onBack() },
+            enabled = isComplete,
+            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().height(60.dp)) {
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+        ) {
             Text("Publicar la oferta", fontSize = 16.sp)
         }
     }

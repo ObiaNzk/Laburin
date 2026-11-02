@@ -15,8 +15,9 @@ import androidx.compose.ui.unit.sp
 import com.example.laburin.model.Offer
 
 @Composable
-fun OfferItem(offer: Offer, modifier: Modifier = Modifier) {
+fun OfferItem(offer: Offer, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),

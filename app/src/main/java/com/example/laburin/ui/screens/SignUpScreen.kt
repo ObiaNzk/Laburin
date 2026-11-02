@@ -37,14 +37,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun SignUpScreen(){
+fun SignUpScreen(
+    onBack: () -> Unit = {}
+) {
     var name by rememberSaveable() { mutableStateOf("") }
     var surname by rememberSaveable() { mutableStateOf("") }
     var password by rememberSaveable() { mutableStateOf("") }
     var email by rememberSaveable() { mutableStateOf("") }
 
-    Column(Modifier.fillMaxSize().statusBarsPadding().padding(16.dp)) {
-        IconButton(onClick = {}) {
+    Column(Modifier
+        .fillMaxSize()
+        .statusBarsPadding()
+        .padding(16.dp)) {
+        IconButton(onClick = { onBack() }) {
             Icon(imageVector = Icons.Default.Close, contentDescription = null)
         }
         Spacer(Modifier.height(16.dp))
@@ -57,7 +62,7 @@ fun SignUpScreen(){
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
-            placeholder = {Text("Escriba su nombre aquí")},
+            placeholder = { Text("Escriba su nombre aquí") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             singleLine = true
@@ -68,7 +73,7 @@ fun SignUpScreen(){
         OutlinedTextField(
             value = surname,
             onValueChange = { surname = it },
-            placeholder = {Text("Escriba su apellido aquí")},
+            placeholder = { Text("Escriba su apellido aquí") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             singleLine = true
@@ -79,7 +84,7 @@ fun SignUpScreen(){
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = {Text("Para enviarle la aprobación")},
+            placeholder = { Text("Para enviarle la aprobación") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
@@ -91,7 +96,7 @@ fun SignUpScreen(){
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = {Text("Mínimo 8 carácteres")},
+            placeholder = { Text("Mínimo 8 carácteres") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
@@ -101,8 +106,10 @@ fun SignUpScreen(){
 
         Spacer(Modifier.height(24.dp))
         Button(
-            onClick = {},
-            Modifier.fillMaxWidth().height(55.dp),
+            onClick = { onBack() },
+            Modifier
+                .fillMaxWidth()
+                .height(55.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
             shape = RoundedCornerShape(16.dp)
         ) {
@@ -110,7 +117,9 @@ fun SignUpScreen(){
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f))
@@ -120,12 +129,20 @@ fun SignUpScreen(){
 
         OutlinedButton(
             onClick = {},
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
             Text("Continuar con Google")
         }
 
-        Text("Podés cargar tu CV antes de postularte.", fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text(
+            "Podés cargar tu CV antes de postularte.",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

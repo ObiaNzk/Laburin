@@ -43,7 +43,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
 @Composable
-fun ScanScreen(){
+fun ScanScreen(
+    onClose: () -> Unit = {}
+){
     val context = LocalContext.current
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -58,7 +60,7 @@ fun ScanScreen(){
 
     Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray)){
         CameraPreview(Modifier.fillMaxSize())
-        IconButton(onClick = {}, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp)) {
+        IconButton(onClick = { onClose() }, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp)) {
             Icon(imageVector = Icons.Default.Close, "Cerrar", tint = Color.White)
         }
         Column(modifier = Modifier.align(Alignment.Center),

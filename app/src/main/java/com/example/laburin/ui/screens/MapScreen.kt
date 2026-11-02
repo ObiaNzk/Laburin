@@ -46,20 +46,35 @@ import com.example.laburin.ui.components.OfferItem
 import org.osmdroid.util.GeoPoint
 
 @Composable
-fun MapScreen() {
+fun MapScreen(
+    onLoginClick: () -> Unit,
+    onApplicationClick: () -> Unit,
+    onPublishClick: () -> Unit,
+    onScanClick: () -> Unit = {},
+    onOfferClick: (Offer) -> Unit,
+    isLoggedIn: Boolean
+) {
     var rubro by remember { mutableStateOf("Todos") }
     var radio by remember { mutableStateOf("2") }
-    
+
     val offerList = listOf(
-        Offer("Ayudante de taller", "Mecánica", 300, "Av. Corrientes 1234", GeoPoint(-34.6080, -58.3712)),
+        Offer(
+            "Ayudante de taller",
+            "Mecánica",
+            300,
+            "Av. Corrientes 1234",
+            GeoPoint(-34.6080, -58.3712)
+        ),
         Offer("Mozo", "Gastronomía", 700, "Calle Ficticia 456", GeoPoint(-34.5997, -58.3819)),
         Offer("Repositor", "Repositor", 1200, "Av. Rivadavia 2000", GeoPoint(-34.6120, -58.3900))
     )
-    
+
     val filteredOffersByRubro = offerList.filter { rubro == "Todos" || it.category == rubro }
-    val filteredOffersByRadio = filteredOffersByRubro.filter { it.distanceMeters <= radio.toInt() * 1000 }
+    val filteredOffersByRadio =
+        filteredOffersByRubro.filter { it.distanceMeters <= radio.toInt() * 1000 }
     var textToSearch by remember { mutableStateOf("") }
-    val filteredOffersByText = filteredOffersByRadio.filter { it.title.contains(textToSearch, ignoreCase = true) }
+    val filteredOffersByText =
+        filteredOffersByRadio.filter { it.title.contains(textToSearch, ignoreCase = true) }
 
     Scaffold(
         topBar = {
@@ -79,12 +94,16 @@ fun MapScreen() {
                         rubro = rubro, onRubroChange = { rubro = it },
                         radio = radio, onRadioChange = { radio = it }
                     )
-                    PublishButton()
+                    PublishButton(onPublishClick = onPublishClick)
                 }
             }
         },
         bottomBar = {
-            LaburinNavigationBar()
+            LaburinNavigationBar(
+                onLoginClick = onLoginClick,
+                onApplicationClick = onApplicationClick,
+                isLoggedIn = isLoggedIn
+            )
         }
     ) { innerPadding ->
         Box(
@@ -96,12 +115,12 @@ fun MapScreen() {
                 offers = filteredOffersByText,
                 modifier = Modifier.fillMaxSize()
             )
-            
+
             FloatingActionButton(
-                onClick = {}, 
+                onClick = { onScanClick() },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 260.dp), 
+                    .padding(end = 16.dp, bottom = 260.dp),
                 shape = CircleShape
             ) {
                 Text("QR", fontWeight = FontWeight.Bold)
@@ -111,7 +130,7 @@ fun MapScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.42f)
-                    .align(Alignment.BottomCenter), 
+                    .align(Alignment.BottomCenter),
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 shadowElevation = 16.dp,
                 color = Color.White
@@ -147,7 +166,7 @@ fun MapScreen() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(filteredOffersByText) { offer ->
-                            OfferItem(offer = offer)
+                            OfferItem(onClick = { onOfferClick(offer) }, offer = offer)
                         }
                     }
                 }
@@ -157,9 +176,11 @@ fun MapScreen() {
 }
 
 @Composable
-fun SearchBar(textToSearch: String, onTextChange: (String) -> Unit, modifier: Modifier = Modifier){
+fun SearchBar(textToSearch: String, onTextChange: (String) -> Unit, modifier: Modifier = Modifier) {
     OutlinedTextField(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         shape = RoundedCornerShape(24.dp),
         value = textToSearch,
         onValueChange = onTextChange,
@@ -168,13 +189,15 @@ fun SearchBar(textToSearch: String, onTextChange: (String) -> Unit, modifier: Mo
 }
 
 @Composable
-fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
-                  radio: String, onRadioChange: (String) -> Unit,
-                  modifier: Modifier = Modifier){
+fun FilterButtons(
+    rubro: String, onRubroChange: (String) -> Unit,
+    radio: String, onRadioChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
 
     var expandedRadio by remember { mutableStateOf(false) }
     var expandedRubro by remember { mutableStateOf(false) }
-    
+
     val radioOptions = listOf("2", "5", "10", "15")
     val rubroOptions = listOf("Todos", "Gastronomía", "Mecánica", "Repositor")
 
@@ -194,9 +217,15 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center){
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
                             Text("Radio: $radio km")
-                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null
+                            )
                         }
                     }
                 },
@@ -204,7 +233,7 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
                 shape = RoundedCornerShape(16.dp)
             )
             DropdownMenu(
-                expanded = expandedRadio, 
+                expanded = expandedRadio,
                 onDismissRequest = { expandedRadio = false }
             ) {
                 radioOptions.forEach { option ->
@@ -220,7 +249,7 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
         }
         Box(
             modifier = Modifier.weight(1f),
-        ){
+        ) {
             AssistChip(
                 onClick = { expandedRubro = true },
                 label = {
@@ -228,9 +257,15 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center){
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
                             Text("Rubro: $rubro")
-                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null
+                            )
                         }
                     }
                 },
@@ -256,10 +291,12 @@ fun FilterButtons(rubro: String, onRubroChange: (String) -> Unit,
 }
 
 @Composable
-fun PublishButton(modifier: Modifier = Modifier){
+fun PublishButton(modifier: Modifier = Modifier, onPublishClick: () -> Unit) {
     Button(
-        onClick = {}, 
-        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        onClick = { onPublishClick() },
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         shape = RoundedCornerShape(20.dp)
     ) {
         Text("¿Buscás empleados? Publicá gratis", fontWeight = FontWeight.Bold)

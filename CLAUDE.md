@@ -26,18 +26,20 @@ Dependencies are declared in `gradle/libs.versions.toml` (version catalog). Some
 ## Current state of the code
 
 - Single module `:app`, package `com.example.laburin`, `minSdk 31`, `compileSdk/targetSdk 37`.
-- **Map screen (RF-01) is the reference implementation** of the full stack. Copy its patterns for new screens: `ui/screens/map/` (Route/Content/ViewModel/UiState), `domain/` (models, `OfferRepository`, use cases, `Haversine`), `data/` (Room, remote, mappers, `OfflineFirstOfferRepository`, location, connectivity, DataStore), `di/AppModules.kt`. Design doc: `docs/superpowers/specs/2026-11-02-map-data-layer-design.md`.
+- **Map (RF-01) and Offer detail (RF-02, guest/full) are the reference implementations** of the full stack. Copy their patterns for new screens: `ui/screens/map/` and `ui/screens/detail/` (Route/Content/ViewModel/UiState), `domain/` (models, `OfferRepository`, use cases, `Haversine`), `data/` (Room, remote, mappers, `OfflineFirstOfferRepository`, location, connectivity, DataStore), `di/AppModules.kt`. Design doc: `docs/superpowers/specs/2026-11-02-map-data-layer-design.md`.
 - **The Go API doesn't exist yet.** `DataModule` binds `FakeOfferRemoteDataSource`. The contract is in `docs/api/offers.md`. `RetrofitOfferRemoteDataSource` is ready; swap the binding when the API exists.
 - Interfaces the ViewModel/use cases need (`LocationProvider`, `ConnectivityObserver`, `FiltersRepository`) live in `domain/repository`, with implementations in `data/`. The repository depends on `OfferLocalDataSource`/`OfferRemoteDataSource` interfaces so it is JVM-testable with fakes (see `app/src/test/.../fakes`).
-- Still **UI-only, legacy**: `OfferDetailScreen` (uses the old `model/Offer.kt` with osmdroid `GeoPoint`), `SignUpScreen`, `ScanScreen`. Migrate each one onto the domain `Offer` when its turn comes, then delete `model/Offer.kt`. There is no Navigation yet: `MapRoute` exposes `onNavigateTo*` lambdas.
+- **Navigation**: single `LaburinNavHost` (`ui/navigation/`) with type-safe `@Serializable` destinations. ViewModels read their arguments from `SavedStateHandle` by property name (constants in the destination's companion), not with `toRoute()`, so they stay JVM-testable. Routes expose `onNavigateTo*` lambdas, and only the NavHost knows the `NavController`.
+- **Session is a placeholder**: `InMemorySessionRepository` is always logged out until sign-up/login exist (must become Keystore-backed, RNF-09). The "full" detail is covered by tests and previews.
+- Still **UI-only, legacy**: `SignUpScreen` (only `onClose` is wired), `ScanScreen`. Not wired yet: QR, publish, login ("Ya tengo cuenta"), apply ("Postularme").
 - The map uses **osmdroid** (OpenStreetMap). `ui/components/DisplayMap.kt` is the only file that may import it. It takes `MapMarker`/`GeoLocation`, so switching provider touches only that file. OSM tile policy needs a non-default user agent (`"Laburin"`).
 - Strings for new UI go in `res/values/strings.xml` (the legacy screens still hardcode them).
 
 ### Local environment gotchas
 
-- `gradle/wrapper/gradle-wrapper.jar` is ignored by the `*.jar` rule in `.gitignore`. If it's missing, regenerate it with a local Gradle 9.5 (`gradle wrapper`).
-- `local.properties` is committed with a teammate's Windows `sdk.dir`. Fix it locally and don't commit it. `.gradle/`, `build/` and `.idea/` are also tracked by mistake, so stage files explicitly.
+- `local.properties`, `.gradle/`, `.idea/` and `build/` are git-ignored and machine-specific. Android Studio regenerates `local.properties` with your `sdk.dir`.
 - Use the JBR bundled with Android Studio as `JAVA_HOME`: the system JDK is newer than what Gradle supports.
+- Sources live in `src/*/kotlin/` (not `java/`).
 
 ## Target architecture (from the planning doc)
 
@@ -66,7 +68,8 @@ Offline-first rules that shape the data layer:
 - **Data**: `LocalDataSource` (Room) + `RemoteDataSource` (Retrofit) coordinated by the repository. Entities and DTOs never leave the data layer. Use extension mappers `toDomain()` / `toEntity()`.
 - **Room**: DAO reads return `Flow`, one-shot reads/writes are `suspend`. Choose the conflict strategy deliberately. Filter in SQL rather than the UI, using `:param` and never string concatenation. Use `@Transaction` for compound ops, `TypeConverter`s for `Instant`↔`Long`, and `exportSchema = true` with real migrations (never a blanket `fallbackToDestructiveMigration`). Use KSP for `room-compiler`.
 - **Coroutines**: use `viewModelScope`. Never swallow `CancellationException` in `catch`.
-- **Tests**: test ViewModels against a fake repository, test the DAO and migrations (`MigrationTestHelper`), and test `XContent` with fabricated states.
+- **Tests**: test ViewModels against a fake repository, test the DAO and migrations (`MigrationTestHelper`), and test `XContent` with fabricated states (Compose `createComposeRule`, instrumented).
+- **Instrumented test infra**: the runner is `HiltTestRunner` (androidTest). End-to-end tests use `@HiltAndroidTest` with the real graph. Device location is pinned by `FixedLocationModule`, which replaces `LocationModule` via `@TestInstallIn`, so tests never depend on where the device is. Run a single class with `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<fqcn>`.
 
 Other constraints: session tokens are encrypted with the Android Keystore and never stored in plain text (RNF-09). User preferences such as radius and category go in DataStore. Location is requested only when the map opens or refreshes, with no background tracking (RNF-07). Applicant phone and email stay hidden until the server confirms the Match (RNF-05).
 
@@ -74,5 +77,6 @@ Other constraints: session tokens are encrypted with the Android Keystore and ne
 
 - Branches: `main` (protected), `develop` (integration), `feature/<name>`. PRs into `develop` need one review from another team member.
 - Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`). Versioning/changelog follows Keep a Changelog 1.1.0.
+- **Strict TDD**: write the test cases first, add a compiling stub (`TODO()` / empty), run and confirm they fail *for the right reason*, then implement the minimum to pass. For tests that pass immediately against existing code, prove they can fail with a temporary mutation. Report anything left untested.
 - The team is building the data/ViewModel layer **one screen at a time**. Follow the patterns taught in the course material and ask the user when a best practice isn't covered there.
 - Never put real personal data (names, emails, DNI, phones, addresses) in sample data, previews or tests. Use placeholders like `[NOMBRE]`, `[EMAIL]`.

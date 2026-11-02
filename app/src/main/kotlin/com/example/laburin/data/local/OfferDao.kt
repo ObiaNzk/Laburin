@@ -25,8 +25,17 @@ abstract class OfferDao {
         category: Category?, query: String,
     ): Flow<List<OfferEntity>>
 
+    @Query("SELECT * FROM offers WHERE id = :id")
+    abstract fun observeById(id: String): Flow<OfferEntity?>
+
     @Upsert
     abstract suspend fun upsertAll(offers: List<OfferEntity>)
+
+    @Upsert
+    abstract suspend fun upsert(offer: OfferEntity)
+
+    @Query("DELETE FROM offers WHERE id = :id")
+    abstract suspend fun deleteById(id: String)
 
     @Query(
         """

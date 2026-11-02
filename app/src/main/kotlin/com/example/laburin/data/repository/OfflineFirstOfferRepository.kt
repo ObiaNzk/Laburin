@@ -44,4 +44,23 @@ class OfflineFirstOfferRepository @Inject constructor(
         local.setLastSyncedAt(clock.instant())
         return RefreshResult.Success
     }
+
+    override fun observeOffer(id: String): Flow<Offer?> = local.observeById(id).map { it?.toDomain() }
+
+    override suspend fun refreshOffer(id: String): RefreshResult {
+        val dto = try {
+            remote.getOffer(id)
+        } catch (e: IOException) {
+            return RefreshResult.NetworkError
+        } catch (e: ApiException) {
+            return RefreshResult.ServerError(e.code)
+        }
+        val entity = dto?.takeIf { it.status == ACTIVE_STATUS }?.toEntityOrNull()
+        if (entity == null) local.delete(id) else local.upsert(entity)
+        return RefreshResult.Success
+    }
+
+    private companion object {
+        const val ACTIVE_STATUS = "ACTIVE"
+    }
 }

@@ -2,6 +2,7 @@ package com.example.laburin.data.remote
 
 import retrofit2.HttpException
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Query
 import javax.inject.Inject
 
@@ -13,6 +14,9 @@ interface OfferApi {
         @Query("radiusKm") radiusKm: Int,
         @Query("category") category: String?,
     ): List<OfferDto>
+
+    @GET("offers/{id}")
+    suspend fun getOffer(@Path("id") id: String): OfferDto
 }
 
 class RetrofitOfferRemoteDataSource @Inject constructor(
@@ -25,4 +29,15 @@ class RetrofitOfferRemoteDataSource @Inject constructor(
         } catch (e: HttpException) {
             throw ApiException(e.code(), e.message())
         }
+
+    override suspend fun getOffer(id: String): OfferDto? =
+        try {
+            api.getOffer(id)
+        } catch (e: HttpException) {
+            if (e.code() == HTTP_NOT_FOUND) null else throw ApiException(e.code(), e.message())
+        }
+
+    private companion object {
+        const val HTTP_NOT_FOUND = 404
+    }
 }

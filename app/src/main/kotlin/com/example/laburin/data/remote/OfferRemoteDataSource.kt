@@ -28,4 +28,11 @@ interface OfferRemoteDataSource {
      * @throws ApiException on a non-2xx response
      */
     suspend fun getOffers(latitude: Double, longitude: Double, radiusKm: Int, category: String?): List<OfferDto>
+
+    /**
+     * Any status: the caller decides what a closed offer means. Null when the server doesn't know the id (404).
+     * @throws java.io.IOException on network failure
+     * @throws ApiException on any other non-2xx response
+     */
+    suspend fun getOffer(id: String): OfferDto?
 }

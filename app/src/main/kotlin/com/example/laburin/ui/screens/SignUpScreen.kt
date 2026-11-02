@@ -37,14 +37,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun SignUpScreen(){
+fun SignUpScreen(onClose: () -> Unit = {}) {
     var name by rememberSaveable() { mutableStateOf("") }
     var surname by rememberSaveable() { mutableStateOf("") }
     var password by rememberSaveable() { mutableStateOf("") }
     var email by rememberSaveable() { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize().statusBarsPadding().padding(16.dp)) {
-        IconButton(onClick = {}) {
+        IconButton(onClick = onClose) {
             Icon(imageVector = Icons.Default.Close, contentDescription = null)
         }
         Spacer(Modifier.height(16.dp))

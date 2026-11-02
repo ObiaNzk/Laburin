@@ -20,7 +20,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.example.laburin.HiltTestRunner"
 
         // Base URL of the (future) Go REST API. Only used when the Retrofit data source is bound.
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.navigation.compose)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
@@ -83,6 +84,9 @@ dependencies {
     testImplementation(libs.turbine)
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.hilt.android.testing)
+    androidTestImplementation(libs.androidx.test.rules)
+    kspAndroidTest(libs.hilt.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

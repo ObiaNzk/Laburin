@@ -12,6 +12,7 @@ import com.example.laburin.data.remote.ApiException
 import com.example.laburin.domain.model.ApplicantStatus
 import com.example.laburin.domain.model.ApplicationStatus
 import com.example.laburin.domain.model.SyncOutcome
+import com.example.laburin.domain.repository.SessionExpiryNotifier
 import kotlinx.coroutines.flow.first
 import java.io.IOException
 import javax.inject.Inject
@@ -28,28 +29,37 @@ class PendingActionsSyncer @Inject constructor(
     private val publishedOffers: PublishedOfferDao,
     private val business: BusinessRemoteDataSource,
     private val applicants: ApplicantDao,
+    private val sessionExpiry: SessionExpiryNotifier,
 ) {
     suspend fun run(): SyncOutcome {
         val actions = pending.all()
         if (actions.isEmpty()) return SyncOutcome.Done
-        val token = session.stored.first()?.token ?: return SyncOutcome.AuthRequired
+        val stored = session.stored.first() ?: return SyncOutcome.AuthRequired
+        val token = stored.token
+        val userId = stored.session.userId
         for (action in actions) {
             val outcome = when (action.type) {
-                APPLY -> sendApplication(token, action.targetId)
-                PUBLISH -> sendPublication(token, action.targetId)
+                APPLY -> sendApplication(token, userId, action.targetId)
+                PUBLISH -> sendPublication(token, userId, action.targetId)
                 REVIEW -> sendReview(token, action.targetId)
                 else -> Sent // Unknown types come from a newer app version that was downgraded: drop them.
             }
             when (outcome) {
                 Sent -> pending.delete(action.id)
-                is Stop -> return outcome.result
+                Skip -> Unit
+                is Stop -> {
+                    if (outcome.result == SyncOutcome.AuthRequired) sessionExpiry.sessionExpired()
+                    return outcome.result
+                }
             }
         }
         return SyncOutcome.Done
     }
 
-    private suspend fun sendApplication(token: String, applicationId: String): Step {
+    private suspend fun sendApplication(token: String, userId: String, applicationId: String): Step {
         val application = applications.find(applicationId) ?: return Sent
+        // Someone else's action (they logged out and another person logged in): keep it for its owner.
+        if (application.userId != userId) return Skip
         return try {
             remote.apply(token, application.id, application.offerId)
             applications.updateStatus(application.id, ApplicationStatus.SENT.name)
@@ -68,8 +78,9 @@ class PendingActionsSyncer @Inject constructor(
         }
     }
 
-    private suspend fun sendPublication(token: String, offerId: String): Step {
+    private suspend fun sendPublication(token: String, userId: String, offerId: String): Step {
         val offer = publishedOffers.find(offerId) ?: return Sent
+        if (offer.businessId != userId) return Skip
         return try {
             business.publishOffer(token, PublishOfferDto(offer.id, offer.title, offer.category, offer.schedule, offer.description))
             publishedOffers.updateStatus(offer.id, PublishedOfferStatus.ACTIVE.name)
@@ -102,6 +113,7 @@ class PendingActionsSyncer @Inject constructor(
 
     private sealed interface Step
     private data object Sent : Step
+    private data object Skip : Step
     private data class Stop(val result: SyncOutcome) : Step
 
     companion object {

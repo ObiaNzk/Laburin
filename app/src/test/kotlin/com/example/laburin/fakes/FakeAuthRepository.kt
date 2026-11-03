@@ -32,6 +32,13 @@ class FakeAuthRepository(initial: Session? = null) : AuthRepository {
         return respond("signUpBusiness:${data.businessName}")
     }
 
+    override val isSessionExpired = MutableStateFlow(false)
+    override suspend fun sessionExpired() {
+        session.value = null
+        isSessionExpired.value = true
+    }
+    override suspend fun acknowledgeSessionExpired() { isSessionExpired.value = false }
+
     override suspend fun logout() {
         calls += "logout"
         session.value = null

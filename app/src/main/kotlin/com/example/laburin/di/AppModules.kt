@@ -54,6 +54,7 @@ import com.example.laburin.domain.repository.Geocoder
 import com.example.laburin.domain.repository.LocationProvider
 import com.example.laburin.domain.repository.OfferRepository
 import com.example.laburin.domain.repository.AuthRepository
+import com.example.laburin.domain.repository.SessionExpiryNotifier
 import com.example.laburin.domain.repository.SessionRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -181,6 +182,9 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindSessionRepository(impl: DefaultAuthRepository): SessionRepository
+
+    @Binds
+    abstract fun bindSessionExpiryNotifier(impl: DefaultAuthRepository): SessionExpiryNotifier
 
     @Binds
     abstract fun bindSessionStore(impl: KeystoreSessionStore): SessionStore

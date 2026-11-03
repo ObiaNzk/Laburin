@@ -9,6 +9,8 @@ import com.example.laburin.domain.model.UserRole
 import com.example.laburin.domain.repository.AuthRepository
 import com.example.laburin.domain.repository.SyncScheduler
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 import javax.inject.Inject
@@ -39,6 +41,19 @@ class DefaultAuthRepository @Inject constructor(
         )
     }
 
+    private val expired = MutableStateFlow(false)
+    override val isSessionExpired: Flow<Boolean> = expired.asStateFlow()
+
+    /** Only the local session is dropped: queued actions stay and are sent after the next login. */
+    override suspend fun sessionExpired() {
+        store.clear()
+        expired.value = true
+    }
+
+    override suspend fun acknowledgeSessionExpired() {
+        expired.value = false
+    }
+
     override suspend fun logout() = store.clear()
 
     private suspend fun authenticate(call: suspend () -> AuthResponseDto): AuthResult {
@@ -55,6 +70,7 @@ class DefaultAuthRepository @Inject constructor(
         }
         val session = response.user.toSession() ?: return AuthResult.ServerError(HTTP_OK)
         store.save(StoredSession(response.token, session))
+        expired.value = false
         syncScheduler.schedule()
         return AuthResult.Success
     }

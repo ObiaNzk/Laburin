@@ -7,6 +7,7 @@ import com.example.laburin.data.publish.FakeBusinessRemote
 import com.example.laburin.fakes.FakePublishedOfferDao
 import com.example.laburin.data.remote.ApiException
 import com.example.laburin.domain.model.SyncOutcome
+import com.example.laburin.domain.repository.SessionExpiryNotifier
 import com.example.laburin.fakes.CANDIDATE_STORED
 import com.example.laburin.fakes.FakeApplicationDao
 import com.example.laburin.fakes.FakePendingActionDao
@@ -29,7 +30,11 @@ class PendingActionsSyncerTest {
     private val published = FakePublishedOfferDao()
     private val business = FakeBusinessRemote()
     private val applicants = com.example.laburin.data.publish.FakeApplicantDao()
-    private val syncer = PendingActionsSyncer(pending, applications, remote, session, published, business, applicants)
+    private var expiredNotices = 0
+    private val syncer = PendingActionsSyncer(
+        pending, applications, remote, session, published, business, applicants,
+        sessionExpiry = SessionExpiryNotifier { expiredNotices++ },
+    )
 
     @Before
     fun setUp() = runTest {
@@ -89,6 +94,38 @@ class PendingActionsSyncerTest {
     }
 
     @Test
+    fun `an expired session is reported so the user can log in again`() = runTest {
+        remote.applyResponse = { throw ApiException(401) }
+
+        syncer.run()
+
+        assertEquals(1, expiredNotices)
+    }
+
+    @Test
+    fun `another user's queued application is kept and never sent with this token`() = runTest {
+        session.saved.value = CANDIDATE_STORED.copy(session = CANDIDATE_STORED.session.copy(userId = "otra-persona"))
+
+        assertEquals(SyncOutcome.Done, syncer.run())
+
+        assertTrue(remote.applyCalls.isEmpty())
+        assertEquals(1, pending.rows.value.size)
+        assertEquals("PENDING_SEND", applications.statusOf("a-1"))
+    }
+
+    @Test
+    fun `another business's queued publication is kept and never sent with this token`() = runTest {
+        pending.rows.value = emptyList()
+        published.insert(PublishedOfferEntity("p-1", "otro-comercio", "Mozo", "GASTRONOMY", "Sábados", "[DESCRIPCION]", "PENDING_PUBLISH", Instant.EPOCH))
+        pending.insert(PendingActionEntity("q-1", PendingActionsSyncer.PUBLISH, "p-1", Instant.EPOCH))
+
+        syncer.run()
+
+        assertTrue(business.publishCalls.isEmpty())
+        assertEquals(1, pending.rows.value.size)
+    }
+
+    @Test
     fun `without a session nothing is sent and nothing is lost`() = runTest {
         session.saved.value = null
 
@@ -122,7 +159,7 @@ class PendingActionsSyncerTest {
     @Test
     fun `a published offer becomes active once the server accepts it`() = runTest {
         pending.rows.value = emptyList()
-        published.insert(PublishedOfferEntity("p-1", "b-1", "Mozo", "GASTRONOMY", "Sábados", "[DESCRIPCION]", "PENDING_PUBLISH", Instant.EPOCH))
+        published.insert(PublishedOfferEntity("p-1", "u-1", "Mozo", "GASTRONOMY", "Sábados", "[DESCRIPCION]", "PENDING_PUBLISH", Instant.EPOCH))
         pending.insert(PendingActionEntity("q-1", PendingActionsSyncer.PUBLISH, "p-1", Instant.EPOCH))
 
         assertEquals(SyncOutcome.Done, syncer.run())
@@ -135,7 +172,7 @@ class PendingActionsSyncerTest {
     @Test
     fun `publishing without network stays pending`() = runTest {
         pending.rows.value = emptyList()
-        published.insert(PublishedOfferEntity("p-1", "b-1", "Mozo", "GASTRONOMY", "Sábados", "[DESCRIPCION]", "PENDING_PUBLISH", Instant.EPOCH))
+        published.insert(PublishedOfferEntity("p-1", "u-1", "Mozo", "GASTRONOMY", "Sábados", "[DESCRIPCION]", "PENDING_PUBLISH", Instant.EPOCH))
         pending.insert(PendingActionEntity("q-1", PendingActionsSyncer.PUBLISH, "p-1", Instant.EPOCH))
         business.publishResponse = { throw IOException("offline") }
 

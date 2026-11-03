@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.LocationResult
+import com.example.laburin.domain.model.ViewSource
 import com.example.laburin.domain.model.ZoneResult
 import com.example.laburin.domain.repository.Geocoder
 import com.example.laburin.domain.model.RefreshResult
@@ -354,6 +355,24 @@ class MapViewModelTest {
         vm.onDismissZone()
 
         assertEquals(ZoneSearchState(), vm.uiState.value.zoneSearch)
+    }
+
+    // --- Recently viewed ---
+
+    @Test
+    fun `recently viewed offers outside the results are listed with their distance`() = runTest {
+        val far = testOffer(id = "far", title = "Cocinero/a", location = GeoLocation(-34.5850, -58.3950))
+        val near = testOffer(id = "near", location = GeoLocation(-34.6083, -58.3712))
+        repository.offers.value = listOf(far, near)
+        repository.markViewed("far", ViewSource.MAP)
+        repository.markViewed("near", ViewSource.MAP)
+        val vm = createViewModel()
+
+        vm.onLocationPermissionResult(granted = true)
+
+        val recent = vm.uiState.value.recentlyViewed
+        assertEquals(listOf("far"), recent.map { it.offer.id })
+        assertTrue(recent.single().distanceMeters > 2_000)
     }
 
     private class FakeGeocoder : Geocoder {

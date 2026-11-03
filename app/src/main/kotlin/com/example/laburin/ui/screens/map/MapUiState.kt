@@ -21,6 +21,8 @@ data class MapUiState(
     /** Name of the zone the user typed, when the center comes from a manual zone. */
     val zoneName: String? = null,
     val zoneSearch: ZoneSearchState = ZoneSearchState(),
+    /** Offers the user opened that aren't in the current results (e.g. outside the radius). */
+    val recentlyViewed: List<NearbyOffer> = emptyList(),
 ) {
     companion object {
         val DEFAULT_CENTER = GeoLocation(-34.6037, -58.3816)

@@ -76,7 +76,9 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
             composable<ScanDestination> {
                 ScanRoute(
                     onOpenOffer = { offerId ->
-                        navController.navigate(OfferDetailDestination(offerId)) { popUpTo<ScanDestination> { inclusive = true } }
+                        navController.navigate(OfferDetailDestination(offerId, fromQr = true)) {
+                            popUpTo<ScanDestination> { inclusive = true }
+                        }
                     },
                     onClose = { navController.popBackStack() },
                 )

@@ -5,6 +5,7 @@ import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Offer
 import com.example.laburin.domain.model.RefreshResult
+import com.example.laburin.domain.model.ViewSource
 import com.example.laburin.domain.repository.OfferRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +40,13 @@ class FakeOfferRepository : OfferRepository {
 
     /** Lets a test hold the refresh in flight (to observe Loading) or change the cache as the server would. */
     var onRefreshOffer: suspend (id: String) -> Unit = {}
+
+    val viewed = MutableStateFlow<List<Pair<String, ViewSource>>>(emptyList())
+    override suspend fun markViewed(offerId: String, source: ViewSource) {
+        viewed.value = listOf(offerId to source) + viewed.value.filterNot { it.first == offerId }
+    }
+    override fun observeRecentlyViewed(): Flow<List<Offer>> =
+        kotlinx.coroutines.flow.combine(viewed, offers) { v, o -> v.mapNotNull { (id, _) -> o.firstOrNull { it.id == id } } }
 
     override fun observeOffer(id: String): Flow<Offer?> = offers.map { list -> list.firstOrNull { it.id == id } }
 

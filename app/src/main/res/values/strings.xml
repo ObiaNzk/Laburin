@@ -183,4 +183,5 @@
     <string name="map_zone_cancel">Cancelar</string>
     <string name="map_zone_not_found">No encontramos esa zona</string>
     <string name="map_zone_network">Necesitás conexión para buscar una zona</string>
+    <string name="map_recently_viewed">Vistas recientemente</string>
 </resources>

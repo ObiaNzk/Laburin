@@ -6,6 +6,8 @@ import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.LocationResult
 import com.example.laburin.domain.model.ZoneResult
+import com.example.laburin.domain.geo.Haversine
+import kotlin.math.roundToInt
 import com.example.laburin.domain.model.NearbyOffer
 import com.example.laburin.domain.model.RefreshResult
 import com.example.laburin.domain.model.SearchFilters
@@ -91,6 +93,14 @@ class MapViewModel @Inject constructor(
             offers = offersState(params.location.status, offers, refresh, online),
         )
     }.combine(zoneSearch) { state, zone -> state.copy(zoneSearch = zone) }
+        .combine(offerRepository.observeRecentlyViewed()) { state, viewed ->
+            val listed = (state.offers as? OffersState.Content)?.offers.orEmpty().map { it.offer.id }.toSet()
+            state.copy(
+                recentlyViewed = viewed.filterNot { it.id in listed }.map {
+                    NearbyOffer(it, Haversine.distanceMeters(state.center, it.location).roundToInt())
+                },
+            )
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MapUiState())
 
     private val _effects = MutableSharedFlow<MapEffect>()

@@ -10,6 +10,10 @@ import com.example.laburin.domain.model.RefreshResult
 import com.example.laburin.domain.apply.ApplyToOfferUseCase
 import com.example.laburin.domain.repository.ApplicationRepository
 import com.example.laburin.domain.repository.ConnectivityObserver
+import com.example.laburin.domain.repository.OfferRepository
+import com.example.laburin.domain.model.ViewSource
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import com.example.laburin.domain.repository.SessionRepository
 import com.example.laburin.domain.usecase.ObserveOfferUseCase
 import com.example.laburin.domain.usecase.RefreshOfferUseCase
@@ -30,6 +34,7 @@ import javax.inject.Inject
 class OfferDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     observeOffer: ObserveOfferUseCase,
+    private val offerRepository: OfferRepository,
     private val refreshOffer: RefreshOfferUseCase,
     sessionRepository: SessionRepository,
     connectivityObserver: ConnectivityObserver,
@@ -39,6 +44,7 @@ class OfferDetailViewModel @Inject constructor(
 
     private val offerId: String = checkNotNull(savedStateHandle[OfferDetailDestination.ARG_OFFER_ID])
     private val distanceMeters: Int? = savedStateHandle[OfferDetailDestination.ARG_DISTANCE_METERS]
+    private val source = if (savedStateHandle.get<Boolean>(OfferDetailDestination.ARG_FROM_QR) == true) ViewSource.QR else ViewSource.MAP
 
     /** null until the first refresh attempt finishes. */
     private val lastRefresh = MutableStateFlow<RefreshResult?>(null)
@@ -57,6 +63,11 @@ class OfferDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { refresh() }
+        // Recorded once the offer is actually available, so it stays reachable outside the radius (RF-02).
+        viewModelScope.launch {
+            offer.filterNotNull().first()
+            offerRepository.markViewed(offerId, source)
+        }
         // Opened offline (e.g. a QR scanned on the street): load it as soon as the connection is back.
         viewModelScope.launch {
             var wasOnline = isOnline.value

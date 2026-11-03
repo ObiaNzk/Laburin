@@ -32,7 +32,7 @@ class MapContentTest {
                 state = state, now = now,
                 onQueryChange = {}, onClearQuery = { clicks += "clearQuery" }, onRadiusChange = {},
                 onCategoryChange = {}, onWidenRadius = { clicks += "widen" }, onShowAllCategories = {},
-                onRetry = { clicks += "retry" }, onOfferClick = {}, onScanClick = {}, onPublishClick = {},
+                onRetry = { clicks += "retry" }, onOfferClick = { clicks += "open:$it" }, onScanClick = {}, onPublishClick = {},
                 onChooseZone = { clicks += "chooseZone" }, onDismissZone = { clicks += "dismissZone" },
                 onZoneSearch = { clicks += "zone:$it" },
             )
@@ -166,5 +166,40 @@ class MapContentTest {
         )
 
         composeRule.onNodeWithText("No encontramos esa zona").assertIsDisplayed()
+    }
+
+    // --- Recently viewed (RF-02) ---
+
+    private val viewed = NearbyOffer(
+        Offer(
+            id = "f-5", title = "Cocinero/a", category = Category.GASTRONOMY, description = "", schedule = "", jobType = "",
+            businessName = "[COMERCIO]", address = "[DIRECCION]", location = MapUiState.DEFAULT_CENTER, updatedAt = Instant.EPOCH,
+        ),
+        distanceMeters = 2_700,
+    )
+
+    @Test
+    fun recentlyViewedOffersAreListedAndOpenTheirDetail() {
+        show(granted.copy(offers = OffersState.Empty, recentlyViewed = listOf(viewed)))
+
+        composeRule.onNodeWithText("Vistas recientemente").assertExists()
+        composeRule.onNodeWithText("Cocinero/a").performClick()
+
+        assertEquals(listOf("open:f-5"), clicks)
+    }
+
+    @Test
+    fun recentlyViewedOffersAreAvailableOfflineWithoutCache() {
+        show(granted.copy(isOnline = false, offers = OffersState.Unavailable(isOffline = true), recentlyViewed = listOf(viewed)))
+
+        composeRule.onNodeWithText("Vistas recientemente").assertExists()
+        composeRule.onNodeWithText("Cocinero/a").assertExists()
+    }
+
+    @Test
+    fun noRecentlyViewedNoSection() {
+        show(granted.copy(offers = OffersState.Empty))
+
+        composeRule.onNodeWithText("Vistas recientemente").assertDoesNotExist()
     }
 }

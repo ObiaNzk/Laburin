@@ -17,6 +17,8 @@ data class Offer(
 
 data class NearbyOffer(val offer: Offer, val distanceMeters: Int)
 
+enum class ViewSource { MAP, QR }
+
 /** Fixed list until the API provides categories. */
 enum class Category { GASTRONOMY, MECHANICS, STOCK, CLOTHING }
 

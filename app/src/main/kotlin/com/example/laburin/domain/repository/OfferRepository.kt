@@ -5,6 +5,7 @@ import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Offer
 import com.example.laburin.domain.model.RefreshResult
+import com.example.laburin.domain.model.ViewSource
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
@@ -17,6 +18,11 @@ interface OfferRepository {
     fun observeOffer(id: String): Flow<Offer?>
 
     suspend fun refreshOffer(id: String): RefreshResult
+
+    /** Viewed offers stay cached (and listed) even outside the search area. */
+    suspend fun markViewed(offerId: String, source: ViewSource)
+
+    fun observeRecentlyViewed(): Flow<List<Offer>>
 
     /** Replaces the cached offers of that area. The server always wins. */
     suspend fun refresh(center: GeoLocation, radiusKm: Int, category: Category?): RefreshResult

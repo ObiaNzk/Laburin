@@ -7,8 +7,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [OfferEntity::class, SyncMetadataEntity::class, ApplicationEntity::class, PendingActionEntity::class],
-    version = 2,
+    entities = [OfferEntity::class, SyncMetadataEntity::class, ApplicationEntity::class, PendingActionEntity::class, PublishedOfferEntity::class],
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -17,6 +17,7 @@ abstract class LaburinDatabase : RoomDatabase() {
     abstract fun syncMetadataDao(): SyncMetadataDao
     abstract fun applicationDao(): ApplicationDao
     abstract fun pendingActionDao(): PendingActionDao
+    abstract fun publishedOfferDao(): PublishedOfferDao
 
     companion object {
         const val NAME = "laburin.db"
@@ -26,6 +27,12 @@ abstract class LaburinDatabase : RoomDatabase() {
                 db.execSQL("CREATE TABLE IF NOT EXISTS `applications` (`id` TEXT NOT NULL, `user_id` TEXT NOT NULL, `offer_id` TEXT NOT NULL, `offer_title` TEXT NOT NULL, `business_name` TEXT NOT NULL, `status` TEXT NOT NULL, `created_at` INTEGER NOT NULL, PRIMARY KEY(`id`))")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_applications_user_id_offer_id` ON `applications` (`user_id`, `offer_id`)")
                 db.execSQL("CREATE TABLE IF NOT EXISTS `pending_actions` (`id` TEXT NOT NULL, `type` TEXT NOT NULL, `target_id` TEXT NOT NULL, `created_at` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `published_offers` (`id` TEXT NOT NULL, `business_id` TEXT NOT NULL, `title` TEXT NOT NULL, `category` TEXT NOT NULL, `schedule` TEXT NOT NULL, `description` TEXT NOT NULL, `status` TEXT NOT NULL, `created_at` INTEGER NOT NULL, PRIMARY KEY(`id`))")
             }
         }
     }

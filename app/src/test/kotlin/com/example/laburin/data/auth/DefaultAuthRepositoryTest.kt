@@ -2,6 +2,9 @@ package com.example.laburin.data.auth
 
 import com.example.laburin.data.remote.ApiException
 import com.example.laburin.domain.model.AuthResult
+import com.example.laburin.domain.model.BusinessSignUp
+import com.example.laburin.domain.model.Category
+import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Session
 import com.example.laburin.domain.model.UserRole
 import kotlinx.coroutines.CancellationException
@@ -72,6 +75,26 @@ class DefaultAuthRepositoryTest {
     }
 
     @Test
+    fun `a business sign up sends its location and logs in as a business`() = runTest {
+        remote.respond = { AuthResponseDto(token = "t-b", user = user.copy(role = "BUSINESS")) }
+        val signUp = BusinessSignUp("Taller", Category.MECHANICS, "9 a 18", "[DIRECCION]", "[EMAIL]", "12345678")
+
+        assertEquals(AuthResult.Success, repository.signUpBusiness(signUp, GeoLocation(-34.6, -58.4)))
+
+        assertEquals(UserRole.BUSINESS, repository.session.first()?.role)
+        assertEquals(-34.6, remote.lastBusiness?.latitude ?: 0.0, 0.0)
+        assertEquals("MECHANICS", remote.lastBusiness?.category)
+    }
+
+    @Test
+    fun `a business sign up with a taken email reports it`() = runTest {
+        remote.respond = { throw ApiException(409) }
+        val signUp = BusinessSignUp("Taller", Category.MECHANICS, "9 a 18", "[DIRECCION]", "[EMAIL]", "12345678")
+
+        assertEquals(AuthResult.EmailAlreadyRegistered, repository.signUpBusiness(signUp, GeoLocation(0.0, 0.0)))
+    }
+
+    @Test
     fun `other server errors are reported with their code`() = runTest {
         remote.respond = { throw ApiException(500) }
 
@@ -107,6 +130,8 @@ class DefaultAuthRepositoryTest {
         var respond: () -> AuthResponseDto = { error("not configured") }
         override suspend fun login(email: String, password: String) = respond()
         override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String) = respond()
+        var lastBusiness: BusinessSignUpDto? = null
+        override suspend fun signUpBusiness(data: BusinessSignUpDto): AuthResponseDto { lastBusiness = data; return respond() }
     }
 
     private class FakeSessionStore : SessionStore {

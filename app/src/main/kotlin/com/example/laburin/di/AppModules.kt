@@ -21,6 +21,19 @@ import com.example.laburin.data.remote.FakeOfferRemoteDataSource
 import com.example.laburin.data.remote.OfferApi
 import com.example.laburin.data.remote.OfferRemoteDataSource
 import com.example.laburin.data.repository.OfflineFirstOfferRepository
+import com.example.laburin.data.applications.ApplicationsRemoteDataSource
+import com.example.laburin.data.applications.DefaultApplicationRepository
+import com.example.laburin.data.cv.CvCache
+import com.example.laburin.data.cv.DataStoreCvCache
+import com.example.laburin.data.cv.DefaultCvRepository
+import com.example.laburin.data.local.ApplicationDao
+import com.example.laburin.data.local.PendingActionDao
+import com.example.laburin.data.local.RoomTransactionRunner
+import com.example.laburin.data.local.TransactionRunner
+import com.example.laburin.data.sync.WorkManagerSyncScheduler
+import com.example.laburin.domain.repository.ApplicationRepository
+import com.example.laburin.domain.repository.CvRepository
+import com.example.laburin.domain.repository.SyncScheduler
 import com.example.laburin.data.auth.AuthRemoteDataSource
 import com.example.laburin.data.auth.DefaultAuthRepository
 import com.example.laburin.data.auth.KeystoreSessionStore
@@ -58,13 +71,21 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): LaburinDatabase =
-        Room.databaseBuilder(context, LaburinDatabase::class.java, LaburinDatabase.NAME).build()
+        Room.databaseBuilder(context, LaburinDatabase::class.java, LaburinDatabase.NAME)
+            .addMigrations(LaburinDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideOfferDao(db: LaburinDatabase): OfferDao = db.offerDao()
 
     @Provides
     fun provideSyncMetadataDao(db: LaburinDatabase): SyncMetadataDao = db.syncMetadataDao()
+
+    @Provides
+    fun provideApplicationDao(db: LaburinDatabase): ApplicationDao = db.applicationDao()
+
+    @Provides
+    fun providePendingActionDao(db: LaburinDatabase): PendingActionDao = db.pendingActionDao()
 
     @Provides
     @Singleton
@@ -142,9 +163,28 @@ abstract class DataModule {
     @Binds
     abstract fun bindSessionStore(impl: KeystoreSessionStore): SessionStore
 
-    // Swap to the Retrofit implementation once the Go API is available.
+    // Swap to the Retrofit implementations once the Go API is available.
     @Binds
     abstract fun bindAuthRemoteDataSource(impl: FakeBackend): AuthRemoteDataSource
+
+    @Binds
+    abstract fun bindApplicationsRemoteDataSource(impl: FakeBackend): ApplicationsRemoteDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindApplicationRepository(impl: DefaultApplicationRepository): ApplicationRepository
+
+    @Binds
+    abstract fun bindCvRepository(impl: DefaultCvRepository): CvRepository
+
+    @Binds
+    abstract fun bindCvCache(impl: DataStoreCvCache): CvCache
+
+    @Binds
+    abstract fun bindSyncScheduler(impl: WorkManagerSyncScheduler): SyncScheduler
+
+    @Binds
+    abstract fun bindTransactionRunner(impl: RoomTransactionRunner): TransactionRunner
 }
 
 /** Separate so instrumented tests can replace the device location with @TestInstallIn. */

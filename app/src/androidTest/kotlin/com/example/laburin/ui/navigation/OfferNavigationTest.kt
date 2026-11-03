@@ -9,13 +9,16 @@ import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
 import com.example.laburin.MainActivity
+import com.example.laburin.domain.repository.AuthRepository
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
+import javax.inject.Inject
 
 /** End to end with the real Hilt graph (fake remote seed data around the default center). */
 @HiltAndroidTest
@@ -31,9 +34,13 @@ class OfferNavigationTest {
         .around(GrantPermissionRule.grant(Manifest.permission.ACCESS_COARSE_LOCATION))
         .around(composeRule)
 
+    @Inject
+    lateinit var auth: AuthRepository
+
     @Before
     fun setUp() {
         hiltRule.inject()
+        runBlocking { auth.logout() } // The session is persisted on the device between tests.
     }
 
     @Test

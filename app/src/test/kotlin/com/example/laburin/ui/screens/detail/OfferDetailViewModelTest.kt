@@ -3,6 +3,8 @@ package com.example.laburin.ui.screens.detail
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.example.laburin.domain.model.RefreshResult
+import com.example.laburin.domain.model.Session
+import com.example.laburin.domain.model.UserRole
 import com.example.laburin.domain.repository.SessionRepository
 import com.example.laburin.domain.usecase.ObserveOfferUseCase
 import com.example.laburin.domain.usecase.RefreshOfferUseCase
@@ -66,7 +68,7 @@ class OfferDetailViewModelTest {
     @Test
     fun `logged in user sees the full offer`() = runTest {
         repository.offers.value = listOf(offer)
-        session.isLoggedIn.value = true
+        session.session.value = Session("u-1", UserRole.CANDIDATE, "[NOMBRE]", "[EMAIL]")
 
         val vm = createViewModel()
 
@@ -78,7 +80,7 @@ class OfferDetailViewModelTest {
         repository.offers.value = listOf(offer)
         val vm = createViewModel()
 
-        session.isLoggedIn.value = true
+        session.session.value = Session("u-1", UserRole.CANDIDATE, "[NOMBRE]", "[EMAIL]")
 
         assertEquals(OfferDetailUiState.Full(offer, 400), vm.uiState.value)
     }
@@ -195,6 +197,6 @@ class OfferDetailViewModelTest {
     }
 
     private class FakeSessionRepository : SessionRepository {
-        override val isLoggedIn = MutableStateFlow(false)
+        override val session = MutableStateFlow<Session?>(null)
     }
 }

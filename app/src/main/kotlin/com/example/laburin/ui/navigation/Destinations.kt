@@ -17,3 +17,9 @@ data class OfferDetailDestination(val offerId: String, val distanceMeters: Int? 
 
 @Serializable
 data object SignUpDestination
+
+@Serializable
+data object LoginDestination
+
+@Serializable
+data object ProfileDestination

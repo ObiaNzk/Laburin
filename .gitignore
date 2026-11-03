@@ -41,3 +41,6 @@ captures/
 
 # The wrapper jar must be committed so ./gradlew works on a fresh clone
 !gradle/wrapper/gradle-wrapper.jar
+
+# Firebase config (per team, not committed)
+app/google-services.json

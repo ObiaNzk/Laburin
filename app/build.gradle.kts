@@ -7,6 +7,11 @@ plugins {
     alias(libs.plugins.room)
 }
 
+// FCM is enabled only when the team's Firebase config is present (it is not committed: see docs/api/notifications.md).
+if (file("google-services.json").exists()) {
+    apply(plugin = libs.plugins.google.services.get().pluginId)
+}
+
 android {
     namespace = "com.example.laburin"
     compileSdk {
@@ -70,6 +75,8 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     implementation(libs.zxing.core)
     implementation(libs.mlkit.barcode.scanning)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 

@@ -24,10 +24,14 @@ import com.example.laburin.data.repository.OfflineFirstOfferRepository
 import com.example.laburin.data.applications.ApplicationsRemoteDataSource
 import com.example.laburin.data.applications.DefaultApplicationRepository
 import com.example.laburin.data.cv.CvCache
+import com.example.laburin.data.publish.BusinessRemoteDataSource
+import com.example.laburin.data.publish.DefaultMyOffersRepository
+import com.example.laburin.domain.repository.MyOffersRepository
 import com.example.laburin.data.cv.DataStoreCvCache
 import com.example.laburin.data.cv.DefaultCvRepository
 import com.example.laburin.data.local.ApplicationDao
 import com.example.laburin.data.local.PendingActionDao
+import com.example.laburin.data.local.PublishedOfferDao
 import com.example.laburin.data.local.RoomTransactionRunner
 import com.example.laburin.data.local.TransactionRunner
 import com.example.laburin.data.sync.WorkManagerSyncScheduler
@@ -72,7 +76,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): LaburinDatabase =
         Room.databaseBuilder(context, LaburinDatabase::class.java, LaburinDatabase.NAME)
-            .addMigrations(LaburinDatabase.MIGRATION_1_2)
+            .addMigrations(LaburinDatabase.MIGRATION_1_2, LaburinDatabase.MIGRATION_2_3)
             .build()
 
     @Provides
@@ -86,6 +90,9 @@ object AppModule {
 
     @Provides
     fun providePendingActionDao(db: LaburinDatabase): PendingActionDao = db.pendingActionDao()
+
+    @Provides
+    fun providePublishedOfferDao(db: LaburinDatabase): PublishedOfferDao = db.publishedOfferDao()
 
     @Provides
     @Singleton
@@ -169,6 +176,12 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindApplicationsRemoteDataSource(impl: FakeBackend): ApplicationsRemoteDataSource
+
+    @Binds
+    abstract fun bindBusinessRemoteDataSource(impl: FakeBackend): BusinessRemoteDataSource
+
+    @Binds
+    abstract fun bindMyOffersRepository(impl: DefaultMyOffersRepository): MyOffersRepository
 
     @Binds
     @Singleton

@@ -2,7 +2,12 @@ package com.example.laburin.ui.screens.publish
 
 import android.content.Intent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +48,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.laburin.R
 import com.example.laburin.data.publish.QrCode
+import com.example.laburin.domain.model.Applicant
+import com.example.laburin.domain.model.ApplicantStatus
 import com.example.laburin.domain.model.BusinessSignUpField
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.PublishField
@@ -193,7 +200,10 @@ fun PublishedOfferRoute(onBack: () -> Unit, viewModel: PublishedOfferViewModel =
             }
         }
     }
-    PublishedOfferContent(state = state, onShare = viewModel::onShare, onBack = onBack)
+    PublishedOfferContent(
+        state = state, onShare = viewModel::onShare, onBack = onBack,
+        onApprove = viewModel::onApprove, onReject = viewModel::onReject,
+    )
 }
 
 @Composable
@@ -201,7 +211,8 @@ fun PublishedOfferContent(
     state: PublishedOfferUiState,
     onShare: () -> Unit,
     onBack: () -> Unit,
-    applicantsSection: @Composable () -> Unit = {},
+    onApprove: (applicationId: String) -> Unit = {},
+    onReject: (applicationId: String) -> Unit = {},
 ) {
     Column(
         Modifier
@@ -235,7 +246,50 @@ fun PublishedOfferContent(
                 OutlinedButton(onClick = onShare, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.published_share))
                 }
-                applicantsSection()
+                ApplicantsSection(state.applicants, onApprove, onReject)
+
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApplicantsSection(applicants: List<Applicant>, onApprove: (String) -> Unit, onReject: (String) -> Unit) {
+    Text(stringResource(R.string.applicants_title, applicants.size), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+    if (applicants.isEmpty()) {
+        Text(stringResource(R.string.applicants_empty), color = Color.Gray)
+        return
+    }
+    applicants.forEach { applicant ->
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(applicant.candidateName, fontWeight = FontWeight.Bold)
+            applicant.cvFileName?.let { Text(stringResource(R.string.applicants_cv, it)) }
+            // RNF-05: the contact is shown only once the server has confirmed the match.
+            val contact = applicant.contactEmail
+            Text(
+                if (contact != null) stringResource(R.string.applicants_contact, contact) else stringResource(R.string.applicants_contact_hidden),
+                color = if (contact != null) Color.Unspecified else Color.Gray,
+                fontSize = 13.sp,
+            )
+            when (applicant.status) {
+                ApplicantStatus.PENDING_REVIEW -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { onApprove(applicant.applicationId) }, colors = ButtonDefaults.buttonColors(Color.DarkGray)) {
+                        Text(stringResource(R.string.applicants_approve))
+                    }
+                    OutlinedButton(onClick = { onReject(applicant.applicationId) }) {
+                        Text(stringResource(R.string.applicants_reject))
+                    }
+                }
+                ApplicantStatus.APPROVAL_PENDING_SEND -> Text(stringResource(R.string.applicants_approval_pending), color = Color.Gray)
+                ApplicantStatus.REJECTION_PENDING_SEND -> Text(stringResource(R.string.applicants_rejection_pending), color = Color.Gray)
+                ApplicantStatus.APPROVED -> Text(stringResource(R.string.applicants_approved), fontWeight = FontWeight.Bold)
+                ApplicantStatus.REJECTED -> Text(stringResource(R.string.applicants_rejected), color = Color.Gray)
             }
         }
     }

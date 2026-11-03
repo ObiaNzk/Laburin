@@ -6,6 +6,7 @@ import com.example.laburin.data.applications.CvDto
 import com.example.laburin.data.auth.AuthRemoteDataSource
 import com.example.laburin.data.auth.AuthResponseDto
 import com.example.laburin.data.auth.BusinessSignUpDto
+import com.example.laburin.data.publish.ApplicantDto
 import com.example.laburin.data.publish.BusinessRemoteDataSource
 import com.example.laburin.data.publish.PublishOfferDto
 import com.example.laburin.data.auth.UserDto
@@ -90,6 +91,30 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
     override suspend fun myOffers(token: String): List<OfferDto> = call {
         val businessId = userFor(token)
         offers.filter { offerOwners[it.id] == businessId }
+    }
+
+    override suspend fun applicants(token: String, offerId: String): List<ApplicantDto> = call {
+        if (offerOwners[offerId] != userFor(token)) throw ApiException(403)
+        applications.values.filter { it.offerId == offerId }.map { it.toApplicantDto() }
+    }
+
+    override suspend fun review(token: String, applicationId: String, approve: Boolean): ApplicantDto = call {
+        val record = applications[applicationId] ?: throw ApiException(404)
+        if (offerOwners[record.offerId] != userFor(token)) throw ApiException(403)
+        val reviewed = record.copy(status = if (approve) "APPROVED" else "REJECTED")
+        applications[applicationId] = reviewed
+        reviewed.toApplicantDto()
+    }
+
+    /** RNF-05: the contact leaves the server only for an approved (matched) applicant. */
+    private fun ApplicationRecord.toApplicantDto(): ApplicantDto {
+        val candidate = accounts.values.first { it.user.id == candidateId }.user
+        return ApplicantDto(
+            applicationId = id, offerId = offerId, candidateName = candidate.displayName,
+            cvFileName = cvs[candidateId]?.fileName,
+            status = if (status == "SENT") "PENDING_REVIEW" else status,
+            contactEmail = candidate.email.takeIf { status == "APPROVED" },
+        )
     }
 
     // --- Offers (used by FakeOfferRemoteDataSource) ---

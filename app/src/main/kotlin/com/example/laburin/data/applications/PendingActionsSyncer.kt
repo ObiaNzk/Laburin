@@ -1,6 +1,7 @@
 package com.example.laburin.data.applications
 
 import com.example.laburin.data.auth.SessionStore
+import com.example.laburin.data.local.ApplicantDao
 import com.example.laburin.data.local.ApplicationDao
 import com.example.laburin.data.local.PendingActionDao
 import com.example.laburin.data.local.PublishedOfferDao
@@ -8,6 +9,7 @@ import com.example.laburin.data.publish.BusinessRemoteDataSource
 import com.example.laburin.data.publish.PublishOfferDto
 import com.example.laburin.domain.model.PublishedOfferStatus
 import com.example.laburin.data.remote.ApiException
+import com.example.laburin.domain.model.ApplicantStatus
 import com.example.laburin.domain.model.ApplicationStatus
 import com.example.laburin.domain.model.SyncOutcome
 import kotlinx.coroutines.flow.first
@@ -25,6 +27,7 @@ class PendingActionsSyncer @Inject constructor(
     private val session: SessionStore,
     private val publishedOffers: PublishedOfferDao,
     private val business: BusinessRemoteDataSource,
+    private val applicants: ApplicantDao,
 ) {
     suspend fun run(): SyncOutcome {
         val actions = pending.all()
@@ -34,6 +37,7 @@ class PendingActionsSyncer @Inject constructor(
             val outcome = when (action.type) {
                 APPLY -> sendApplication(token, action.targetId)
                 PUBLISH -> sendPublication(token, action.targetId)
+                REVIEW -> sendReview(token, action.targetId)
                 else -> Sent // Unknown types come from a newer app version that was downgraded: drop them.
             }
             when (outcome) {
@@ -77,6 +81,25 @@ class PendingActionsSyncer @Inject constructor(
         }
     }
 
+    private suspend fun sendReview(token: String, applicationId: String): Step {
+        val applicant = applicants.find(applicationId) ?: return Sent
+        val approve = when (applicant.status) {
+            ApplicantStatus.APPROVAL_PENDING_SEND.name -> true
+            ApplicantStatus.REJECTION_PENDING_SEND.name -> false
+            else -> return Sent // Already answered by the server.
+        }
+        return try {
+            val confirmed = business.review(token, applicationId, approve)
+            // The contact is stored only from the server's confirmation, never assumed locally (RNF-05).
+            applicants.upsert(applicant.copy(status = confirmed.status, contactEmail = confirmed.contactEmail))
+            Sent
+        } catch (e: IOException) {
+            Stop(SyncOutcome.Retry)
+        } catch (e: ApiException) {
+            if (e.code == HTTP_UNAUTHORIZED) Stop(SyncOutcome.AuthRequired) else Stop(SyncOutcome.Retry)
+        }
+    }
+
     private sealed interface Step
     private data object Sent : Step
     private data class Stop(val result: SyncOutcome) : Step
@@ -84,6 +107,7 @@ class PendingActionsSyncer @Inject constructor(
     companion object {
         const val APPLY = "APPLY"
         const val PUBLISH = "PUBLISH"
+        const val REVIEW = "REVIEW"
         private const val HTTP_UNAUTHORIZED = 401
         private const val HTTP_CONFLICT = 409
     }

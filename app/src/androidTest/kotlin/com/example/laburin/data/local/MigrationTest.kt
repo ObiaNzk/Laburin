@@ -60,6 +60,19 @@ class MigrationTest {
         db.close()
     }
 
+    @Test
+    fun migration3To4AddsTheApplicantsTable() {
+        helper.createDatabase(DB, 3).close()
+
+        val db = helper.runMigrationsAndValidate(DB, 4, true, LaburinDatabase.MIGRATION_3_4)
+
+        db.execSQL(
+            "INSERT INTO applicants (application_id, offer_id, candidate_name, cv_file_name, status, contact_email) " +
+                "VALUES ('a-1', 'o-1', '[NOMBRE]', 'cv.pdf', 'PENDING_REVIEW', NULL)"
+        )
+        db.close()
+    }
+
     private companion object {
         const val DB = "migration-test.db"
     }

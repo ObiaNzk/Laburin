@@ -2,7 +2,11 @@ package com.example.laburin.ui.screens.publish
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.example.laburin.domain.model.Applicant
+import com.example.laburin.domain.model.ApplicantStatus
 import com.example.laburin.domain.model.BusinessSignUpField
+import com.example.laburin.domain.publish.ReviewApplicantUseCase
+import com.example.laburin.fakes.FakeApplicantsRepository
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.LocationResult
@@ -142,10 +146,39 @@ class PublishViewModelsTest {
 
     // --- Published offer ---
 
+    private val applicants = FakeApplicantsRepository()
+    private fun publishedVm() = PublishedOfferViewModel(
+        SavedStateHandle(mapOf(PublishedOfferDestination.ARG_OFFER_ID to "p-1")), offers, applicants,
+        ReviewApplicantUseCase(applicants, scheduler),
+    )
+
+    @Test
+    fun `the published offer lists its applicants and refreshes them on open`() = runTest {
+        offers.store.value = listOf(testPublishedOffer("p-1", status = PublishedOfferStatus.ACTIVE))
+        applicants.store.value = listOf(Applicant("a-1", "[NOMBRE]", "cv.pdf", ApplicantStatus.PENDING_REVIEW, null))
+        val vm = publishedVm()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+
+        assertEquals(applicants.store.value, (vm.uiState.value as PublishedOfferUiState.Content).applicants)
+        assertEquals(listOf("p-1"), applicants.refreshCalls)
+    }
+
+    @Test
+    fun `approving and rejecting queue the decision`() = runTest {
+        offers.store.value = listOf(testPublishedOffer("p-1"))
+        val vm = publishedVm()
+
+        vm.onApprove("a-1")
+        vm.onReject("a-2")
+
+        assertEquals(listOf("a-1:true", "a-2:false"), applicants.reviews)
+        assertEquals(2, scheduler.scheduled)
+    }
+
     @Test
     fun `the published offer shows its status and QR link`() = runTest {
         offers.store.value = listOf(testPublishedOffer("p-1", status = PublishedOfferStatus.ACTIVE))
-        val vm = PublishedOfferViewModel(SavedStateHandle(mapOf(PublishedOfferDestination.ARG_OFFER_ID to "p-1")), offers)
+        val vm = publishedVm()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
 
         val state = vm.uiState.value as PublishedOfferUiState.Content
@@ -156,7 +189,7 @@ class PublishViewModelsTest {
     @Test
     fun `sharing offers the link with the job title`() = runTest {
         offers.store.value = listOf(testPublishedOffer("p-1", title = "Mozo"))
-        val vm = PublishedOfferViewModel(SavedStateHandle(mapOf(PublishedOfferDestination.ARG_OFFER_ID to "p-1")), offers)
+        val vm = publishedVm()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
 
         vm.effects.test {

@@ -68,7 +68,6 @@ import com.example.laburin.domain.model.NearbyOffer
 import com.example.laburin.domain.model.Offer
 import com.example.laburin.domain.model.SearchFilters
 import com.example.laburin.ui.components.DisplayMap
-import com.example.laburin.ui.components.LaburinNavigationBar
 import com.example.laburin.ui.components.MapCircle
 import com.example.laburin.ui.components.MapMarker
 import com.example.laburin.ui.components.OfferItem
@@ -186,7 +185,6 @@ fun MapContent(
                 SearchTopBar(state, onQueryChange, onRadiusChange, onCategoryChange, onPublishClick)
             }
         },
-        bottomBar = { LaburinNavigationBar() },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         if (offlineLayout) {

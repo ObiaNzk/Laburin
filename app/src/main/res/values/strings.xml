@@ -50,4 +50,41 @@
     <string name="detail_no_longer_available_body">El comercio la cerró o ya cubrió el puesto.</string>
     <string name="detail_unavailable_offline">Necesitás conexión para ver esta búsqueda</string>
     <string name="detail_unavailable_server">No pudimos cargar esta búsqueda</string>
+
+    <string name="nav_search">Buscar</string>
+    <string name="nav_applications">Postulaciones</string>
+    <string name="nav_login">Ingresar</string>
+    <string name="nav_profile">Perfil</string>
+
+    <string name="auth_close">Cerrar</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Contraseña</string>
+    <string name="login_title">Ingresá a tu cuenta</string>
+    <string name="login_submit">Ingresar</string>
+    <string name="login_no_account">No tengo cuenta</string>
+    <string name="login_error_missing">Completá tu email y contraseña</string>
+    <string name="login_error_credentials">Email o contraseña incorrectos</string>
+    <string name="login_error_network">Necesitás conexión para ingresar</string>
+    <string name="login_error_server">No pudimos ingresar. Probá de nuevo.</string>
+    <string name="login_demo_hint">Cuenta demo: %1$s / %2$s</string>
+
+    <string name="signup_title">Creá tu cuenta</string>
+    <string name="signup_subtitle">Después volvés a la búsqueda que viste.</string>
+    <string name="signup_first_name">Nombre</string>
+    <string name="signup_last_name">Apellido</string>
+    <string name="signup_email_hint">Para avisarte cuando te aprueben</string>
+    <string name="signup_password_hint">Mínimo 8 caracteres</string>
+    <string name="signup_submit">Crear cuenta y seguir</string>
+    <string name="signup_cv_later">Podés cargar tu CV antes de postularte.</string>
+    <string name="signup_error_first_name">Ingresá tu nombre</string>
+    <string name="signup_error_last_name">Ingresá tu apellido</string>
+    <string name="signup_error_email">Ingresá un email válido</string>
+    <string name="signup_error_password">La contraseña necesita al menos 8 caracteres</string>
+    <string name="signup_error_taken">Ya existe una cuenta con ese email</string>
+    <string name="signup_error_network">Necesitás conexión para crear la cuenta</string>
+    <string name="signup_error_server">No pudimos crear la cuenta. Probá de nuevo.</string>
+
+    <string name="profile_title">Mi perfil</string>
+    <string name="profile_logout">Cerrar sesión</string>
+    <string name="profile_logged_out">Ingresá para ver tu perfil y tus postulaciones</string>
 </resources>

@@ -13,6 +13,7 @@ import com.example.laburin.data.local.OfferDao
 import com.example.laburin.data.local.OfferLocalDataSource
 import com.example.laburin.data.local.RoomOfferLocalDataSource
 import com.example.laburin.data.local.SyncMetadataDao
+import com.example.laburin.data.location.AndroidGeocoder
 import com.example.laburin.data.location.DeviceLocationSource
 import com.example.laburin.data.location.FallbackLocationProvider
 import com.example.laburin.data.location.FusedDeviceLocationSource
@@ -48,6 +49,7 @@ import com.example.laburin.data.auth.SessionStore
 import com.example.laburin.data.fakebackend.FakeBackend
 import com.example.laburin.domain.repository.ConnectivityObserver
 import com.example.laburin.domain.repository.FiltersRepository
+import com.example.laburin.domain.repository.Geocoder
 import com.example.laburin.domain.repository.LocationProvider
 import com.example.laburin.domain.repository.OfferRepository
 import com.example.laburin.domain.repository.AuthRepository
@@ -219,4 +221,13 @@ abstract class LocationModule {
 
     @Binds
     abstract fun bindDeviceLocationSource(impl: FusedDeviceLocationSource): DeviceLocationSource
+}
+
+/** Separate so instrumented tests can replace geocoding with @TestInstallIn. */
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class GeocodingModule {
+
+    @Binds
+    abstract fun bindGeocoder(impl: AndroidGeocoder): Geocoder
 }

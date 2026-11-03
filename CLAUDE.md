@@ -33,7 +33,9 @@ Dependencies are declared in `gradle/libs.versions.toml` (version catalog). Some
 - **Auth/session**: `DefaultAuthRepository` (implements `AuthRepository` and `SessionRepository`) talks to `AuthRemoteDataSource` and persists the session via `KeystoreSessionStore` (AES-GCM, key in the Android Keystore, RNF-09). Contract: `docs/api/auth.md`.
 - **Fake backend**: `data/fakebackend/FakeBackend` is a single in-memory server shared by the fake remotes, so flows connect end to end (fictional demo accounts in `docs/api/auth.md`). Swap each binding in `di/AppModules.kt` to Retrofit once the Go API exists.
 - **App shell**: `LaburinNavHost` owns the bottom bar (shown only on top-level destinations, "Ingresar"/"Perfil" from `AppShellViewModel`). Login/sign-up return to where the user was (`leaveAuthFlow`).
-- Still **UI-only, legacy**: `ScanScreen`. Not wired yet: QR, publish, apply ("Postularme"), applications.
+- **Applying (RF-02, RNF-03)**: `ApplyToOfferUseCase` (account + CV required, no duplicates) → `DefaultApplicationRepository` writes the application and a `pending_actions` row in one transaction → `WorkManagerSyncScheduler` enqueues `SyncWorker` (needs a connection, exponential backoff) → `PendingActionsSyncer` sends the outbox in order; the server always wins. Contract: `docs/api/applications.md`. Room is at **version 2** with a real `MIGRATION_1_2` (tested with `MigrationTestHelper`).
+- **WorkManager** is initialized on demand with `HiltWorkerFactory` (`LaburinApplication`, default initializer removed in the manifest). E2E tests must call `WorkManagerTestInitHelper.initializeTestWorkManager` and satisfy constraints with the test driver.
+- Still **UI-only, legacy**: `ScanScreen`. Not wired yet: QR scanning, publishing, applicant review.
 - The map uses **osmdroid** (OpenStreetMap). `ui/components/DisplayMap.kt` is the only file that may import it. It takes `MapMarker`/`GeoLocation`, so switching provider touches only that file. OSM tile policy needs a non-default user agent (`"Laburin"`).
 - Strings for new UI go in `res/values/strings.xml` (the legacy screens still hardcode them).
 

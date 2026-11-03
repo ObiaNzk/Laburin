@@ -11,6 +11,8 @@ data class MapUiState(
     val radiusKm: Int = SearchFilters.DEFAULT_RADIUS_KM,
     val category: Category? = null,
     val center: GeoLocation = DEFAULT_CENTER,
+    /** Only set with a real GPS fix; the default center is never shown as "you are here". */
+    val userLocation: GeoLocation? = null,
     val locationStatus: LocationStatus = LocationStatus.Unknown,
     val isOnline: Boolean = true,
     val lastSyncedAt: Instant? = null,

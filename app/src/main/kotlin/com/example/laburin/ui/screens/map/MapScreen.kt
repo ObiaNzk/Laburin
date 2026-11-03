@@ -69,6 +69,7 @@ import com.example.laburin.domain.model.Offer
 import com.example.laburin.domain.model.SearchFilters
 import com.example.laburin.ui.components.DisplayMap
 import com.example.laburin.ui.components.LaburinNavigationBar
+import com.example.laburin.ui.components.MapCircle
 import com.example.laburin.ui.components.MapMarker
 import com.example.laburin.ui.components.OfferItem
 import com.example.laburin.ui.components.dashedBorder
@@ -78,6 +79,8 @@ import com.example.laburin.ui.theme.LaburinTheme
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
+
+private const val RESULTS_SHEET_HEIGHT_FRACTION = 0.42f
 
 private val LOCATION_PERMISSIONS = arrayOf(
     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -141,6 +144,7 @@ fun MapRoute(
         now = now,
         snackbarHostState = snackbarHostState,
         onQueryChange = viewModel::onQueryChange,
+        onClearQuery = viewModel::onClearQuery,
         onRadiusChange = viewModel::onRadiusChange,
         onCategoryChange = viewModel::onCategoryChange,
         onWidenRadius = viewModel::onWidenRadius,
@@ -157,6 +161,7 @@ fun MapContent(
     state: MapUiState,
     now: Instant,
     onQueryChange: (String) -> Unit,
+    onClearQuery: () -> Unit,
     onRadiusChange: (Int) -> Unit,
     onCategoryChange: (Category?) -> Unit,
     onWidenRadius: () -> Unit,
@@ -168,12 +173,15 @@ fun MapContent(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    val offlineWithCache = !state.isOnline && state.offers is OffersState.Content
+    val cached = (state.offers as? OffersState.Content)?.offers
+    val offers = state.offers
+    // Without network the map tiles can't load either, so both offline cases share the offline layout.
+    val offlineLayout = (!state.isOnline && cached != null) || (offers is OffersState.Unavailable && offers.isOffline)
     Scaffold(
         modifier = modifier,
         topBar = {
-            if (offlineWithCache) {
-                OfflineBanner(lastSyncedAt = state.lastSyncedAt, now = now)
+            if (offlineLayout) {
+                OfflineBanner(lastSyncedAt = state.lastSyncedAt, now = now, hasData = cached != null)
             } else {
                 SearchTopBar(state, onQueryChange, onRadiusChange, onCategoryChange, onPublishClick)
             }
@@ -181,9 +189,9 @@ fun MapContent(
         bottomBar = { LaburinNavigationBar() },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        if (offlineWithCache) {
+        if (offlineLayout) {
             OfflineOffers(
-                offers = (state.offers as OffersState.Content).offers,
+                offers = cached.orEmpty(),
                 onOfferClick = onOfferClick,
                 onRetry = onRetry,
                 modifier = Modifier.padding(innerPadding),
@@ -197,6 +205,9 @@ fun MapContent(
                 DisplayMap(
                     markers = (state.offers as? OffersState.Content)?.offers.orEmpty().map { it.offer.toMarker() },
                     center = state.center,
+                    userLocation = state.userLocation,
+                    searchArea = MapCircle(state.center, state.radiusKm * 1_000.0),
+                    bottomObstructionFraction = RESULTS_SHEET_HEIGHT_FRACTION,
                     onMarkerClick = onOfferClick,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -219,6 +230,7 @@ fun MapContent(
                     onOfferClick = onOfferClick,
                     onWidenRadius = onWidenRadius,
                     onShowAllCategories = onShowAllCategories,
+                    onClearQuery = onClearQuery,
                     onRetry = onRetry,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
@@ -359,13 +371,14 @@ private fun ResultsSheet(
     onOfferClick: (String) -> Unit,
     onWidenRadius: () -> Unit,
     onShowAllCategories: () -> Unit,
+    onClearQuery: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.42f),
+            .fillMaxHeight(RESULTS_SHEET_HEIGHT_FRACTION),
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         shadowElevation = 16.dp,
         color = Color.White,
@@ -403,7 +416,7 @@ private fun ResultsSheet(
                     )
                     OfferList(offers.offers, onOfferClick)
                 }
-                OffersState.Empty -> EmptyResults(state, onWidenRadius, onShowAllCategories)
+                OffersState.Empty -> EmptyResults(state, onWidenRadius, onShowAllCategories, onClearQuery)
                 is OffersState.Unavailable -> CenteredMessage(
                     title = stringResource(
                         if (offers.isOffline) R.string.map_unavailable_offline else R.string.map_unavailable_server
@@ -416,7 +429,20 @@ private fun ResultsSheet(
 }
 
 @Composable
-private fun EmptyResults(state: MapUiState, onWidenRadius: () -> Unit, onShowAllCategories: () -> Unit) {
+private fun EmptyResults(
+    state: MapUiState,
+    onWidenRadius: () -> Unit,
+    onShowAllCategories: () -> Unit,
+    onClearQuery: () -> Unit,
+) {
+    // A typed search is the likeliest cause, and widening the radius wouldn't fix it.
+    if (state.query.isNotBlank()) {
+        CenteredMessage(
+            title = stringResource(R.string.map_empty_title_query, state.query.trim()),
+            action = { OutlinedButton(onClick = onClearQuery) { Text(stringResource(R.string.map_clear_query)) } },
+        )
+        return
+    }
     val nextRadius = SearchFilters.RADIUS_OPTIONS_KM.firstOrNull { it > state.radiusKm }
     CenteredMessage(
         title = if (state.category == null) {
@@ -460,7 +486,7 @@ private fun OfferList(offers: List<NearbyOffer>, onOfferClick: (String) -> Unit)
 }
 
 @Composable
-private fun OfflineBanner(lastSyncedAt: Instant?, now: Instant) {
+private fun OfflineBanner(lastSyncedAt: Instant?, now: Instant, hasData: Boolean) {
     val minutes = lastSyncedAt?.let { Duration.between(it, now).toMinutes().coerceAtLeast(0) }
     Box(
         modifier = Modifier
@@ -471,10 +497,10 @@ private fun OfflineBanner(lastSyncedAt: Instant?, now: Instant) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = if (minutes != null && minutes > 0) {
-                stringResource(R.string.map_offline_banner, minutes.toInt())
-            } else {
-                stringResource(R.string.map_offline_banner_now)
+            text = when {
+                !hasData -> stringResource(R.string.map_offline_banner_no_data)
+                minutes != null && minutes > 0 -> stringResource(R.string.map_offline_banner, minutes.toInt())
+                else -> stringResource(R.string.map_offline_banner_now)
             },
             fontWeight = FontWeight.Bold,
             color = Color.White,
@@ -512,11 +538,22 @@ private fun OfflineOffers(
                     color = Color(0xFF444444),
                     fontSize = 14.sp,
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(stringResource(R.string.map_offline_showing_saved), color = Color(0xFF777777), fontSize = 12.sp)
+                if (offers.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(stringResource(R.string.map_offline_showing_saved), color = Color(0xFF777777), fontSize = 12.sp)
+                }
             }
         }
-        Box(modifier = Modifier.weight(1f, fill = false)) { OfferList(offers, onOfferClick) }
+        if (offers.isEmpty()) {
+            Text(
+                stringResource(R.string.map_unavailable_offline),
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center,
+            )
+        } else {
+            Box(modifier = Modifier.weight(1f, fill = false)) { OfferList(offers, onOfferClick) }
+        }
         OutlinedButton(
             onClick = onRetry,
             modifier = Modifier
@@ -564,7 +601,7 @@ private val previewOffers = listOf(
 
 @Composable
 private fun PreviewMapContent(state: MapUiState) = LaburinTheme {
-    MapContent(state, Instant.EPOCH.plusSeconds(15 * 60), {}, {}, {}, {}, {}, {}, {}, {}, {})
+    MapContent(state, Instant.EPOCH.plusSeconds(15 * 60), {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 }
 
 @Preview

@@ -110,6 +110,31 @@ class DefaultAuthRepositoryTest {
     }
 
     @Test
+    fun `an expired session logs out and is flagged until acknowledged`() = runTest {
+        remote.respond = { AuthResponseDto(token = "t-1", user = user) }
+        repository.login("[EMAIL]", "12345678")
+
+        repository.sessionExpired()
+
+        assertNull(repository.session.first())
+        assertEquals(true, repository.isSessionExpired.first())
+
+        repository.acknowledgeSessionExpired()
+
+        assertEquals(false, repository.isSessionExpired.first())
+    }
+
+    @Test
+    fun `logging in again clears the expired flag`() = runTest {
+        remote.respond = { AuthResponseDto(token = "t-1", user = user) }
+        repository.sessionExpired()
+
+        repository.login("[EMAIL]", "12345678")
+
+        assertEquals(false, repository.isSessionExpired.first())
+    }
+
+    @Test
     fun `logout clears the session`() = runTest {
         remote.respond = { AuthResponseDto(token = "t-1", user = user) }
         repository.login("[EMAIL]", "12345678")

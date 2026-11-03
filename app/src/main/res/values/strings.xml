@@ -189,4 +189,15 @@
     <string name="session_expired_body">Ingresá de nuevo para enviar lo que quedó pendiente. No se perdió nada.</string>
     <string name="session_expired_login">Ingresar de nuevo</string>
     <string name="session_expired_later">Más tarde</string>
+
+    <string name="notif_channel">Novedades de postulaciones</string>
+    <string name="notif_approved_title">¡Te aprobaron!</string>
+    <string name="notif_approved_text">Te aprobaron en %1$s. El comercio te va a escribir para la entrevista.</string>
+    <string name="notif_rejected_title">Postulación rechazada</string>
+    <string name="notif_rejected_text">Tu postulación a %1$s fue rechazada.</string>
+    <string name="notif_new_applicants_title">Nuevos postulantes</string>
+    <plurals name="notif_new_applicants_text">
+        <item quantity="one">%1$d postulante nuevo en %2$s</item>
+        <item quantity="other">%1$d postulantes nuevos en %2$s</item>
+    </plurals>
 </resources>

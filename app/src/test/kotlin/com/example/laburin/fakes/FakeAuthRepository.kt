@@ -1,6 +1,8 @@
 package com.example.laburin.fakes
 
 import com.example.laburin.domain.model.AuthResult
+import com.example.laburin.domain.model.BusinessSignUp
+import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Session
 import com.example.laburin.domain.model.UserRole
 import com.example.laburin.domain.repository.AuthRepository
@@ -21,6 +23,14 @@ class FakeAuthRepository(initial: Session? = null) : AuthRepository {
 
     override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String) =
         respond("signUp:$firstName $lastName:$email")
+
+    var lastBusinessLocation: GeoLocation? = null
+
+    override suspend fun signUpBusiness(data: BusinessSignUp, location: GeoLocation): AuthResult {
+        lastBusinessLocation = location
+        sessionOnSuccess = BUSINESS_SESSION
+        return respond("signUpBusiness:${data.businessName}")
+    }
 
     override suspend fun logout() {
         calls += "logout"

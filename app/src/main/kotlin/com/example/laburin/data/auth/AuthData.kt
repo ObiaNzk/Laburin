@@ -8,6 +8,18 @@ import kotlinx.serialization.Serializable
 data class UserDto(val id: String, val role: String, val displayName: String, val email: String)
 
 @Serializable
+data class BusinessSignUpDto(
+    val businessName: String,
+    val category: String,
+    val schedule: String,
+    val address: String,
+    val latitude: Double,
+    val longitude: Double,
+    val email: String,
+    val password: String,
+)
+
+@Serializable
 data class AuthResponseDto(val token: String, val user: UserDto)
 
 interface AuthRemoteDataSource {
@@ -17,6 +29,7 @@ interface AuthRemoteDataSource {
      */
     suspend fun login(email: String, password: String): AuthResponseDto
     suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String): AuthResponseDto
+    suspend fun signUpBusiness(data: BusinessSignUpDto): AuthResponseDto
 }
 
 data class StoredSession(val token: String, val session: Session)

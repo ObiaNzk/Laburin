@@ -1,0 +1,69 @@
+package com.example.laburin.data.fakebackend
+
+import com.example.laburin.data.auth.BusinessSignUpDto
+import com.example.laburin.data.publish.PublishOfferDto
+import com.example.laburin.data.remote.ApiException
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
+import org.junit.Test
+
+class FakeBackendBusinessTest {
+
+    private val backend = FakeBackend()
+    private val draft = PublishOfferDto("p-1", "Mozo", "GASTRONOMY", "Sábados", "Atención en salón")
+
+    private suspend fun businessToken() = backend.login(FakeBackend.DEMO_BUSINESS_EMAIL, FakeBackend.DEMO_PASSWORD).token
+
+    @Test
+    fun `a business that signs up can log in as a business`() = runTest {
+        backend.signUpBusiness(
+            BusinessSignUpDto("Taller Nuevo", "MECHANICS", "9 a 18", "[DIRECCION]", -34.6, -58.4, "taller@demo.laburin", "12345678")
+        )
+
+        assertEquals("BUSINESS", backend.login("taller@demo.laburin", "12345678").user.role)
+    }
+
+    @Test
+    fun `a published offer is active on the map at the business location`() = runTest {
+        backend.publishOffer(businessToken(), draft)
+
+        val offer = backend.allOffers().single { it.id == "p-1" }
+        assertEquals("ACTIVE", offer.status)
+        assertEquals("Comercio Demo", offer.businessName)
+        assertEquals(FakeBackend.DEMO_BUSINESS_LOCATION.first, offer.latitude, 0.0)
+    }
+
+    @Test
+    fun `publishing the same offer twice is idempotent`() = runTest {
+        val token = businessToken()
+
+        backend.publishOffer(token, draft)
+        backend.publishOffer(token, draft)
+
+        assertEquals(1, backend.allOffers().count { it.id == "p-1" })
+    }
+
+    @Test
+    fun `my offers lists only the business's own offers`() = runTest {
+        val token = businessToken()
+        backend.publishOffer(token, draft)
+
+        val mine = backend.myOffers(token).map { it.id }
+
+        assertEquals(true, "p-1" in mine)
+        assertEquals(true, mine.all { it == "p-1" || it.startsWith("f-") })
+    }
+
+    @Test
+    fun `a candidate cannot publish`() = runTest {
+        val candidate = backend.login(FakeBackend.DEMO_CANDIDATE_EMAIL, FakeBackend.DEMO_PASSWORD).token
+
+        try {
+            backend.publishOffer(candidate, draft)
+            fail("Expected 403")
+        } catch (e: ApiException) {
+            assertEquals(403, e.code)
+        }
+    }
+}

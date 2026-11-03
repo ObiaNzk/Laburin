@@ -5,6 +5,9 @@ import com.example.laburin.data.applications.ApplicationsRemoteDataSource
 import com.example.laburin.data.applications.CvDto
 import com.example.laburin.data.auth.AuthRemoteDataSource
 import com.example.laburin.data.auth.AuthResponseDto
+import com.example.laburin.data.auth.BusinessSignUpDto
+import com.example.laburin.data.publish.BusinessRemoteDataSource
+import com.example.laburin.data.publish.PublishOfferDto
 import com.example.laburin.data.auth.UserDto
 import com.example.laburin.data.remote.ApiException
 import com.example.laburin.data.remote.OfferDto
@@ -22,9 +25,11 @@ import javax.inject.Singleton
  * All accounts and data are fictional.
  */
 @Singleton
-class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemoteDataSource {
+class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemoteDataSource, BusinessRemoteDataSource {
 
     private data class Account(val user: UserDto, val password: String)
+
+    private data class Business(val name: String, val address: String, val latitude: Double, val longitude: Double)
 
     private data class ApplicationRecord(
         val id: String,
@@ -41,6 +46,9 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
     private val offerOwners = SEED_OFFERS.associate { it.id to DEMO_BUSINESS_ID }.toMutableMap()
     private val applications = mutableMapOf<String, ApplicationRecord>()
     private val cvs = mutableMapOf(DEMO_CANDIDATE_ID to CvDto("cv-postulante-demo.pdf"))
+    private val businesses = mutableMapOf(
+        DEMO_BUSINESS_ID to Business("Comercio Demo", "[DIRECCION]", DEMO_BUSINESS_LOCATION.first, DEMO_BUSINESS_LOCATION.second),
+    )
 
     init {
         addAccount(DEMO_CANDIDATE_ID, "CANDIDATE", "Postulante Demo", DEMO_CANDIDATE_EMAIL)
@@ -58,6 +66,30 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
         if (accounts.containsKey(email.lowercase())) throw ApiException(409)
         val user = addAccount(UUID.randomUUID().toString(), "CANDIDATE", "$firstName $lastName", email, password)
         AuthResponseDto(token = newToken(user.id), user = user)
+    }
+
+    override suspend fun signUpBusiness(data: BusinessSignUpDto): AuthResponseDto = call {
+        if (accounts.containsKey(data.email.lowercase())) throw ApiException(409)
+        val user = addAccount(UUID.randomUUID().toString(), "BUSINESS", data.businessName, data.email, data.password)
+        businesses[user.id] = Business(data.businessName, data.address, data.latitude, data.longitude)
+        AuthResponseDto(token = newToken(user.id), user = user)
+    }
+
+    override suspend fun publishOffer(token: String, offer: PublishOfferDto) = call {
+        val businessId = userFor(token)
+        val business = businesses[businessId] ?: throw ApiException(403)
+        if (offers.any { it.id == offer.id }) return@call
+        offers += OfferDto(
+            id = offer.id, title = offer.title, category = offer.category, description = offer.description,
+            schedule = offer.schedule, jobType = "", businessName = business.name, address = business.address,
+            latitude = business.latitude, longitude = business.longitude, status = ACTIVE, updatedAt = Instant.now().toString(),
+        )
+        offerOwners[offer.id] = businessId
+    }
+
+    override suspend fun myOffers(token: String): List<OfferDto> = call {
+        val businessId = userFor(token)
+        offers.filter { offerOwners[it.id] == businessId }
     }
 
     // --- Offers (used by FakeOfferRemoteDataSource) ---
@@ -111,6 +143,7 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
         const val DEMO_CANDIDATE_EMAIL = "postulante@demo.laburin"
         const val DEMO_BUSINESS_EMAIL = "comercio@demo.laburin"
         const val DEMO_PASSWORD = "demo1234"
+        val DEMO_BUSINESS_LOCATION = -34.6037 to -58.3816
         const val ACTIVE = "ACTIVE"
         private const val LATENCY_MS = 400L
         private const val UPDATED = "2026-11-01T12:00:00Z"

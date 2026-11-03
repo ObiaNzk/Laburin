@@ -2,6 +2,9 @@ package com.example.laburin.data.applications
 
 import com.example.laburin.data.local.ApplicationEntity
 import com.example.laburin.data.local.PendingActionEntity
+import com.example.laburin.data.local.PublishedOfferEntity
+import com.example.laburin.data.publish.FakeBusinessRemote
+import com.example.laburin.fakes.FakePublishedOfferDao
 import com.example.laburin.data.remote.ApiException
 import com.example.laburin.domain.model.SyncOutcome
 import com.example.laburin.fakes.CANDIDATE_STORED
@@ -23,7 +26,9 @@ class PendingActionsSyncerTest {
     private val pending = FakePendingActionDao()
     private val remote = FakeApplicationsRemote()
     private val session = FakeSessionStore(CANDIDATE_STORED)
-    private val syncer = PendingActionsSyncer(pending, applications, remote, session)
+    private val published = FakePublishedOfferDao()
+    private val business = FakeBusinessRemote()
+    private val syncer = PendingActionsSyncer(pending, applications, remote, session, published, business)
 
     @Before
     fun setUp() = runTest {
@@ -111,6 +116,30 @@ class PendingActionsSyncerTest {
         assertEquals(SyncOutcome.Done, syncer.run())
         assertTrue(pending.rows.value.isEmpty())
         assertTrue(remote.applyCalls.isEmpty())
+    }
+
+    @Test
+    fun `a published offer becomes active once the server accepts it`() = runTest {
+        pending.rows.value = emptyList()
+        published.insert(PublishedOfferEntity("p-1", "b-1", "Mozo", "GASTRONOMY", "Sábados", "[DESCRIPCION]", "PENDING_PUBLISH", Instant.EPOCH))
+        pending.insert(PendingActionEntity("q-1", PendingActionsSyncer.PUBLISH, "p-1", Instant.EPOCH))
+
+        assertEquals(SyncOutcome.Done, syncer.run())
+
+        assertEquals("ACTIVE", published.find("p-1")?.status)
+        assertEquals(listOf("token-candidate:p-1"), business.publishCalls)
+        assertTrue(pending.rows.value.isEmpty())
+    }
+
+    @Test
+    fun `publishing without network stays pending`() = runTest {
+        pending.rows.value = emptyList()
+        published.insert(PublishedOfferEntity("p-1", "b-1", "Mozo", "GASTRONOMY", "Sábados", "[DESCRIPCION]", "PENDING_PUBLISH", Instant.EPOCH))
+        pending.insert(PendingActionEntity("q-1", PendingActionsSyncer.PUBLISH, "p-1", Instant.EPOCH))
+        business.publishResponse = { throw IOException("offline") }
+
+        assertEquals(SyncOutcome.Retry, syncer.run())
+        assertEquals("PENDING_PUBLISH", published.find("p-1")?.status)
     }
 
     @Test(expected = CancellationException::class)

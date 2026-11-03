@@ -38,6 +38,28 @@ class MigrationTest {
         db.close()
     }
 
+    @Test
+    fun migration2To3AddsThePublishedOffersTable() {
+        helper.createDatabase(DB, 2).use { db ->
+            db.execSQL(
+                "INSERT INTO applications (id, user_id, offer_id, offer_title, business_name, status, created_at) " +
+                    "VALUES ('a-1', 'u-1', 'o-1', 'Mozo', '[COMERCIO]', 'SENT', 0)"
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(DB, 3, true, LaburinDatabase.MIGRATION_2_3)
+
+        db.query("SELECT status FROM applications WHERE id = 'a-1'").use { c ->
+            c.moveToFirst()
+            assertEquals("SENT", c.getString(0))
+        }
+        db.execSQL(
+            "INSERT INTO published_offers (id, business_id, title, category, schedule, description, status, created_at) " +
+                "VALUES ('p-1', 'b-1', 'Mozo', 'GASTRONOMY', 'Sábados', '[DESCRIPCION]', 'PENDING_PUBLISH', 0)"
+        )
+        db.close()
+    }
+
     private companion object {
         const val DB = "migration-test.db"
     }

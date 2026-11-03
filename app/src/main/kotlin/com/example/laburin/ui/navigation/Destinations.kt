@@ -26,3 +26,16 @@ data object ProfileDestination
 
 @Serializable
 data object ApplicationsDestination
+
+@Serializable
+data object PublishDestination
+
+@Serializable
+data object BusinessSignUpDestination
+
+@Serializable
+data class PublishedOfferDestination(val offerId: String) {
+    companion object {
+        const val ARG_OFFER_ID = "offerId"
+    }
+}

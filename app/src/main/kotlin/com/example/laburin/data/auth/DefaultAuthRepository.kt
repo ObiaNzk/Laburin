@@ -2,6 +2,8 @@ package com.example.laburin.data.auth
 
 import com.example.laburin.data.remote.ApiException
 import com.example.laburin.domain.model.AuthResult
+import com.example.laburin.domain.model.BusinessSignUp
+import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Session
 import com.example.laburin.domain.model.UserRole
 import com.example.laburin.domain.repository.AuthRepository
@@ -26,6 +28,16 @@ class DefaultAuthRepository @Inject constructor(
 
     override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String) =
         authenticate { remote.signUpCandidate(firstName.trim(), lastName.trim(), email.trim(), password) }
+
+    override suspend fun signUpBusiness(data: BusinessSignUp, location: GeoLocation) = authenticate {
+        remote.signUpBusiness(
+            BusinessSignUpDto(
+                businessName = data.businessName.trim(), category = data.category.name, schedule = data.schedule.trim(),
+                address = data.address.trim(), latitude = location.latitude, longitude = location.longitude,
+                email = data.email.trim(), password = data.password,
+            )
+        )
+    }
 
     override suspend fun logout() = store.clear()
 

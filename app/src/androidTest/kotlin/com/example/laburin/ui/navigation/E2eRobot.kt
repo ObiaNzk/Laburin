@@ -36,3 +36,12 @@ fun AndroidComposeTestRule<*, *>.tap(text: String) {
 fun AndroidComposeTestRule<*, *>.typeInField(index: Int, text: String) {
     onAllNodes(hasSetTextAction())[index].performTextInput(text)
 }
+
+/** WorkManager waits for a connection; in tests the constraint is satisfied explicitly. */
+fun connectionIsBack(context: android.content.Context) {
+    val workManager = androidx.work.WorkManager.getInstance(context)
+    val driver = androidx.work.testing.WorkManagerTestInitHelper.getTestDriver(context)!!
+    workManager.getWorkInfosForUniqueWork(com.example.laburin.data.sync.WorkManagerSyncScheduler.UNIQUE_NAME).get()
+        .filter { !it.state.isFinished }
+        .forEach { driver.setAllConstraintsMet(it.id) }
+}

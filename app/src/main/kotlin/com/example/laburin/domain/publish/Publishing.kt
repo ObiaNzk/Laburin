@@ -8,6 +8,7 @@ import com.example.laburin.domain.model.PublishField
 import com.example.laburin.domain.model.PublishResult
 import com.example.laburin.domain.model.SignUpField
 import com.example.laburin.domain.model.UserRole
+import com.example.laburin.domain.repository.ApplicantsRepository
 import com.example.laburin.domain.repository.MyOffersRepository
 import com.example.laburin.domain.repository.SessionRepository
 import com.example.laburin.domain.repository.SyncScheduler
@@ -63,5 +64,15 @@ class PublishOfferUseCase @Inject constructor(
         val offer = offers.publish(draft)
         scheduler.schedule()
         return PublishResult.Queued(offer)
+    }
+}
+
+class ReviewApplicantUseCase @Inject constructor(
+    private val applicants: ApplicantsRepository,
+    private val scheduler: SyncScheduler,
+) {
+    suspend operator fun invoke(applicationId: String, approve: Boolean) {
+        applicants.review(applicationId, approve)
+        scheduler.schedule()
     }
 }

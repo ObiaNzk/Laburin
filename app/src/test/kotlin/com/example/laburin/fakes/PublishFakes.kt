@@ -40,3 +40,12 @@ class FakePublishedOfferDao : PublishedOfferDao {
         rows.value = rows.value.map { if (it.id == id) it.copy(status = status) else it }
     }
 }
+
+class FakeApplicantsRepository : com.example.laburin.domain.repository.ApplicantsRepository {
+    val store = MutableStateFlow<List<com.example.laburin.domain.model.Applicant>>(emptyList())
+    val refreshCalls = mutableListOf<String>()
+    val reviews = mutableListOf<String>()
+    override fun observeForOffer(offerId: String): Flow<List<com.example.laburin.domain.model.Applicant>> = store
+    override suspend fun refresh(offerId: String): RefreshResult { refreshCalls += offerId; return RefreshResult.Success }
+    override suspend fun review(applicationId: String, approve: Boolean) { reviews += "$applicationId:$approve" }
+}

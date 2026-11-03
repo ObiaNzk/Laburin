@@ -6,7 +6,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.CvInfo
+import com.example.laburin.domain.model.PublishedOffer
+import com.example.laburin.domain.model.PublishedOfferStatus
+import java.time.Instant
 import com.example.laburin.domain.model.Session
 import com.example.laburin.domain.model.UserRole
 import com.example.laburin.ui.theme.LaburinTheme
@@ -27,7 +31,7 @@ class ProfileContentTest {
         LaburinTheme {
             ProfileContent(
                 state = state, onLogout = { clicks += "logout" }, onLogin = { clicks += "login" },
-                onPickCv = { clicks += "pickCv" },
+                onPickCv = { clicks += "pickCv" }, onMyOfferClick = { clicks += "offer:$it" },
             )
         }
     }
@@ -81,6 +85,17 @@ class ProfileContentTest {
         show(ProfileUiState.LoggedIn(Session("b-1", UserRole.BUSINESS, "[COMERCIO]", "[EMAIL]"), showsCv = false))
 
         composeRule.onNodeWithText("Mi CV").assertDoesNotExist()
+    }
+
+    @Test
+    fun aBusinessSeesItsOffers() {
+        val offer = PublishedOffer("p-1", "Mozo", Category.GASTRONOMY, "Sábados", "", PublishedOfferStatus.ACTIVE, Instant.EPOCH)
+        show(ProfileUiState.LoggedIn(Session("b-1", UserRole.BUSINESS, "[COMERCIO]", "[EMAIL]"), showsCv = false, myOffers = listOf(offer)))
+
+        composeRule.onNodeWithText("Mis publicaciones (1)").assertIsDisplayed()
+        composeRule.onNodeWithText("Mozo").performClick()
+
+        assertEquals(listOf("offer:p-1"), clicks)
     }
 
     @Test

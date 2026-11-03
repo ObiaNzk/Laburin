@@ -114,4 +114,42 @@
     </plurals>
     <string name="applications_empty">Todavía no te postulaste a ninguna búsqueda</string>
     <string name="applications_logged_out">Ingresá para ver tus postulaciones</string>
+
+    <string name="form_pick_category">Elegí un rubro</string>
+    <string name="publish_title">Nueva búsqueda</string>
+    <string name="publish_job">Puesto</string>
+    <string name="publish_job_hint">Ej.: Ayudante de taller</string>
+    <string name="publish_category">Rubro</string>
+    <string name="publish_schedule">Horario</string>
+    <string name="publish_schedule_hint">Ej.: Lunes a viernes, 8 a 17 h</string>
+    <string name="publish_description">Qué buscás</string>
+    <string name="publish_description_hint">Contá tareas y requisitos</string>
+    <string name="publish_location_note">Se publica en la dirección de tu comercio.</string>
+    <string name="publish_submit">Publicar búsqueda</string>
+    <string name="publish_error_title">Indicá el puesto</string>
+    <string name="publish_error_category">Elegí el rubro</string>
+    <string name="publish_error_schedule">Indicá el horario</string>
+    <string name="publish_error_description">Contá qué buscás</string>
+
+    <string name="business_signup_title">Registrá tu comercio</string>
+    <string name="business_signup_subtitle">Lo usamos para mostrar tus búsquedas en el mapa.</string>
+    <string name="business_name">Nombre del comercio</string>
+    <string name="business_schedule">Horario de atención</string>
+    <string name="business_address">Dirección</string>
+    <string name="business_submit">Crear cuenta de comercio</string>
+    <string name="business_have_account">Ya tengo cuenta</string>
+    <string name="business_error_name">Indicá el nombre del comercio</string>
+    <string name="business_error_address">Indicá la dirección del comercio</string>
+
+    <string name="published_status_pending">Pendiente de publicación</string>
+    <string name="published_status_active">Publicada</string>
+    <string name="published_status_closed">Cerrada</string>
+    <string name="published_pending_hint">Todavía no se ve en el mapa: se publica cuando vuelva la conexión.</string>
+    <string name="published_qr_title">QR de la búsqueda</string>
+    <string name="published_qr_description">Código QR de la búsqueda</string>
+    <string name="published_qr_hint">Imprimilo y pegalo en la vidriera: quien lo escanee ve la búsqueda.</string>
+    <string name="published_share">Compartir</string>
+    <string name="published_share_text">Buscamos %1$s. Postulate en LaburIN: %2$s</string>
+    <string name="published_not_found">No encontramos esta búsqueda</string>
+    <string name="profile_my_offers">Mis publicaciones (%1$d)</string>
 </resources>

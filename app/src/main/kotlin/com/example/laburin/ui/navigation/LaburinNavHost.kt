@@ -22,6 +22,9 @@ import com.example.laburin.ui.screens.auth.SignUpRoute
 import com.example.laburin.ui.screens.detail.OfferDetailRoute
 import com.example.laburin.ui.screens.map.MapRoute
 import com.example.laburin.ui.screens.profile.ProfileRoute
+import com.example.laburin.ui.screens.publish.BusinessSignUpRoute
+import com.example.laburin.ui.screens.publish.PublishRoute
+import com.example.laburin.ui.screens.publish.PublishedOfferRoute
 
 /** App shell: the bottom bar is shown only on top-level destinations. */
 @Composable
@@ -64,6 +67,7 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                     onNavigateToOffer = { offerId, distance ->
                         navController.navigate(OfferDetailDestination(offerId, distance))
                     },
+                    onNavigateToPublish = { navController.navigate(PublishDestination) },
                 )
             }
             composable<OfferDetailDestination> {
@@ -87,6 +91,27 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                     onClose = { navController.popBackStack() },
                 )
             }
+            composable<PublishDestination> {
+                PublishRoute(
+                    onPublished = { offerId ->
+                        navController.navigate(PublishedOfferDestination(offerId)) {
+                            popUpTo<PublishDestination> { inclusive = true }
+                        }
+                    },
+                    onNeedsBusinessAccount = { navController.navigate(BusinessSignUpDestination) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<BusinessSignUpDestination> {
+                BusinessSignUpRoute(
+                    onSignedUp = { navController.leaveAuthFlow() },
+                    onLogin = { navController.navigate(LoginDestination) },
+                    onClose = { navController.popBackStack() },
+                )
+            }
+            composable<PublishedOfferDestination> {
+                PublishedOfferRoute(onBack = { navController.popBackStack() })
+            }
             composable<ApplicationsDestination> {
                 ApplicationsRoute(
                     onLogin = { navController.navigate(LoginDestination) },
@@ -97,15 +122,24 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                 ProfileRoute(
                     onLoggedOut = { navController.openTab(MapDestination) },
                     onLogin = { navController.navigate(LoginDestination) },
+                    onMyOfferClick = { offerId -> navController.navigate(PublishedOfferDestination(offerId)) },
                 )
             }
         }
     }
 }
 
-/** Back to wherever the user was before login/sign-up (e.g. the offer they wanted to see). */
+/**
+ * Back to wherever the user was before the auth screens (the offer they wanted to see, the form they were filling).
+ * Pops the whole chain, e.g. business sign-up → "Ya tengo cuenta" → login.
+ */
 private fun NavController.leaveAuthFlow() {
-    if (!popBackStack<LoginDestination>(inclusive = true)) popBackStack<SignUpDestination>(inclusive = true)
+    // Outermost first: business sign-up can lead to login, and login to candidate sign-up, never the other way.
+    val firstAuthScreen = runCatching { getBackStackEntry<BusinessSignUpDestination>() }.getOrNull()
+        ?: runCatching { getBackStackEntry<LoginDestination>() }.getOrNull()
+        ?: runCatching { getBackStackEntry<SignUpDestination>() }.getOrNull()
+        ?: return
+    popBackStack(firstAuthScreen.destination.id, inclusive = true)
 }
 
 private fun NavController.openTab(destination: Any) = navigate(destination) {

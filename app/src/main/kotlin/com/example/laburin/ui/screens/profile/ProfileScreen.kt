@@ -6,6 +6,8 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,11 +48,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.laburin.R
+import com.example.laburin.ui.components.labelRes
 
 @Composable
 fun ProfileRoute(
     onLoggedOut: () -> Unit,
     onLogin: () -> Unit,
+    onMyOfferClick: (String) -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -69,6 +73,7 @@ fun ProfileRoute(
     ProfileContent(
         state = state, onLogout = viewModel::onLogout, onLogin = onLogin,
         onPickCv = { pickCv.launch(arrayOf(PDF_MIME)) },
+        onMyOfferClick = onMyOfferClick,
     )
 }
 
@@ -95,6 +100,7 @@ fun ProfileContent(
     onLogout: () -> Unit,
     onLogin: () -> Unit,
     onPickCv: () -> Unit,
+    onMyOfferClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     roleSection: @Composable () -> Unit = {},
 ) {
@@ -128,7 +134,7 @@ fun ProfileContent(
                         Text(state.session.email, color = Color.Gray)
                     }
                 }
-                if (state.showsCv) CvSection(state, onPickCv)
+                if (state.showsCv) CvSection(state, onPickCv) else MyOffersSection(state, onMyOfferClick)
                 roleSection()
                 OutlinedButton(
                     onClick = onLogout,
@@ -172,4 +178,21 @@ private fun CvError.messageRes() = when (this) {
     CvError.Network -> R.string.profile_cv_error_network
     CvError.Server -> R.string.profile_cv_error_server
     CvError.Unreadable -> R.string.profile_cv_error_unreadable
+}
+
+@Composable
+private fun MyOffersSection(state: ProfileUiState.LoggedIn, onOfferClick: (String) -> Unit) {
+    Text(stringResource(R.string.profile_my_offers, state.myOffers.size), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+    state.myOffers.forEach { offer ->
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
+                .clickable { onOfferClick(offer.id) }
+                .padding(12.dp)
+        ) {
+            Text(offer.title, fontWeight = FontWeight.Bold)
+            Text(stringResource(offer.category.labelRes()), color = Color.Gray)
+        }
+    }
 }

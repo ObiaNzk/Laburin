@@ -8,6 +8,8 @@ import com.example.laburin.domain.model.UserRole
 import com.example.laburin.domain.model.Session
 import com.example.laburin.domain.repository.AuthRepository
 import com.example.laburin.domain.repository.CvRepository
+import com.example.laburin.domain.repository.MyOffersRepository
+import com.example.laburin.domain.model.PublishedOffer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,6 +32,7 @@ sealed interface ProfileUiState {
         val showsCv: Boolean = true,
         val isUploadingCv: Boolean = false,
         val cvError: CvError? = null,
+        val myOffers: List<PublishedOffer> = emptyList(),
     ) : ProfileUiState
 }
 
@@ -42,23 +46,32 @@ sealed interface ProfileEffect {
 class ProfileViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val cv: CvRepository,
+    private val myOffers: MyOffersRepository,
 ) : ViewModel() {
 
     private data class CvUpload(val isUploading: Boolean = false, val error: CvError? = null)
 
     private val upload = MutableStateFlow(CvUpload())
 
-    val uiState: StateFlow<ProfileUiState> = combine(auth.session, cv.observeCv(), upload) { session, cvInfo, upload ->
+    val uiState: StateFlow<ProfileUiState> = combine(
+        auth.session, cv.observeCv(), upload, myOffers.observeMine(),
+    ) { session, cvInfo, upload, offers ->
         when {
             session == null -> ProfileUiState.LoggedOut
-            session.role != UserRole.CANDIDATE -> ProfileUiState.LoggedIn(session, cv = null, showsCv = false)
+            session.role != UserRole.CANDIDATE -> ProfileUiState.LoggedIn(session, cv = null, showsCv = false, myOffers = offers)
             else -> ProfileUiState.LoggedIn(session, cvInfo, isUploadingCv = upload.isUploading, cvError = upload.error)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState.Loading)
 
     init {
         // Brings the server's CV into the local cache (e.g. right after logging in on a new device).
-        viewModelScope.launch { cv.current() }
+        viewModelScope.launch {
+            when (auth.session.first()?.role) {
+                UserRole.CANDIDATE -> cv.current()
+                UserRole.BUSINESS -> myOffers.refreshMine()
+                null -> Unit
+            }
+        }
     }
 
     private val _effects = MutableSharedFlow<ProfileEffect>()

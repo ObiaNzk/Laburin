@@ -7,6 +7,8 @@ import com.example.laburin.fakes.BUSINESS_SESSION
 import com.example.laburin.fakes.CANDIDATE_SESSION
 import com.example.laburin.fakes.FakeAuthRepository
 import com.example.laburin.fakes.FakeCvRepository
+import com.example.laburin.fakes.FakeMyOffersRepository
+import com.example.laburin.fakes.testPublishedOffer
 import com.example.laburin.fakes.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -24,10 +26,11 @@ class ProfileViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val cv = FakeCvRepository(initial = null)
+    private val myOffers = FakeMyOffersRepository()
     private val pdf = byteArrayOf(0x25, 0x50, 0x44, 0x46)
 
     private fun TestScope.createViewModel(auth: FakeAuthRepository): ProfileViewModel {
-        val vm = ProfileViewModel(auth, cv)
+        val vm = ProfileViewModel(auth, cv, myOffers)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -55,10 +58,21 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun `a business profile has no CV section`() = runTest {
+    fun `a business profile lists its offers instead of a CV`() = runTest {
+        myOffers.store.value = listOf(testPublishedOffer("p-1"))
         val vm = createViewModel(FakeAuthRepository(BUSINESS_SESSION))
 
-        assertEquals(ProfileUiState.LoggedIn(BUSINESS_SESSION, cv = null, showsCv = false), vm.uiState.value)
+        assertEquals(
+            ProfileUiState.LoggedIn(BUSINESS_SESSION, cv = null, showsCv = false, myOffers = listOf(testPublishedOffer("p-1"))),
+            vm.uiState.value,
+        )
+    }
+
+    @Test
+    fun `opening a business profile refreshes its offers`() = runTest {
+        createViewModel(FakeAuthRepository(BUSINESS_SESSION))
+
+        assertEquals(1, myOffers.refreshCalls)
     }
 
     @Test

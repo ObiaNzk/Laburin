@@ -1,6 +1,17 @@
 package com.example.laburin.ui.navigation
 
 import androidx.compose.foundation.layout.padding
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,6 +50,7 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
     val navController = rememberNavController()
     val isLoggedIn by shell.isLoggedIn.collectAsStateWithLifecycle()
     val isSessionExpired by shell.isSessionExpired.collectAsStateWithLifecycle()
+    AskNotificationPermissionOnce(isLoggedIn)
     val destination = navController.currentBackStackEntryAsState().value?.destination
     val tab = when {
         destination?.hasRoute<MapDestination>() == true -> AppTab.SEARCH
@@ -188,4 +200,20 @@ private fun SessionExpiredDialog(onLogin: () -> Unit, onLater: () -> Unit) {
         confirmButton = { TextButton(onClick = onLogin) { Text(stringResource(R.string.session_expired_login)) } },
         dismissButton = { TextButton(onClick = onLater) { Text(stringResource(R.string.session_expired_later)) } },
     )
+}
+
+/** Android 13+: notifications need the user's OK; asked once, when there is something to notify (logged in). */
+@Composable
+private fun AskNotificationPermissionOnce(isLoggedIn: Boolean) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+    val context = LocalContext.current
+    var asked by rememberSaveable { mutableStateOf(false) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(isLoggedIn) {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        if (isLoggedIn && !granted && !asked) {
+            asked = true
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 }

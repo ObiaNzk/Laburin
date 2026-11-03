@@ -33,6 +33,10 @@ import com.example.laburin.domain.repository.MyOffersRepository
 import com.example.laburin.data.cv.DataStoreCvCache
 import com.example.laburin.data.cv.DefaultCvRepository
 import com.example.laburin.data.local.ApplicantDao
+import com.example.laburin.data.notifications.AndroidNotifier
+import com.example.laburin.data.notifications.DataStoreKnownApplicants
+import com.example.laburin.data.notifications.KnownApplicantsStore
+import com.example.laburin.domain.repository.Notifier
 import com.example.laburin.data.local.ApplicationDao
 import com.example.laburin.data.local.PendingActionDao
 import com.example.laburin.data.local.PublishedOfferDao
@@ -182,6 +186,12 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindSessionRepository(impl: DefaultAuthRepository): SessionRepository
+
+    @Binds
+    abstract fun bindNotifier(impl: AndroidNotifier): Notifier
+
+    @Binds
+    abstract fun bindKnownApplicantsStore(impl: DataStoreKnownApplicants): KnownApplicantsStore
 
     @Binds
     abstract fun bindSessionExpiryNotifier(impl: DefaultAuthRepository): SessionExpiryNotifier

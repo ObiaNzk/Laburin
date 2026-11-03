@@ -3,6 +3,7 @@ package com.example.laburin
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.example.laburin.data.notifications.NotificationsWorker
 import com.example.laburin.domain.repository.SyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -23,5 +24,6 @@ class LaburinApplication : Application(), Configuration.Provider {
         super.onCreate()
         // Actions confirmed in a previous run (app closed offline) are sent as soon as there is a connection.
         syncScheduler.schedule()
+        NotificationsWorker.schedule(this)
     }
 }

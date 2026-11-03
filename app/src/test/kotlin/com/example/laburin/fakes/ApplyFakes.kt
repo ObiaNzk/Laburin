@@ -49,7 +49,8 @@ class FakeApplicationRepository : ApplicationRepository {
         pendingCount.value++
         return app
     }
-    override suspend fun refreshMine(): RefreshResult { refreshCalls++; return nextRefresh }
+    var onRefresh: () -> Unit = {}
+    override suspend fun refreshMine(): RefreshResult { refreshCalls++; onRefresh(); return nextRefresh }
 }
 
 fun testApplication(

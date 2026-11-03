@@ -81,4 +81,15 @@ class FakeBusinessRemote : BusinessRemoteDataSource {
         publishResponse()
     }
     override suspend fun myOffers(token: String) = mine()
+
+    var applicantsResponse: () -> List<ApplicantDto> = { emptyList() }
+    var reviewResponse: (String, Boolean) -> ApplicantDto = { id, approve ->
+        ApplicantDto(id, "o-1", "[NOMBRE]", "cv.pdf", if (approve) "APPROVED" else "REJECTED", if (approve) "[EMAIL]" else null)
+    }
+    val reviewCalls = mutableListOf<String>()
+    override suspend fun applicants(token: String, offerId: String) = applicantsResponse()
+    override suspend fun review(token: String, applicationId: String, approve: Boolean): ApplicantDto {
+        reviewCalls += "$applicationId:$approve"
+        return reviewResponse(applicationId, approve)
+    }
 }

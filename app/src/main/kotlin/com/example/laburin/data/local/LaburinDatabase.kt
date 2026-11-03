@@ -7,8 +7,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [OfferEntity::class, SyncMetadataEntity::class, ApplicationEntity::class, PendingActionEntity::class, PublishedOfferEntity::class],
-    version = 3,
+    entities = [OfferEntity::class, SyncMetadataEntity::class, ApplicationEntity::class, PendingActionEntity::class, PublishedOfferEntity::class, ApplicantEntity::class],
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -18,6 +18,7 @@ abstract class LaburinDatabase : RoomDatabase() {
     abstract fun applicationDao(): ApplicationDao
     abstract fun pendingActionDao(): PendingActionDao
     abstract fun publishedOfferDao(): PublishedOfferDao
+    abstract fun applicantDao(): ApplicantDao
 
     companion object {
         const val NAME = "laburin.db"
@@ -33,6 +34,12 @@ abstract class LaburinDatabase : RoomDatabase() {
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS `published_offers` (`id` TEXT NOT NULL, `business_id` TEXT NOT NULL, `title` TEXT NOT NULL, `category` TEXT NOT NULL, `schedule` TEXT NOT NULL, `description` TEXT NOT NULL, `status` TEXT NOT NULL, `created_at` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `applicants` (`application_id` TEXT NOT NULL, `offer_id` TEXT NOT NULL, `candidate_name` TEXT NOT NULL, `cv_file_name` TEXT, `status` TEXT NOT NULL, `contact_email` TEXT, PRIMARY KEY(`application_id`))")
             }
         }
     }

@@ -28,7 +28,8 @@ class PendingActionsSyncerTest {
     private val session = FakeSessionStore(CANDIDATE_STORED)
     private val published = FakePublishedOfferDao()
     private val business = FakeBusinessRemote()
-    private val syncer = PendingActionsSyncer(pending, applications, remote, session, published, business)
+    private val applicants = com.example.laburin.data.publish.FakeApplicantDao()
+    private val syncer = PendingActionsSyncer(pending, applications, remote, session, published, business, applicants)
 
     @Before
     fun setUp() = runTest {
@@ -140,6 +141,45 @@ class PendingActionsSyncerTest {
 
         assertEquals(SyncOutcome.Retry, syncer.run())
         assertEquals("PENDING_PUBLISH", published.find("p-1")?.status)
+    }
+
+    @Test
+    fun `an approval confirmed by the server reveals the contact`() = runTest {
+        queueReview("a-9", status = "APPROVAL_PENDING_SEND")
+
+        assertEquals(SyncOutcome.Done, syncer.run())
+
+        val applicant = applicants.find("a-9")!!
+        assertEquals("APPROVED", applicant.status)
+        assertEquals("[EMAIL]", applicant.contactEmail)
+        assertEquals(listOf("a-9:true"), business.reviewCalls)
+    }
+
+    @Test
+    fun `a rejection confirmed by the server keeps the contact hidden`() = runTest {
+        queueReview("a-9", status = "REJECTION_PENDING_SEND")
+
+        syncer.run()
+
+        assertEquals("REJECTED", applicants.find("a-9")!!.status)
+        assertEquals(null, applicants.find("a-9")!!.contactEmail)
+        assertEquals(listOf("a-9:false"), business.reviewCalls)
+    }
+
+    @Test
+    fun `a review without network stays pending and hidden`() = runTest {
+        queueReview("a-9", status = "APPROVAL_PENDING_SEND")
+        business.reviewResponse = { _, _ -> throw IOException("offline") }
+
+        assertEquals(SyncOutcome.Retry, syncer.run())
+        assertEquals("APPROVAL_PENDING_SEND", applicants.find("a-9")!!.status)
+        assertEquals(null, applicants.find("a-9")!!.contactEmail)
+    }
+
+    private suspend fun queueReview(applicationId: String, status: String) {
+        pending.rows.value = emptyList()
+        applicants.upsert(com.example.laburin.data.local.ApplicantEntity(applicationId, "o-1", "[NOMBRE]", "cv.pdf", status, null))
+        pending.insert(PendingActionEntity("r-$applicationId", PendingActionsSyncer.REVIEW, applicationId, Instant.EPOCH))
     }
 
     @Test(expected = CancellationException::class)

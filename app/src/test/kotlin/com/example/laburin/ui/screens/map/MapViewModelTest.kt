@@ -88,6 +88,35 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `with a real GPS fix the user location is shown on the map`() = runTest {
+        location.result = LocationResult.Located(palermo)
+        val vm = createViewModel()
+
+        vm.onLocationPermissionResult(granted = true)
+
+        assertEquals(palermo, vm.uiState.value.userLocation)
+    }
+
+    @Test
+    fun `denied permission shows no user location, the default center is not where the user is`() = runTest {
+        val vm = createViewModel()
+
+        vm.onLocationPermissionResult(granted = false)
+
+        assertEquals(null, vm.uiState.value.userLocation)
+    }
+
+    @Test
+    fun `unavailable location shows no user location`() = runTest {
+        location.result = LocationResult.Unavailable
+        val vm = createViewModel()
+
+        vm.onLocationPermissionResult(granted = true)
+
+        assertEquals(null, vm.uiState.value.userLocation)
+    }
+
+    @Test
     fun `successful refresh without results is the empty state`() = runTest {
         val vm = createViewModel()
 
@@ -189,6 +218,20 @@ class MapViewModelTest {
         vm.onQueryChange("moz")
 
         assertEquals(listOf("a"), (vm.uiState.value.offers as OffersState.Content).offers.map { it.offer.id })
+        assertEquals(1, repository.refreshCalls.size)
+    }
+
+    @Test
+    fun `clearing the search shows every offer again without refetching`() = runTest {
+        repository.offers.value = listOf(testOffer(id = "a", title = "Mozo"), testOffer(id = "b", title = "Cajero"))
+        val vm = createViewModel()
+        vm.onLocationPermissionResult(granted = true)
+        vm.onQueryChange("zzz")
+
+        vm.onClearQuery()
+
+        assertEquals("", vm.uiState.value.query)
+        assertEquals(setOf("a", "b"), (vm.uiState.value.offers as OffersState.Content).offers.map { it.offer.id }.toSet())
         assertEquals(1, repository.refreshCalls.size)
     }
 

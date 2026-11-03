@@ -77,6 +77,7 @@ class MapViewModel @Inject constructor(
             radiusKm = params.filters.radiusKm,
             category = params.filters.category,
             center = params.location.center,
+            userLocation = params.location.center.takeIf { params.location.status == LocationStatus.Granted },
             locationStatus = params.location.status,
             isOnline = online,
             lastSyncedAt = lastSyncedAt,
@@ -133,6 +134,8 @@ class MapViewModel @Inject constructor(
         val next = SearchFilters.RADIUS_OPTIONS_KM.firstOrNull { it > filters.value.radiusKm } ?: return
         onRadiusChange(next)
     }
+
+    fun onClearQuery() = onQueryChange("")
 
     fun onShowAllCategories() = onCategoryChange(null)
 

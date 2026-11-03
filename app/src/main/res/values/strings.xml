@@ -20,6 +20,9 @@
     </plurals>
     <string name="map_location_fallback">Sin ubicación: mostrando la zona por defecto</string>
     <string name="map_empty_title">No hay búsquedas de %1$s a menos de %2$d km</string>
+    <string name="map_empty_title_all_categories">No hay búsquedas a menos de %1$d km</string>
+    <string name="map_empty_title_query">No hay búsquedas que coincidan con “%1$s”</string>
+    <string name="map_clear_query">Borrar búsqueda</string>
     <string name="map_empty_body">Probá ampliar el radio o cambiar el rubro.</string>
     <string name="map_widen_radius">Ampliar a %1$d km</string>
     <string name="map_show_all_categories">Ver todos los rubros</string>
@@ -27,6 +30,7 @@
     <string name="map_unavailable_server">No pudimos cargar las búsquedas</string>
     <string name="map_retry">Reintentar</string>
     <string name="map_offline_banner">Sin conexión · datos de hace %1$d min</string>
+    <string name="map_offline_banner_no_data">Sin conexión</string>
     <string name="map_offline_banner_now">Sin conexión · datos recientes</string>
     <string name="map_offline_map_unavailable">El mapa no está disponible sin conexión</string>
     <string name="map_offline_showing_saved">Mostrando búsquedas guardadas</string>

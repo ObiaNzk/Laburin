@@ -17,7 +17,8 @@ class DefaultAuthRepositoryTest {
 
     private val remote = FakeAuthRemote()
     private val store = FakeSessionStore()
-    private val repository = DefaultAuthRepository(remote, store)
+    private var scheduled = 0
+    private val repository = DefaultAuthRepository(remote, store) { scheduled++ }
 
     private val user = UserDto(id = "u-1", role = "CANDIDATE", displayName = "[NOMBRE]", email = "[EMAIL]")
 
@@ -29,6 +30,15 @@ class DefaultAuthRepositoryTest {
 
         assertEquals(Session("u-1", UserRole.CANDIDATE, "[NOMBRE]", "[EMAIL]"), repository.session.first())
         assertEquals("t-1", store.saved.value?.token)
+    }
+
+    @Test
+    fun `logging in resumes sending actions that were waiting for a session`() = runTest {
+        remote.respond = { AuthResponseDto(token = "t-1", user = user) }
+
+        repository.login("[EMAIL]", "12345678")
+
+        assertEquals(1, scheduled)
     }
 
     @Test

@@ -8,7 +8,7 @@ import java.io.IOException
 
 class FakeOfferRemoteDataSourceTest {
 
-    private val dataSource = FakeOfferRemoteDataSource()
+    private val dataSource = FakeOfferRemoteDataSource(com.example.laburin.data.fakebackend.FakeBackend())
 
     @Test
     fun `getOffer returns an active seed offer`() = runTest {

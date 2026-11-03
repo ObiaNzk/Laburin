@@ -7,7 +7,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.laburin.domain.model.ApplicationStatus
 import com.example.laburin.domain.model.Category
+import com.example.laburin.domain.model.JobApplication
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Offer
 import com.example.laburin.ui.theme.LaburinTheme
@@ -99,6 +101,23 @@ class OfferDetailContentTest {
         composeRule.onNodeWithText("Postularme").assertIsDisplayed().performClick()
 
         assertEquals(listOf("apply"), clicks)
+    }
+
+    @Test
+    fun alreadyAppliedShowsTheStatusInsteadOfTheApplyButton() {
+        val application = JobApplication("a-1", offer.id, offer.title, "[COMERCIO]", ApplicationStatus.PENDING_SEND, Instant.EPOCH)
+        show(OfferDetailUiState.Full(offer, distanceMeters = 400, application = application))
+
+        composeRule.onNodeWithText("Pendiente de envío").assertIsDisplayed()
+        composeRule.onNodeWithText("Postularme").assertDoesNotExist()
+    }
+
+    @Test
+    fun aSentApplicationSaysSo() {
+        val application = JobApplication("a-1", offer.id, offer.title, "[COMERCIO]", ApplicationStatus.SENT, Instant.EPOCH)
+        show(OfferDetailUiState.Full(offer, distanceMeters = 400, application = application))
+
+        composeRule.onNodeWithText("Postulación enviada").assertIsDisplayed()
     }
 
     // --- Other states ---

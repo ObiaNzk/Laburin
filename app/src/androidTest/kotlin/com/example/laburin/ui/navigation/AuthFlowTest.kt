@@ -51,7 +51,7 @@ class AuthFlowTest {
         composeRule.typeInField(1, FakeBackend.DEMO_PASSWORD)
         composeRule.tap("Ingresar")
 
-        composeRule.waitFor("Postularme")
+        composeRule.waitFor("Qué buscamos") // Only the full (logged-in) detail shows it.
         composeRule.onNodeWithText("Creá tu cuenta para ver la búsqueda y postularte").assertDoesNotExist()
     }
 
@@ -67,7 +67,7 @@ class AuthFlowTest {
         composeRule.typeInField(3, "12345678")
         composeRule.tap("Crear cuenta y seguir")
 
-        composeRule.waitFor("Postularme")
+        composeRule.waitFor("Qué buscamos") // Only the full (logged-in) detail shows it.
     }
 
     @Test

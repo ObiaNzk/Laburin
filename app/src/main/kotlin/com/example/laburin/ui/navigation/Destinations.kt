@@ -23,3 +23,6 @@ data object LoginDestination
 
 @Serializable
 data object ProfileDestination
+
+@Serializable
+data object ApplicationsDestination

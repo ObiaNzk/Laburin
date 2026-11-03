@@ -28,6 +28,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,10 +45,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.laburin.R
+import com.example.laburin.domain.model.ApplicationStatus
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Offer
+import com.example.laburin.ui.components.ApplicationStatusChip
 import com.example.laburin.ui.components.DisplayMap
+import com.example.laburin.ui.components.hintRes
 import com.example.laburin.ui.components.MapMarker
 import com.example.laburin.ui.components.formatDistance
 import com.example.laburin.ui.components.labelRes
@@ -57,10 +63,12 @@ fun OfferDetailRoute(
     onNavigateBack: () -> Unit,
     onNavigateToSignUp: () -> Unit,
     onNavigateToLogin: () -> Unit = {},
-    onNavigateToApply: (String) -> Unit = {},
+    onNavigateToCvUpload: () -> Unit = {},
     viewModel: OfferDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val businessCannotApply = stringResource(R.string.detail_business_cannot_apply)
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -68,19 +76,25 @@ fun OfferDetailRoute(
                 OfferDetailEffect.NavigateBack -> onNavigateBack()
                 OfferDetailEffect.NavigateToSignUp -> onNavigateToSignUp()
                 OfferDetailEffect.NavigateToLogin -> onNavigateToLogin()
-                is OfferDetailEffect.NavigateToApply -> onNavigateToApply(effect.offerId)
+                OfferDetailEffect.NavigateToCvUpload -> onNavigateToCvUpload()
+                is OfferDetailEffect.ShowMessage -> when (effect.message) {
+                    OfferDetailMessage.BusinessCannotApply -> snackbarHostState.showSnackbar(businessCannotApply)
+                }
             }
         }
     }
 
-    OfferDetailContent(
-        state = state,
-        onBack = viewModel::onBack,
-        onCreateAccount = viewModel::onCreateAccount,
-        onLogin = viewModel::onLogin,
-        onApply = viewModel::onApply,
-        onRetry = viewModel::onRetry,
-    )
+    Box {
+        OfferDetailContent(
+            state = state,
+            onBack = viewModel::onBack,
+            onCreateAccount = viewModel::onCreateAccount,
+            onLogin = viewModel::onLogin,
+            onApply = viewModel::onApply,
+            onRetry = viewModel::onRetry,
+        )
+        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+    }
 }
 
 @Composable
@@ -124,7 +138,14 @@ fun OfferDetailContent(
         // Primary actions pinned to the bottom third for one-handed use (RNF-01).
         when (state) {
             is OfferDetailUiState.Guest -> SignUpPrompt(onCreateAccount, onLogin, Modifier.align(Alignment.BottomCenter))
-            is OfferDetailUiState.Full -> ApplyButton(onApply, Modifier.align(Alignment.BottomCenter))
+            is OfferDetailUiState.Full -> {
+                val application = state.application
+                if (application == null) {
+                    ApplyButton(onApply, Modifier.align(Alignment.BottomCenter))
+                } else {
+                    AppliedStatus(application.status, Modifier.align(Alignment.BottomCenter))
+                }
+            }
             else -> Unit
         }
     }
@@ -211,6 +232,23 @@ private fun ApplyButton(onApply: () -> Unit, modifier: Modifier = Modifier) {
         colors = ButtonDefaults.buttonColors(Color.DarkGray),
     ) {
         Text(stringResource(R.string.detail_apply), fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun AppliedStatus(status: ApplicationStatus, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .navigationBarsPadding()
+            .padding(16.dp)
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        ApplicationStatusChip(status)
+        status.hintRes()?.let {
+            Spacer(Modifier.height(4.dp))
+            Text(stringResource(it), fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
+        }
     }
 }
 

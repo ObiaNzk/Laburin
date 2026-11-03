@@ -3,8 +3,12 @@ package com.example.laburin.ui.screens.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.laburin.domain.model.ApplyResult
+import com.example.laburin.domain.model.JobApplication
 import com.example.laburin.domain.model.Offer
 import com.example.laburin.domain.model.RefreshResult
+import com.example.laburin.domain.apply.ApplyToOfferUseCase
+import com.example.laburin.domain.repository.ApplicationRepository
 import com.example.laburin.domain.repository.ConnectivityObserver
 import com.example.laburin.domain.repository.SessionRepository
 import com.example.laburin.domain.usecase.ObserveOfferUseCase
@@ -29,6 +33,8 @@ class OfferDetailViewModel @Inject constructor(
     private val refreshOffer: RefreshOfferUseCase,
     sessionRepository: SessionRepository,
     connectivityObserver: ConnectivityObserver,
+    applications: ApplicationRepository,
+    private val applyToOffer: ApplyToOfferUseCase,
 ) : ViewModel() {
 
     private val offerId: String = checkNotNull(savedStateHandle[OfferDetailDestination.ARG_OFFER_ID])
@@ -40,8 +46,10 @@ class OfferDetailViewModel @Inject constructor(
     private val isOnline: StateFlow<Boolean> =
         connectivityObserver.isOnline.stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    private val offer = observeOffer(offerId).stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     val uiState: StateFlow<OfferDetailUiState> = combine(
-        observeOffer(offerId), sessionRepository.isLoggedIn, lastRefresh, ::toUiState,
+        offer, sessionRepository.isLoggedIn, lastRefresh, applications.observeForOffer(offerId), ::toUiState,
     ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OfferDetailUiState.Loading)
 
     private val _effects = MutableSharedFlow<OfferDetailEffect>()
@@ -61,7 +69,18 @@ class OfferDetailViewModel @Inject constructor(
 
     fun onLogin() = sendEffect(OfferDetailEffect.NavigateToLogin)
 
-    fun onApply() = sendEffect(OfferDetailEffect.NavigateToApply(offerId))
+    fun onApply() {
+        val current = offer.value ?: return
+        viewModelScope.launch {
+            when (applyToOffer(current)) {
+                ApplyResult.NeedsAccount -> _effects.emit(OfferDetailEffect.NavigateToSignUp)
+                ApplyResult.NeedsCv -> _effects.emit(OfferDetailEffect.NavigateToCvUpload)
+                ApplyResult.NotACandidate -> _effects.emit(OfferDetailEffect.ShowMessage(OfferDetailMessage.BusinessCannotApply))
+                // The new or existing application reaches the screen through the repository flow.
+                is ApplyResult.Queued, is ApplyResult.AlreadyApplied -> Unit
+            }
+        }
+    }
 
     private suspend fun refresh() {
         lastRefresh.value = if (isOnline.value) refreshOffer(offerId) else RefreshResult.NetworkError
@@ -71,8 +90,13 @@ class OfferDetailViewModel @Inject constructor(
         viewModelScope.launch { _effects.emit(effect) }
     }
 
-    private fun toUiState(offer: Offer?, isLoggedIn: Boolean, refresh: RefreshResult?): OfferDetailUiState = when {
-        offer != null && isLoggedIn -> OfferDetailUiState.Full(offer, distanceMeters)
+    private fun toUiState(
+        offer: Offer?,
+        isLoggedIn: Boolean,
+        refresh: RefreshResult?,
+        application: JobApplication?,
+    ): OfferDetailUiState = when {
+        offer != null && isLoggedIn -> OfferDetailUiState.Full(offer, distanceMeters, application)
         offer != null -> OfferDetailUiState.Guest(offer.title, offer.category, distanceMeters)
         refresh == null -> OfferDetailUiState.Loading
         refresh == RefreshResult.Success -> OfferDetailUiState.NoLongerAvailable

@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.laburin.domain.model.Applicant
+import com.example.laburin.domain.model.ApplicantStatus
 import com.example.laburin.domain.model.BusinessSignUpField
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.PublishField
@@ -92,16 +94,69 @@ class PublishContentTest {
 
     // --- Published offer ---
 
-    private fun showPublished(status: PublishedOfferStatus) = composeRule.setContent {
+    private fun showPublished(status: PublishedOfferStatus, applicants: List<Applicant> = emptyList()) = composeRule.setContent {
         LaburinTheme {
             PublishedOfferContent(
                 state = PublishedOfferUiState.Content(
                     PublishedOffer("p-1", "Mozo", Category.GASTRONOMY, "Sábados", "[DESCRIPCION]", status, Instant.EPOCH),
                     qrLink = "laburin://offer/p-1",
+                    applicants = applicants,
                 ),
                 onShare = { clicks += "share" }, onBack = {},
+                onApprove = { clicks += "approve:$it" }, onReject = { clicks += "reject:$it" },
             )
         }
+    }
+
+    private fun applicant(status: ApplicantStatus, contact: String? = null) =
+        Applicant("a-1", "Postulante Uno", "cv-uno.pdf", status, contact)
+
+    // --- Applicants and match (RF-04, RNF-05) ---
+
+    @Test
+    fun applicantsShowTheCvWithTheContactHiddenAndCanBeReviewed() {
+        showPublished(PublishedOfferStatus.ACTIVE, listOf(applicant(ApplicantStatus.PENDING_REVIEW)))
+
+        composeRule.onNodeWithText("Postulantes (1)").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Postulante Uno").assertExists()
+        composeRule.onNodeWithText("CV: cv-uno.pdf").assertExists()
+        composeRule.onNodeWithText("Contacto oculto hasta aprobar").assertExists()
+        composeRule.onNodeWithText("Aprobar").performScrollTo().performClick()
+        composeRule.onNodeWithText("Rechazar").performScrollTo().performClick()
+
+        assertEquals(listOf("approve:a-1", "reject:a-1"), clicks)
+    }
+
+    @Test
+    fun aDecisionWaitingToBeSentKeepsTheContactHidden() {
+        showPublished(PublishedOfferStatus.ACTIVE, listOf(applicant(ApplicantStatus.APPROVAL_PENDING_SEND)))
+
+        composeRule.onNodeWithText("Aprobación pendiente de envío").assertExists()
+        composeRule.onNodeWithText("Contacto oculto hasta aprobar").assertExists()
+        composeRule.onNodeWithText("Aprobar").assertDoesNotExist()
+    }
+
+    @Test
+    fun aConfirmedMatchShowsTheContact() {
+        showPublished(PublishedOfferStatus.ACTIVE, listOf(applicant(ApplicantStatus.APPROVED, contact = "persona@demo.laburin")))
+
+        composeRule.onNodeWithText("Contacto: persona@demo.laburin").assertExists()
+        composeRule.onNodeWithText("Contacto oculto hasta aprobar").assertDoesNotExist()
+    }
+
+    @Test
+    fun aRejectedApplicantSaysSo() {
+        showPublished(PublishedOfferStatus.ACTIVE, listOf(applicant(ApplicantStatus.REJECTED)))
+
+        composeRule.onNodeWithText("Rechazado").assertExists()
+        composeRule.onNodeWithText("Aprobar").assertDoesNotExist()
+    }
+
+    @Test
+    fun noApplicantsYet() {
+        showPublished(PublishedOfferStatus.ACTIVE)
+
+        composeRule.onNodeWithText("Todavía no hay postulantes").assertExists()
     }
 
     @Test

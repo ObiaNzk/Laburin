@@ -15,6 +15,9 @@ import com.example.laburin.domain.model.PublishedOffer
 import com.example.laburin.domain.publish.BusinessSignUpValidator
 import com.example.laburin.domain.publish.OfferLink
 import com.example.laburin.domain.publish.PublishOfferUseCase
+import com.example.laburin.domain.publish.ReviewApplicantUseCase
+import com.example.laburin.domain.repository.ApplicantsRepository
+import com.example.laburin.domain.model.Applicant
 import com.example.laburin.domain.repository.AuthRepository
 import com.example.laburin.domain.repository.LocationProvider
 import com.example.laburin.domain.repository.MyOffersRepository
@@ -28,7 +31,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -150,7 +153,11 @@ class BusinessSignUpViewModel @Inject constructor(
 sealed interface PublishedOfferUiState {
     data object Loading : PublishedOfferUiState
     data object NotFound : PublishedOfferUiState
-    data class Content(val offer: PublishedOffer, val qrLink: String) : PublishedOfferUiState
+    data class Content(
+        val offer: PublishedOffer,
+        val qrLink: String,
+        val applicants: List<Applicant> = emptyList(),
+    ) : PublishedOfferUiState
 }
 
 sealed interface PublishedOfferEffect {
@@ -161,16 +168,30 @@ sealed interface PublishedOfferEffect {
 class PublishedOfferViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     offers: MyOffersRepository,
+    private val applicants: ApplicantsRepository,
+    private val reviewApplicant: ReviewApplicantUseCase,
 ) : ViewModel() {
 
     private val offerId: String = checkNotNull(savedStateHandle[PublishedOfferDestination.ARG_OFFER_ID])
 
-    val uiState: StateFlow<PublishedOfferUiState> = offers.observe(offerId)
-        .map { offer -> offer?.let { PublishedOfferUiState.Content(it, OfferLink.build(it.id)) } ?: PublishedOfferUiState.NotFound }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PublishedOfferUiState.Loading)
+    val uiState: StateFlow<PublishedOfferUiState> = combine(offers.observe(offerId), applicants.observeForOffer(offerId)) { offer, list ->
+        offer?.let { PublishedOfferUiState.Content(it, OfferLink.build(it.id), list) } ?: PublishedOfferUiState.NotFound
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PublishedOfferUiState.Loading)
+
+    init {
+        viewModelScope.launch { applicants.refresh(offerId) }
+    }
 
     private val _effects = MutableSharedFlow<PublishedOfferEffect>()
     val effects: SharedFlow<PublishedOfferEffect> = _effects.asSharedFlow()
+
+    fun onApprove(applicationId: String) {
+        viewModelScope.launch { reviewApplicant(applicationId, approve = true) }
+    }
+
+    fun onReject(applicationId: String) {
+        viewModelScope.launch { reviewApplicant(applicationId, approve = false) }
+    }
 
     fun onShare() {
         val content = uiState.value as? PublishedOfferUiState.Content ?: return

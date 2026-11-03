@@ -152,4 +152,16 @@
     <string name="published_share_text">Buscamos %1$s. Postulate en LaburIN: %2$s</string>
     <string name="published_not_found">No encontramos esta búsqueda</string>
     <string name="profile_my_offers">Mis publicaciones (%1$d)</string>
+
+    <string name="applicants_title">Postulantes (%1$d)</string>
+    <string name="applicants_empty">Todavía no hay postulantes</string>
+    <string name="applicants_cv">CV: %1$s</string>
+    <string name="applicants_contact_hidden">Contacto oculto hasta aprobar</string>
+    <string name="applicants_contact">Contacto: %1$s</string>
+    <string name="applicants_approve">Aprobar</string>
+    <string name="applicants_reject">Rechazar</string>
+    <string name="applicants_approval_pending">Aprobación pendiente de envío</string>
+    <string name="applicants_rejection_pending">Rechazo pendiente de envío</string>
+    <string name="applicants_approved">Aprobado: coordiná la entrevista por fuera de la app</string>
+    <string name="applicants_rejected">Rechazado</string>
 </resources>

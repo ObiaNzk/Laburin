@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.work.runtime)
     implementation(libs.zxing.core)
+    implementation(libs.mlkit.barcode.scanning)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 

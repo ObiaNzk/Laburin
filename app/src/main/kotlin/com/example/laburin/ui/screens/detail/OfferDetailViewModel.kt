@@ -57,6 +57,14 @@ class OfferDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { refresh() }
+        // Opened offline (e.g. a QR scanned on the street): load it as soon as the connection is back.
+        viewModelScope.launch {
+            var wasOnline = isOnline.value
+            isOnline.collect { online ->
+                if (online && !wasOnline && offer.value == null) refresh()
+                wasOnline = online
+            }
+        }
     }
 
     fun onRetry() {

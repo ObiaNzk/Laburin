@@ -164,4 +164,13 @@
     <string name="applicants_rejection_pending">Rechazo pendiente de envío</string>
     <string name="applicants_approved">Aprobado: coordiná la entrevista por fuera de la app</string>
     <string name="applicants_rejected">Rechazado</string>
+
+    <string name="scan_hint">Apuntá al QR del cartel</string>
+    <string name="scan_hint_body">La búsqueda se abre sola</string>
+    <string name="scan_no_permission">Sin permiso de cámara</string>
+    <string name="scan_no_permission_body">Podés activarlo en los ajustes o buscar en el mapa.</string>
+    <string name="scan_invalid">No pudimos abrir la búsqueda</string>
+    <string name="scan_invalid_body">Este QR no es de una búsqueda de LaburIN.</string>
+    <string name="scan_again">Volver a escanear</string>
+    <string name="scan_search_map">Buscar en el mapa</string>
 </resources>

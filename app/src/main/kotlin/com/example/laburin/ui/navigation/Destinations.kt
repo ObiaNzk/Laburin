@@ -28,6 +28,12 @@ data object ProfileDestination
 data object ApplicationsDestination
 
 @Serializable
+data object ScanDestination
+
+/** Deep link printed in the shop sign's QR (see OfferLink). */
+const val OFFER_DEEP_LINK_BASE = "laburin://offer"
+
+@Serializable
 data object PublishDestination
 
 @Serializable

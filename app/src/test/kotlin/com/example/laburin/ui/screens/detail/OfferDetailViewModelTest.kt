@@ -169,6 +169,19 @@ class OfferDetailViewModelTest {
     }
 
     @Test
+    fun `an offer opened offline (e g a scanned QR) loads by itself when the connection is back`() = runTest {
+        connectivity.isOnline.value = false
+        val vm = createViewModel(offerId = "f-4")
+        assertEquals(OfferDetailUiState.Unavailable(isOffline = true), vm.uiState.value)
+
+        repository.onRefreshOffer = { repository.offers.value = listOf(testOffer(id = "f-4")) }
+        connectivity.isOnline.value = true
+
+        assertEquals(listOf("f-4"), repository.refreshOfferCalls)
+        assertTrue(vm.uiState.value is OfferDetailUiState.Guest)
+    }
+
+    @Test
     fun `not cached and a server error is unavailable but not offline`() = runTest {
         repository.nextRefreshOfferResult = RefreshResult.ServerError(500)
 

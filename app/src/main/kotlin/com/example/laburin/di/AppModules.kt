@@ -21,11 +21,16 @@ import com.example.laburin.data.remote.FakeOfferRemoteDataSource
 import com.example.laburin.data.remote.OfferApi
 import com.example.laburin.data.remote.OfferRemoteDataSource
 import com.example.laburin.data.repository.OfflineFirstOfferRepository
-import com.example.laburin.data.session.InMemorySessionRepository
+import com.example.laburin.data.auth.AuthRemoteDataSource
+import com.example.laburin.data.auth.DefaultAuthRepository
+import com.example.laburin.data.auth.KeystoreSessionStore
+import com.example.laburin.data.auth.SessionStore
+import com.example.laburin.data.fakebackend.FakeBackend
 import com.example.laburin.domain.repository.ConnectivityObserver
 import com.example.laburin.domain.repository.FiltersRepository
 import com.example.laburin.domain.repository.LocationProvider
 import com.example.laburin.domain.repository.OfferRepository
+import com.example.laburin.domain.repository.AuthRepository
 import com.example.laburin.domain.repository.SessionRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -129,7 +134,17 @@ abstract class DataModule {
     abstract fun bindFiltersRepository(impl: DataStoreFiltersRepository): FiltersRepository
 
     @Binds
-    abstract fun bindSessionRepository(impl: InMemorySessionRepository): SessionRepository
+    abstract fun bindAuthRepository(impl: DefaultAuthRepository): AuthRepository
+
+    @Binds
+    abstract fun bindSessionRepository(impl: DefaultAuthRepository): SessionRepository
+
+    @Binds
+    abstract fun bindSessionStore(impl: KeystoreSessionStore): SessionStore
+
+    // Swap to the Retrofit implementation once the Go API is available.
+    @Binds
+    abstract fun bindAuthRemoteDataSource(impl: FakeBackend): AuthRemoteDataSource
 }
 
 /** Separate so instrumented tests can replace the device location with @TestInstallIn. */

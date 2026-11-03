@@ -1,7 +1,12 @@
 package com.example.laburin.ui.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import com.example.laburin.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -33,6 +38,7 @@ import com.example.laburin.ui.screens.publish.PublishedOfferRoute
 fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val isLoggedIn by shell.isLoggedIn.collectAsStateWithLifecycle()
+    val isSessionExpired by shell.isSessionExpired.collectAsStateWithLifecycle()
     val destination = navController.currentBackStackEntryAsState().value?.destination
     val tab = when {
         destination?.hasRoute<MapDestination>() == true -> AppTab.SEARCH
@@ -59,6 +65,15 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
             }
         },
     ) { innerPadding ->
+        if (isSessionExpired) {
+            SessionExpiredDialog(
+                onLogin = {
+                    shell.onExpiredNoticeDismissed()
+                    navController.navigate(LoginDestination)
+                },
+                onLater = shell::onExpiredNoticeDismissed,
+            )
+        }
         NavHost(
             navController = navController,
             startDestination = MapDestination,
@@ -161,4 +176,16 @@ private fun NavController.openTab(destination: Any) = navigate(destination) {
     popUpTo(graph.findStartDestination().id) { saveState = true }
     launchSingleTop = true
     restoreState = true
+}
+
+/** §13: the session expired; pending actions are kept and sent after logging in again. */
+@Composable
+private fun SessionExpiredDialog(onLogin: () -> Unit, onLater: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onLater,
+        title = { Text(stringResource(R.string.session_expired_title)) },
+        text = { Text(stringResource(R.string.session_expired_body)) },
+        confirmButton = { TextButton(onClick = onLogin) { Text(stringResource(R.string.session_expired_login)) } },
+        dismissButton = { TextButton(onClick = onLater) { Text(stringResource(R.string.session_expired_later)) } },
+    )
 }

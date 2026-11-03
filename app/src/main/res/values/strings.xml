@@ -184,4 +184,9 @@
     <string name="map_zone_not_found">No encontramos esa zona</string>
     <string name="map_zone_network">Necesitás conexión para buscar una zona</string>
     <string name="map_recently_viewed">Vistas recientemente</string>
+
+    <string name="session_expired_title">Tu sesión venció</string>
+    <string name="session_expired_body">Ingresá de nuevo para enviar lo que quedó pendiente. No se perdió nada.</string>
+    <string name="session_expired_login">Ingresar de nuevo</string>
+    <string name="session_expired_later">Más tarde</string>
 </resources>

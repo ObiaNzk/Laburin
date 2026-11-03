@@ -28,4 +28,17 @@ class AppShellViewModelTest {
 
         assertEquals(true, vm.isLoggedIn.value)
     }
+
+    @Test
+    fun `shows the expired session notice and dismisses it`() = runTest {
+        val auth = FakeAuthRepository(initial = CANDIDATE_SESSION)
+        val vm = AppShellViewModel(auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.isSessionExpired.collect {} }
+
+        auth.sessionExpired()
+        assertEquals(true, vm.isSessionExpired.value)
+
+        vm.onExpiredNoticeDismissed()
+        assertEquals(false, vm.isSessionExpired.value)
+    }
 }

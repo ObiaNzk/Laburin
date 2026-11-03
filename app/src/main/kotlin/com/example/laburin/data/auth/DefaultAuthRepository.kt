@@ -5,6 +5,7 @@ import com.example.laburin.domain.model.AuthResult
 import com.example.laburin.domain.model.Session
 import com.example.laburin.domain.model.UserRole
 import com.example.laburin.domain.repository.AuthRepository
+import com.example.laburin.domain.repository.SyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.IOException
@@ -15,6 +16,7 @@ import javax.inject.Singleton
 class DefaultAuthRepository @Inject constructor(
     private val remote: AuthRemoteDataSource,
     private val store: SessionStore,
+    private val syncScheduler: SyncScheduler,
 ) : AuthRepository {
 
     override val session: Flow<Session?> = store.stored.map { it?.session }
@@ -41,6 +43,7 @@ class DefaultAuthRepository @Inject constructor(
         }
         val session = response.user.toSession() ?: return AuthResult.ServerError(HTTP_OK)
         store.save(StoredSession(response.token, session))
+        syncScheduler.schedule()
         return AuthResult.Success
     }
 

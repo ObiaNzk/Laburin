@@ -8,7 +8,15 @@ import com.example.laburin.domain.model.UserRole
 import com.example.laburin.domain.repository.SessionRepository
 import com.example.laburin.domain.usecase.ObserveOfferUseCase
 import com.example.laburin.domain.usecase.RefreshOfferUseCase
+import com.example.laburin.domain.apply.ApplyToOfferUseCase
+import com.example.laburin.domain.model.ApplicationStatus
+import com.example.laburin.fakes.BUSINESS_SESSION
+import com.example.laburin.fakes.CANDIDATE_SESSION
+import com.example.laburin.fakes.FakeApplicationRepository
 import com.example.laburin.fakes.FakeConnectivityObserver
+import com.example.laburin.fakes.FakeCvRepository
+import com.example.laburin.fakes.FakeSyncScheduler
+import com.example.laburin.fakes.testApplication
 import com.example.laburin.fakes.FakeOfferRepository
 import com.example.laburin.fakes.MainDispatcherRule
 import com.example.laburin.fakes.testOffer
@@ -34,6 +42,9 @@ class OfferDetailViewModelTest {
     private val repository = FakeOfferRepository()
     private val session = FakeSessionRepository()
     private val connectivity = FakeConnectivityObserver(online = true)
+    private val applications = FakeApplicationRepository()
+    private val cv = FakeCvRepository()
+    private val scheduler = FakeSyncScheduler()
     private val offer = testOffer(id = "offer-1")
 
     private fun TestScope.createViewModel(offerId: String = "offer-1", distanceMeters: Int? = 400): OfferDetailViewModel {
@@ -48,6 +59,8 @@ class OfferDetailViewModelTest {
             refreshOffer = RefreshOfferUseCase(repository),
             sessionRepository = session,
             connectivityObserver = connectivity,
+            applications = applications,
+            applyToOffer = ApplyToOfferUseCase(session, cv, applications, scheduler),
         )
         // uiState is WhileSubscribed: keep a subscriber like the UI would.
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -72,7 +85,7 @@ class OfferDetailViewModelTest {
 
         val vm = createViewModel()
 
-        assertEquals(OfferDetailUiState.Full(offer, 400), vm.uiState.value)
+        assertEquals(OfferDetailUiState.Full(offer, 400, application = null), vm.uiState.value)
     }
 
     @Test
@@ -82,7 +95,7 @@ class OfferDetailViewModelTest {
 
         session.session.value = Session("u-1", UserRole.CANDIDATE, "[NOMBRE]", "[EMAIL]")
 
-        assertEquals(OfferDetailUiState.Full(offer, 400), vm.uiState.value)
+        assertEquals(OfferDetailUiState.Full(offer, 400, application = null), vm.uiState.value)
     }
 
     @Test
@@ -191,8 +204,59 @@ class OfferDetailViewModelTest {
             assertEquals(OfferDetailEffect.NavigateToSignUp, awaitItem())
             vm.onLogin()
             assertEquals(OfferDetailEffect.NavigateToLogin, awaitItem())
+        }
+    }
+
+    // --- Applying (RF-02) ---
+
+    @Test
+    fun `the full view shows the users application to that offer`() = runTest {
+        repository.offers.value = listOf(offer)
+        session.session.value = CANDIDATE_SESSION
+        val application = testApplication(offerId = "offer-1", status = ApplicationStatus.SENT)
+        applications.store.value = listOf(application)
+
+        val vm = createViewModel()
+
+        assertEquals(OfferDetailUiState.Full(offer, 400, application), vm.uiState.value)
+    }
+
+    @Test
+    fun `applying queues the application and the detail shows it as pending`() = runTest {
+        repository.offers.value = listOf(offer)
+        session.session.value = CANDIDATE_SESSION
+        val vm = createViewModel()
+
+        vm.onApply()
+
+        val state = vm.uiState.value as OfferDetailUiState.Full
+        assertEquals(ApplicationStatus.PENDING_SEND, state.application?.status)
+        assertEquals(1, scheduler.scheduled)
+    }
+
+    @Test
+    fun `applying without a CV sends the user to upload it`() = runTest {
+        repository.offers.value = listOf(offer)
+        session.session.value = CANDIDATE_SESSION
+        cv.cv.value = null
+        val vm = createViewModel()
+
+        vm.effects.test {
             vm.onApply()
-            assertEquals(OfferDetailEffect.NavigateToApply("offer-1"), awaitItem())
+            assertEquals(OfferDetailEffect.NavigateToCvUpload, awaitItem())
+        }
+        assertEquals(emptyList<Any>(), applications.applied)
+    }
+
+    @Test
+    fun `a business account is told it cannot apply`() = runTest {
+        repository.offers.value = listOf(offer)
+        session.session.value = BUSINESS_SESSION
+        val vm = createViewModel()
+
+        vm.effects.test {
+            vm.onApply()
+            assertEquals(OfferDetailEffect.ShowMessage(OfferDetailMessage.BusinessCannotApply), awaitItem())
         }
     }
 

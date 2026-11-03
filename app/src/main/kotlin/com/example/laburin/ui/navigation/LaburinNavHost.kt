@@ -16,6 +16,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.laburin.ui.components.AppTab
 import com.example.laburin.ui.components.LaburinNavigationBar
+import com.example.laburin.ui.screens.applications.ApplicationsRoute
 import com.example.laburin.ui.screens.auth.LoginRoute
 import com.example.laburin.ui.screens.auth.SignUpRoute
 import com.example.laburin.ui.screens.detail.OfferDetailRoute
@@ -31,6 +32,7 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
     val tab = when {
         destination?.hasRoute<MapDestination>() == true -> AppTab.SEARCH
         destination?.hasRoute<ProfileDestination>() == true -> AppTab.ACCOUNT
+        destination?.hasRoute<ApplicationsDestination>() == true -> AppTab.APPLICATIONS
         else -> null
     }
 
@@ -42,7 +44,9 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                     selected = tab,
                     isLoggedIn = isLoggedIn,
                     onSearchClick = { navController.openTab(MapDestination) },
-                    onApplicationsClick = { if (!isLoggedIn) navController.navigate(LoginDestination) },
+                    onApplicationsClick = {
+                        if (isLoggedIn) navController.openTab(ApplicationsDestination) else navController.navigate(LoginDestination)
+                    },
                     onAccountClick = {
                         if (isLoggedIn) navController.openTab(ProfileDestination) else navController.navigate(LoginDestination)
                     },
@@ -67,6 +71,7 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSignUp = { navController.navigate(SignUpDestination) },
                     onNavigateToLogin = { navController.navigate(LoginDestination) },
+                    onNavigateToCvUpload = { navController.openTab(ProfileDestination) },
                 )
             }
             composable<LoginDestination> {
@@ -80,6 +85,12 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                 SignUpRoute(
                     onSignedUp = { navController.leaveAuthFlow() },
                     onClose = { navController.popBackStack() },
+                )
+            }
+            composable<ApplicationsDestination> {
+                ApplicationsRoute(
+                    onLogin = { navController.navigate(LoginDestination) },
+                    onOpenOffer = { offerId -> navController.navigate(OfferDetailDestination(offerId)) },
                 )
             }
             composable<ProfileDestination> {

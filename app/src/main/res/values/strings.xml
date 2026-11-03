@@ -87,4 +87,31 @@
     <string name="profile_title">Mi perfil</string>
     <string name="profile_logout">Cerrar sesión</string>
     <string name="profile_logged_out">Ingresá para ver tu perfil y tus postulaciones</string>
+
+    <string name="status_pending_send">Pendiente de envío</string>
+    <string name="status_sent">Postulación enviada</string>
+    <string name="status_approved">Postulación aprobada</string>
+    <string name="status_rejected">Postulación rechazada</string>
+    <string name="status_offer_closed">Búsqueda cerrada</string>
+    <string name="status_hint_pending">Se va a enviar sola cuando vuelva la conexión.</string>
+    <string name="status_hint_approved">El comercio recibió tu contacto y te va a escribir para la entrevista.</string>
+    <string name="detail_business_cannot_apply">Las cuentas de comercio no pueden postularse</string>
+
+    <string name="profile_cv_title">Mi CV</string>
+    <string name="profile_cv_missing">Todavía no cargaste tu CV. Solo se aceptan archivos PDF.</string>
+    <string name="profile_cv_upload">Cargar CV</string>
+    <string name="profile_cv_replace">Reemplazar CV</string>
+    <string name="profile_cv_error_not_pdf">El archivo tiene que ser un PDF</string>
+    <string name="profile_cv_error_too_large">El PDF no puede pesar más de 5 MB</string>
+    <string name="profile_cv_error_network">Necesitás conexión para cargar el CV</string>
+    <string name="profile_cv_error_server">No pudimos cargar el CV. Probá de nuevo.</string>
+    <string name="profile_cv_error_unreadable">No pudimos leer el archivo</string>
+
+    <string name="applications_title">Mis postulaciones</string>
+    <plurals name="applications_pending">
+        <item quantity="one">%1$d postulación se enviará al reconectar</item>
+        <item quantity="other">%1$d postulaciones se enviarán al reconectar</item>
+    </plurals>
+    <string name="applications_empty">Todavía no te postulaste a ninguna búsqueda</string>
+    <string name="applications_logged_out">Ingresá para ver tus postulaciones</string>
 </resources>

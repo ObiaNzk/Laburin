@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.LocationResult
+import com.example.laburin.domain.model.ZoneResult
 import com.example.laburin.domain.model.NearbyOffer
 import com.example.laburin.domain.model.RefreshResult
 import com.example.laburin.domain.model.SearchFilters
 import com.example.laburin.domain.repository.ConnectivityObserver
 import com.example.laburin.domain.repository.FiltersRepository
+import com.example.laburin.domain.repository.Geocoder
 import com.example.laburin.domain.repository.LocationProvider
 import com.example.laburin.domain.repository.OfferRepository
 import com.example.laburin.domain.usecase.ObserveNearbyOffersUseCase
@@ -41,11 +43,13 @@ class MapViewModel @Inject constructor(
     private val filtersRepository: FiltersRepository,
     private val locationProvider: LocationProvider,
     connectivityObserver: ConnectivityObserver,
+    private val geocoder: Geocoder,
 ) : ViewModel() {
 
     private data class LocationState(
         val center: GeoLocation = MapUiState.DEFAULT_CENTER,
         val status: LocationStatus = LocationStatus.Unknown,
+        val zoneName: String? = null,
     )
 
     private data class RefreshState(val isRefreshing: Boolean = false, val lastResult: RefreshResult? = null)
@@ -55,6 +59,7 @@ class MapViewModel @Inject constructor(
     private val query = MutableStateFlow("")
     private val location = MutableStateFlow(LocationState())
     private val refreshState = MutableStateFlow(RefreshState())
+    private val zoneSearch = MutableStateFlow(ZoneSearchState())
 
     private val filters: StateFlow<SearchFilters> =
         filtersRepository.filters.stateIn(viewModelScope, SharingStarted.Eagerly, SearchFilters())
@@ -73,6 +78,7 @@ class MapViewModel @Inject constructor(
         searchParams, nearbyOffers, isOnline, offerRepository.observeLastSyncedAt(), refreshState,
     ) { params, offers, online, lastSyncedAt, refresh ->
         MapUiState(
+            zoneName = params.location.zoneName,
             query = params.query,
             radiusKm = params.filters.radiusKm,
             category = params.filters.category,
@@ -84,7 +90,8 @@ class MapViewModel @Inject constructor(
             isRefreshing = refresh.isRefreshing,
             offers = offersState(params.location.status, offers, refresh, online),
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MapUiState())
+    }.combine(zoneSearch) { state, zone -> state.copy(zoneSearch = zone) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MapUiState())
 
     private val _effects = MutableSharedFlow<MapEffect>()
     val effects: SharedFlow<MapEffect> = _effects.asSharedFlow()
@@ -114,6 +121,30 @@ class MapViewModel @Inject constructor(
                     LocationResult.PermissionDenied -> current.copy(status = LocationStatus.Denied)
                     LocationResult.Unavailable -> current.copy(status = LocationStatus.Unavailable)
                 }
+            }
+        }
+    }
+
+    fun onChooseZone() {
+        zoneSearch.value = ZoneSearchState(isOpen = true)
+    }
+
+    fun onDismissZone() {
+        zoneSearch.value = ZoneSearchState()
+    }
+
+    /** RF-01: without location (or by choice) the user types a neighborhood or address as the search center. */
+    fun onZoneSearch(query: String) {
+        if (query.isBlank() || zoneSearch.value.isSearching) return
+        zoneSearch.value = ZoneSearchState(isOpen = true, isSearching = true)
+        viewModelScope.launch {
+            when (val result = geocoder.search(query.trim())) {
+                is ZoneResult.Found -> {
+                    location.value = LocationState(result.location, LocationStatus.ManualZone, zoneName = result.name)
+                    zoneSearch.value = ZoneSearchState()
+                }
+                ZoneResult.NotFound -> zoneSearch.value = ZoneSearchState(isOpen = true, error = ZoneError.NotFound)
+                ZoneResult.NetworkError -> zoneSearch.value = ZoneSearchState(isOpen = true, error = ZoneError.Network)
             }
         }
     }

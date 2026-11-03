@@ -3,7 +3,10 @@ package com.example.laburin.ui.screens.map
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.NearbyOffer
@@ -30,6 +33,8 @@ class MapContentTest {
                 onQueryChange = {}, onClearQuery = { clicks += "clearQuery" }, onRadiusChange = {},
                 onCategoryChange = {}, onWidenRadius = { clicks += "widen" }, onShowAllCategories = {},
                 onRetry = { clicks += "retry" }, onOfferClick = {}, onScanClick = {}, onPublishClick = {},
+                onChooseZone = { clicks += "chooseZone" }, onDismissZone = { clicks += "dismissZone" },
+                onZoneSearch = { clicks += "zone:$it" },
             )
         }
     }
@@ -118,5 +123,48 @@ class MapContentTest {
 
         composeRule.onNodeWithText("Sin conexión · datos de hace 15 min").assertIsDisplayed()
         composeRule.onNodeWithText("Ayudante de taller").assertIsDisplayed()
+    }
+
+    // --- Manual zone (RF-01) ---
+
+    @Test
+    fun withoutLocationTheUserCanChooseAZone() {
+        show(MapUiState(locationStatus = LocationStatus.Denied, offers = OffersState.Empty))
+
+        composeRule.onNodeWithText("Elegir zona").performClick()
+
+        assertEquals(listOf("chooseZone"), clicks)
+    }
+
+    @Test
+    fun aManualZoneShowsItsNameAndCanBeChanged() {
+        show(MapUiState(locationStatus = LocationStatus.ManualZone, zoneName = "Palermo", offers = OffersState.Empty))
+
+        composeRule.onNodeWithText("Mostrando: Palermo").assertIsDisplayed()
+        composeRule.onNodeWithText("Cambiar zona").performClick()
+
+        assertEquals(listOf("chooseZone"), clicks)
+    }
+
+    @Test
+    fun theZoneDialogSearchesWhatTheUserTyped() {
+        show(MapUiState(locationStatus = LocationStatus.Denied, offers = OffersState.Empty, zoneSearch = ZoneSearchState(isOpen = true)))
+
+        composeRule.onNode(hasSetTextAction() and hasText("Barrio o dirección")).performTextInput("palermo")
+        composeRule.onNodeWithText("Buscar").performClick()
+
+        assertEquals(listOf("zone:palermo"), clicks)
+    }
+
+    @Test
+    fun theZoneDialogExplainsAnUnknownZone() {
+        show(
+            MapUiState(
+                locationStatus = LocationStatus.Denied, offers = OffersState.Empty,
+                zoneSearch = ZoneSearchState(isOpen = true, error = ZoneError.NotFound),
+            )
+        )
+
+        composeRule.onNodeWithText("No encontramos esa zona").assertIsDisplayed()
     }
 }

@@ -23,3 +23,17 @@ Publicar. Body: `{ "title", "category", "schedule", "description" }`. **El `id` 
 ## QR del cartel
 
 Codifica `laburin://offer/{id}`. El escáner de la app lo lee y abre el detalle de la oferta.
+
+## `GET /offers/{id}/applicants` (requiere el token del comercio dueño de la oferta)
+
+`200 [ { "applicationId", "offerId", "candidateName", "cvFileName", "status": "PENDING_REVIEW" | "APPROVED" | "REJECTED", "contactEmail" } ]`
+
+- `contactEmail` viene **solo** para postulantes aprobados (RNF-05). Para el resto es `null`.
+- **403**: la oferta no es de ese comercio.
+
+## `PUT /applications/{id}/review` (requiere el token del comercio dueño)
+
+Body: `{ "approve": true | false }`. Es idempotente.
+
+- **200**: el postulante actualizado. Si se aprobó, **la respuesta trae el contacto**: es la confirmación del Match. La app no muestra el contacto hasta recibir esta respuesta. Sin conexión, la decisión queda como "pendiente de envío".
+- El postulante ve el resultado (`APPROVED` / `REJECTED`) en `GET /applications/mine`.

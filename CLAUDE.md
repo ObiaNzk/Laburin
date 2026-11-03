@@ -37,7 +37,8 @@ Dependencies are declared in `gradle/libs.versions.toml` (version catalog). Some
 - **WorkManager** is initialized on demand with `HiltWorkerFactory` (`LaburinApplication`, default initializer removed in the manifest). E2E tests must call `WorkManagerTestInitHelper.initializeTestWorkManager` and satisfy constraints with the test driver.
 - **Publishing (RF-03)**: `PublishOfferUseCase` (business account + complete draft) → `DefaultMyOffersRepository` stores a `published_offers` row (`PENDING_PUBLISH`) plus a `PUBLISH` outbox action. The same `PendingActionsSyncer` sends it. The form can be filled without an account: publishing without one goes to `BusinessSignUp` and `leaveAuthFlow` returns to the kept form. The QR encodes `OfferLink.build(id)` = `laburin://offer/{id}` (ZXing). Contract: `docs/api/business.md`. Room is at **version 3**.
 - Shared form components live in `ui/components/Forms.kt`.
-- Still **UI-only, legacy**: `ScanScreen`. Not wired yet: QR scanning, applicant review (Match).
+- **Match (RF-04, RNF-05)**: the business reviews applicants on the published offer screen. `ReviewApplicantUseCase` → `DefaultApplicantsRepository` stores `APPROVAL/REJECTION_PENDING_SEND` plus a `REVIEW` outbox action. `PendingActionsSyncer` saves the contact **only from the server's confirmation**; it is never filled locally. Room is at **version 4**.
+- Still **UI-only, legacy**: `ScanScreen` (camera preview only; QR decoding with ML Kit and opening the offer are not wired).
 - The map uses **osmdroid** (OpenStreetMap). `ui/components/DisplayMap.kt` is the only file that may import it. It takes `MapMarker`/`GeoLocation`, so switching provider touches only that file. OSM tile policy needs a non-default user agent (`"Laburin"`).
 - Strings for new UI go in `res/values/strings.xml` (the legacy screens still hardcode them).
 

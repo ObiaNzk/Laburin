@@ -13,7 +13,9 @@ import com.example.laburin.data.local.OfferDao
 import com.example.laburin.data.local.OfferLocalDataSource
 import com.example.laburin.data.local.RoomOfferLocalDataSource
 import com.example.laburin.data.local.SyncMetadataDao
-import com.example.laburin.data.location.FusedLocationProvider
+import com.example.laburin.data.location.DeviceLocationSource
+import com.example.laburin.data.location.FallbackLocationProvider
+import com.example.laburin.data.location.FusedDeviceLocationSource
 import com.example.laburin.data.preferences.DataStoreFiltersRepository
 import com.example.laburin.data.remote.FakeOfferRemoteDataSource
 import com.example.laburin.data.remote.OfferApi
@@ -119,7 +121,10 @@ abstract class DataModule {
     abstract fun bindOfferRemoteDataSource(impl: FakeOfferRemoteDataSource): OfferRemoteDataSource
 
     @Binds
-    abstract fun bindLocationProvider(impl: FusedLocationProvider): LocationProvider
+    abstract fun bindLocationProvider(impl: FallbackLocationProvider): LocationProvider
+
+    @Binds
+    abstract fun bindDeviceLocationSource(impl: FusedDeviceLocationSource): DeviceLocationSource
 
     @Binds
     abstract fun bindConnectivityObserver(impl: AndroidConnectivityObserver): ConnectivityObserver

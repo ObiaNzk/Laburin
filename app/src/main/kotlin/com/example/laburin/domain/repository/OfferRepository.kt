@@ -13,6 +13,11 @@ interface OfferRepository {
 
     fun observeLastSyncedAt(): Flow<Instant?>
 
+    /** Emits null when the offer isn't cached (never seen, closed or removed by the server). */
+    fun observeOffer(id: String): Flow<Offer?>
+
+    suspend fun refreshOffer(id: String): RefreshResult
+
     /** Replaces the cached offers of that area. The server always wins. */
     suspend fun refresh(center: GeoLocation, radiusKm: Int, category: Category?): RefreshResult
 }

@@ -203,12 +203,25 @@ class MapViewModelTest {
     }
 
     @Test
-    fun `tapping an offer navigates to it`() = runTest {
+    fun `tapping a listed offer navigates to it with its current distance`() = runTest {
+        repository.offers.value = listOf(testOffer(id = "near", location = GeoLocation(-34.6083, -58.3712)))
+        val vm = createViewModel()
+        vm.onLocationPermissionResult(granted = true)
+        val distance = (vm.uiState.value.offers as OffersState.Content).offers.single().distanceMeters
+
+        vm.effects.test {
+            vm.onOfferClick("near")
+            assertEquals(MapEffect.NavigateToOffer("near", distance), awaitItem())
+        }
+    }
+
+    @Test
+    fun `tapping an offer that is not listed navigates without distance`() = runTest {
         val vm = createViewModel()
 
         vm.effects.test {
             vm.onOfferClick("offer-9")
-            assertEquals(MapEffect.NavigateToOffer("offer-9"), awaitItem())
+            assertEquals(MapEffect.NavigateToOffer("offer-9", distanceMeters = null), awaitItem())
         }
     }
 }

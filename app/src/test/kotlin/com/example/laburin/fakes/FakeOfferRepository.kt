@@ -33,4 +33,18 @@ class FakeOfferRepository : OfferRepository {
         refreshCalls += Triple(center, radiusKm, category)
         return nextRefreshResult
     }
+
+    var nextRefreshOfferResult: RefreshResult = RefreshResult.Success
+    val refreshOfferCalls = mutableListOf<String>()
+
+    /** Lets a test hold the refresh in flight (to observe Loading) or change the cache as the server would. */
+    var onRefreshOffer: suspend (id: String) -> Unit = {}
+
+    override fun observeOffer(id: String): Flow<Offer?> = offers.map { list -> list.firstOrNull { it.id == id } }
+
+    override suspend fun refreshOffer(id: String): RefreshResult {
+        refreshOfferCalls += id
+        onRefreshOffer(id)
+        return nextRefreshOfferResult
+    }
 }

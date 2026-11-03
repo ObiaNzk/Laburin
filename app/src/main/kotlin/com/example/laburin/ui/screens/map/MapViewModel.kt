@@ -140,7 +140,10 @@ class MapViewModel @Inject constructor(
         viewModelScope.launch { refreshCurrent() }
     }
 
-    fun onOfferClick(offerId: String) = sendEffect(MapEffect.NavigateToOffer(offerId))
+    fun onOfferClick(offerId: String) {
+        val distance = nearbyOffers.value?.firstOrNull { it.offer.id == offerId }?.distanceMeters
+        sendEffect(MapEffect.NavigateToOffer(offerId, distance))
+    }
 
     fun onScanClick() = sendEffect(MapEffect.NavigateToScan)
 

@@ -9,6 +9,9 @@ import javax.inject.Inject
 interface OfferLocalDataSource {
     fun observeInArea(area: BoundingBox, category: Category?, query: String): Flow<List<OfferEntity>>
     suspend fun replaceInArea(area: BoundingBox, category: Category?, offers: List<OfferEntity>)
+    fun observeById(id: String): Flow<OfferEntity?>
+    suspend fun upsert(offer: OfferEntity)
+    suspend fun delete(id: String)
     fun observeLastSyncedAt(): Flow<Instant?>
     suspend fun setLastSyncedAt(instant: Instant)
 }
@@ -27,6 +30,12 @@ class RoomOfferLocalDataSource @Inject constructor(
         offerDao.replaceInArea(
             area.minLatitude, area.maxLatitude, area.minLongitude, area.maxLongitude, category, offers,
         )
+
+    override fun observeById(id: String): Flow<OfferEntity?> = offerDao.observeById(id)
+
+    override suspend fun upsert(offer: OfferEntity) = offerDao.upsert(offer)
+
+    override suspend fun delete(id: String) = offerDao.deleteById(id)
 
     override fun observeLastSyncedAt() = syncMetadataDao.observeSyncedAt(OFFERS_SYNC_KEY)
 

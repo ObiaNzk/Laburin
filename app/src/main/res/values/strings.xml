@@ -31,4 +31,19 @@
     <string name="map_offline_map_unavailable">El mapa no está disponible sin conexión</string>
     <string name="map_offline_showing_saved">Mostrando búsquedas guardadas</string>
     <string name="map_refresh_failed">No pudimos actualizar. Mostrando datos guardados.</string>
+
+    <string name="detail_back">Volver</string>
+    <string name="detail_distance">a %1$s</string>
+    <string name="detail_schedule">Horario</string>
+    <string name="detail_what_we_look_for">Qué buscamos</string>
+    <string name="detail_location">Ubicación</string>
+    <string name="detail_apply">Postularme</string>
+    <string name="detail_guest_title">Creá tu cuenta para ver la búsqueda y postularte</string>
+    <string name="detail_guest_body">Horario, requisitos y comercio. Te lleva menos de un minuto.</string>
+    <string name="detail_create_account">Crear cuenta</string>
+    <string name="detail_have_account">Ya tengo cuenta</string>
+    <string name="detail_no_longer_available">Esta búsqueda ya no está disponible</string>
+    <string name="detail_no_longer_available_body">El comercio la cerró o ya cubrió el puesto.</string>
+    <string name="detail_unavailable_offline">Necesitás conexión para ver esta búsqueda</string>
+    <string name="detail_unavailable_server">No pudimos cargar esta búsqueda</string>
 </resources>

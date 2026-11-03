@@ -24,6 +24,12 @@ class FakeOfferRemoteDataSource @Inject constructor() : OfferRemoteDataSource {
             .filter { Haversine.distanceMeters(center, GeoLocation(it.latitude, it.longitude)) <= radiusKm * 1_000.0 }
     }
 
+    override suspend fun getOffer(id: String): OfferDto? {
+        delay(SIMULATED_LATENCY_MS)
+        if (simulateNetworkFailure) throw IOException("Simulated network failure")
+        return SEED.firstOrNull { it.id == id }
+    }
+
     private companion object {
         const val SIMULATED_LATENCY_MS = 600L
         const val UPDATED = "2026-11-01T12:00:00Z"

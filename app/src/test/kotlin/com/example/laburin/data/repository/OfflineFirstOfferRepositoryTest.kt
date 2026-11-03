@@ -81,6 +81,96 @@ class OfflineFirstOfferRepositoryTest {
         assertEquals(listOf("a"), offers.map { it.id })
     }
 
+    // --- Offer by id (detail screen, RF-02) ---
+
+    @Test
+    fun `observeOffer emits the cached offer as a domain model`() = runTest {
+        local.stored.value = listOf(entity("a"))
+
+        assertEquals("a", repository.observeOffer("a").first()?.id)
+    }
+
+    @Test
+    fun `observeOffer emits null when the offer is not cached`() = runTest {
+        assertNull(repository.observeOffer("missing").first())
+    }
+
+    @Test
+    fun `refreshOffer stores the active offer returned by the server`() = runTest {
+        remote.single = { dto("a").copy(title = "Actualizado") }
+
+        val result = repository.refreshOffer("a")
+
+        assertEquals(RefreshResult.Success, result)
+        assertEquals("Actualizado", repository.observeOffer("a").first()?.title)
+    }
+
+    @Test
+    fun `refreshOffer removes the cached offer when the server closed it`() = runTest {
+        local.stored.value = listOf(entity("a"))
+        remote.single = { dto("a").copy(status = "CLOSED") }
+
+        val result = repository.refreshOffer("a")
+
+        assertEquals(RefreshResult.Success, result)
+        assertNull(repository.observeOffer("a").first())
+    }
+
+    @Test
+    fun `refreshOffer removes the cached offer when the server does not know it`() = runTest {
+        local.stored.value = listOf(entity("a"))
+        remote.single = { null }
+
+        val result = repository.refreshOffer("a")
+
+        assertEquals(RefreshResult.Success, result)
+        assertNull(repository.observeOffer("a").first())
+    }
+
+    @Test
+    fun `refreshOffer removes the cached offer when the server sends one the app cannot show`() = runTest {
+        local.stored.value = listOf(entity("a"))
+        remote.single = { dto("a").copy(category = "ASTRONAUTA") }
+
+        repository.refreshOffer("a")
+
+        assertNull(repository.observeOffer("a").first())
+    }
+
+    @Test
+    fun `refreshOffer keeps the cache on network failure`() = runTest {
+        local.stored.value = listOf(entity("a"))
+        remote.single = { throw IOException("offline") }
+
+        val result = repository.refreshOffer("a")
+
+        assertEquals(RefreshResult.NetworkError, result)
+        assertEquals("a", repository.observeOffer("a").first()?.id)
+    }
+
+    @Test
+    fun `refreshOffer keeps the cache and reports the code on server error`() = runTest {
+        local.stored.value = listOf(entity("a"))
+        remote.single = { throw ApiException(503) }
+
+        val result = repository.refreshOffer("a")
+
+        assertEquals(RefreshResult.ServerError(503), result)
+        assertEquals("a", repository.observeOffer("a").first()?.id)
+    }
+
+    @Test(expected = CancellationException::class)
+    fun `refreshOffer never swallows cancellation`() = runTest {
+        remote.single = { throw CancellationException("cancelled") }
+        repository.refreshOffer("a")
+    }
+
+    private fun entity(id: String) = OfferEntity(
+        id = id, title = "Puesto $id", category = Category.MECHANICS, description = "", schedule = "", jobType = "",
+        businessName = "[COMERCIO]", address = "[DIRECCION]", latitude = OBELISCO.latitude,
+        longitude = OBELISCO.longitude, updatedAt = Instant.parse("2026-11-01T12:00:00Z"),
+    )
+
     private fun dto(id: String) = OfferDto(
         id = id, title = "Puesto $id", category = "MECHANICS", description = "", schedule = "", jobType = "",
         businessName = "[COMERCIO]", address = "[DIRECCION]", latitude = OBELISCO.latitude,
@@ -89,11 +179,14 @@ class OfflineFirstOfferRepositoryTest {
 
     private class FakeRemoteDataSource : OfferRemoteDataSource {
         var response: () -> List<OfferDto> = { emptyList() }
+        var single: () -> OfferDto? = { null }
         var lastCategory: String? = null
         override suspend fun getOffers(latitude: Double, longitude: Double, radiusKm: Int, category: String?): List<OfferDto> {
             lastCategory = category
             return response()
         }
+
+        override suspend fun getOffer(id: String): OfferDto? = single()
     }
 
     private class FakeLocalDataSource : OfferLocalDataSource {
@@ -107,6 +200,16 @@ class OfflineFirstOfferRepositoryTest {
         override suspend fun replaceInArea(area: BoundingBox, category: Category?, offers: List<OfferEntity>) {
             replaceCalls += Triple(area, category, offers)
             stored.value = offers
+        }
+
+        override fun observeById(id: String): Flow<OfferEntity?> = stored.map { list -> list.firstOrNull { it.id == id } }
+
+        override suspend fun upsert(offer: OfferEntity) {
+            stored.value = stored.value.filterNot { it.id == offer.id } + offer
+        }
+
+        override suspend fun delete(id: String) {
+            stored.value = stored.value.filterNot { it.id == id }
         }
 
         override fun observeLastSyncedAt(): Flow<Instant?> = lastSynced

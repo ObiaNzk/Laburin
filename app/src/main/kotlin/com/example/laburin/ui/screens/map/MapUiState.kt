@@ -34,7 +34,7 @@ sealed interface OffersState {
 }
 
 sealed interface MapEffect {
-    data class NavigateToOffer(val offerId: String) : MapEffect
+    data class NavigateToOffer(val offerId: String, val distanceMeters: Int?) : MapEffect
     data object NavigateToScan : MapEffect
     data object NavigateToPublish : MapEffect
     data class ShowMessage(val message: MapMessage) : MapEffect

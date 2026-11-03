@@ -86,7 +86,7 @@ private val LOCATION_PERMISSIONS = arrayOf(
 
 @Composable
 fun MapRoute(
-    onNavigateToOffer: (String) -> Unit = {},
+    onNavigateToOffer: (offerId: String, distanceMeters: Int?) -> Unit = { _, _ -> },
     onNavigateToScan: () -> Unit = {},
     onNavigateToPublish: () -> Unit = {},
     viewModel: MapViewModel = hiltViewModel(),
@@ -119,7 +119,7 @@ fun MapRoute(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is MapEffect.NavigateToOffer -> onNavigateToOffer(effect.offerId)
+                is MapEffect.NavigateToOffer -> onNavigateToOffer(effect.offerId, effect.distanceMeters)
                 MapEffect.NavigateToScan -> onNavigateToScan()
                 MapEffect.NavigateToPublish -> onNavigateToPublish()
                 is MapEffect.ShowMessage -> when (effect.message) {

@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -152,6 +154,9 @@ fun MapRoute(
         onOfferClick = viewModel::onOfferClick,
         onScanClick = viewModel::onScanClick,
         onPublishClick = viewModel::onPublishClick,
+        onChooseZone = viewModel::onChooseZone,
+        onDismissZone = viewModel::onDismissZone,
+        onZoneSearch = viewModel::onZoneSearch,
     )
 }
 
@@ -171,6 +176,9 @@ fun MapContent(
     onPublishClick: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onChooseZone: () -> Unit = {},
+    onDismissZone: () -> Unit = {},
+    onZoneSearch: (String) -> Unit = {},
 ) {
     val cached = (state.offers as? OffersState.Content)?.offers
     val offers = state.offers
@@ -187,6 +195,7 @@ fun MapContent(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
+        if (state.zoneSearch.isOpen) ZoneDialog(state.zoneSearch, onZoneSearch, onDismissZone)
         if (offlineLayout) {
             OfflineOffers(
                 offers = cached.orEmpty(),
@@ -230,6 +239,7 @@ fun MapContent(
                     onShowAllCategories = onShowAllCategories,
                     onClearQuery = onClearQuery,
                     onRetry = onRetry,
+                    onChooseZone = onChooseZone,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
@@ -371,6 +381,7 @@ private fun ResultsSheet(
     onShowAllCategories: () -> Unit,
     onClearQuery: () -> Unit,
     onRetry: () -> Unit,
+    onChooseZone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -395,14 +406,7 @@ private fun ResultsSheet(
                         .background(Color.LightGray, RoundedCornerShape(2.dp))
                 )
             }
-            if (state.locationStatus == LocationStatus.Denied || state.locationStatus == LocationStatus.Unavailable) {
-                Text(
-                    stringResource(R.string.map_location_fallback),
-                    fontSize = 12.sp,
-                    color = Color(0xFF777777),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
+            ZoneHint(state, onChooseZone)
             when (val offers = state.offers) {
                 OffersState.Loading -> CenteredBox { CircularProgressIndicator() }
                 is OffersState.Content -> {
@@ -424,6 +428,63 @@ private fun ResultsSheet(
             }
         }
     }
+}
+
+@Composable
+private fun ZoneHint(state: MapUiState, onChooseZone: () -> Unit) {
+    val text = when (state.locationStatus) {
+        LocationStatus.Denied, LocationStatus.Unavailable -> stringResource(R.string.map_location_fallback)
+        LocationStatus.ManualZone -> stringResource(R.string.map_zone_showing, state.zoneName.orEmpty())
+        LocationStatus.Unknown, LocationStatus.Granted -> return
+    }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text, fontSize = 12.sp, color = Color(0xFF777777), modifier = Modifier.weight(1f))
+        TextButton(onClick = onChooseZone) {
+            Text(stringResource(if (state.locationStatus == LocationStatus.ManualZone) R.string.map_zone_change else R.string.map_zone_choose))
+        }
+    }
+}
+
+@Composable
+private fun ZoneDialog(state: ZoneSearchState, onSearch: (String) -> Unit, onDismiss: () -> Unit) {
+    var text by rememberSaveable { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.map_zone_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    placeholder = { Text(stringResource(R.string.map_zone_hint)) },
+                    isError = state.error != null,
+                    supportingText = state.error?.let { error ->
+                        {
+                            Text(
+                                stringResource(
+                                    when (error) {
+                                        ZoneError.NotFound -> R.string.map_zone_not_found
+                                        ZoneError.Network -> R.string.map_zone_network
+                                    }
+                                )
+                            )
+                        }
+                    },
+                )
+                if (state.isSearching) LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSearch(text) }, enabled = !state.isSearching) { Text(stringResource(R.string.map_zone_search)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.map_zone_cancel)) } },
+    )
 }
 
 @Composable

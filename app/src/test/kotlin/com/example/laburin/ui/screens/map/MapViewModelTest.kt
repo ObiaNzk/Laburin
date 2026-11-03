@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.LocationResult
+import com.example.laburin.domain.model.ZoneResult
+import com.example.laburin.domain.repository.Geocoder
 import com.example.laburin.domain.model.RefreshResult
 import com.example.laburin.domain.usecase.ObserveNearbyOffersUseCase
 import com.example.laburin.domain.usecase.RefreshNearbyOffersUseCase
@@ -37,6 +39,7 @@ class MapViewModelTest {
     private val connectivity = FakeConnectivityObserver(online = true)
 
     private val palermo = GeoLocation(-34.5880, -58.4300)
+    private val geocoder = FakeGeocoder()
 
     private fun TestScope.createViewModel(): MapViewModel {
         val vm = MapViewModel(
@@ -46,6 +49,7 @@ class MapViewModelTest {
             filtersRepository = filters,
             locationProvider = location,
             connectivityObserver = connectivity,
+            geocoder = geocoder,
         )
         // uiState is WhileSubscribed: keep a subscriber like the UI would.
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -265,6 +269,99 @@ class MapViewModelTest {
         vm.effects.test {
             vm.onOfferClick("offer-9")
             assertEquals(MapEffect.NavigateToOffer("offer-9", distanceMeters = null), awaitItem())
+        }
+    }
+
+    // --- Manual zone (RF-01: without location the user can enter a zone) ---
+
+    @Test
+    fun `without location the user can open the zone search`() = runTest {
+        val vm = createViewModel()
+        vm.onLocationPermissionResult(granted = false)
+
+        vm.onChooseZone()
+
+        assertEquals(ZoneSearchState(isOpen = true), vm.uiState.value.zoneSearch)
+    }
+
+    @Test
+    fun `a found zone becomes the search center and refreshes that area`() = runTest {
+        geocoder.result = ZoneResult.Found("Palermo", palermo)
+        val vm = createViewModel()
+        vm.onLocationPermissionResult(granted = false)
+        vm.onChooseZone()
+
+        vm.onZoneSearch("palermo")
+
+        val state = vm.uiState.value
+        assertEquals(palermo, state.center)
+        assertEquals(LocationStatus.ManualZone, state.locationStatus)
+        assertEquals("Palermo", state.zoneName)
+        assertEquals(ZoneSearchState(), state.zoneSearch)
+        assertEquals(Triple(palermo, 2, null), repository.refreshCalls.last())
+    }
+
+    @Test
+    fun `a manual zone is not shown as the user's location`() = runTest {
+        geocoder.result = ZoneResult.Found("Palermo", palermo)
+        val vm = createViewModel()
+        vm.onLocationPermissionResult(granted = false)
+
+        vm.onZoneSearch("palermo")
+
+        assertEquals(null, vm.uiState.value.userLocation)
+    }
+
+    @Test
+    fun `an unknown zone is explained and the center does not move`() = runTest {
+        geocoder.result = ZoneResult.NotFound
+        val vm = createViewModel()
+        vm.onLocationPermissionResult(granted = false)
+        vm.onChooseZone()
+
+        vm.onZoneSearch("zzzz")
+
+        assertEquals(ZoneSearchState(isOpen = true, error = ZoneError.NotFound), vm.uiState.value.zoneSearch)
+        assertEquals(MapUiState.DEFAULT_CENTER, vm.uiState.value.center)
+    }
+
+    @Test
+    fun `searching a zone without network says so`() = runTest {
+        geocoder.result = ZoneResult.NetworkError
+        val vm = createViewModel()
+        vm.onChooseZone()
+
+        vm.onZoneSearch("palermo")
+
+        assertEquals(ZoneError.Network, vm.uiState.value.zoneSearch.error)
+    }
+
+    @Test
+    fun `a blank zone is not searched`() = runTest {
+        val vm = createViewModel()
+        vm.onChooseZone()
+
+        vm.onZoneSearch("  ")
+
+        assertEquals(emptyList<String>(), geocoder.queries)
+    }
+
+    @Test
+    fun `the zone search can be dismissed`() = runTest {
+        val vm = createViewModel()
+        vm.onChooseZone()
+
+        vm.onDismissZone()
+
+        assertEquals(ZoneSearchState(), vm.uiState.value.zoneSearch)
+    }
+
+    private class FakeGeocoder : Geocoder {
+        var result: ZoneResult = ZoneResult.NotFound
+        val queries = mutableListOf<String>()
+        override suspend fun search(query: String): ZoneResult {
+            queries += query
+            return result
         }
     }
 }

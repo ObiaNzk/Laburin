@@ -173,4 +173,14 @@
     <string name="scan_invalid_body">Este QR no es de una búsqueda de LaburIN.</string>
     <string name="scan_again">Volver a escanear</string>
     <string name="scan_search_map">Buscar en el mapa</string>
+
+    <string name="map_zone_choose">Elegir zona</string>
+    <string name="map_zone_change">Cambiar zona</string>
+    <string name="map_zone_showing">Mostrando: %1$s</string>
+    <string name="map_zone_title">Elegí una zona</string>
+    <string name="map_zone_hint">Barrio o dirección</string>
+    <string name="map_zone_search">Buscar</string>
+    <string name="map_zone_cancel">Cancelar</string>
+    <string name="map_zone_not_found">No encontramos esa zona</string>
+    <string name="map_zone_network">Necesitás conexión para buscar una zona</string>
 </resources>

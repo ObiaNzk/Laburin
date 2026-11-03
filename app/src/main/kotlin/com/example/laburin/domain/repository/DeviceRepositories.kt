@@ -10,6 +10,11 @@ interface LocationProvider {
     suspend fun currentLocation(): LocationResult
 }
 
+/** Turns a neighborhood or address typed by the user into a place (RF-01 manual zone). */
+interface Geocoder {
+    suspend fun search(query: String): com.example.laburin.domain.model.ZoneResult
+}
+
 interface ConnectivityObserver {
     val isOnline: Flow<Boolean>
 }

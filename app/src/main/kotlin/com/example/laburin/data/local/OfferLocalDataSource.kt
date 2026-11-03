@@ -14,12 +14,28 @@ interface OfferLocalDataSource {
     suspend fun delete(id: String)
     fun observeLastSyncedAt(): Flow<Instant?>
     suspend fun setLastSyncedAt(instant: Instant)
+    suspend fun markViewed(offerId: String, at: Instant, source: String)
+    fun observeRecentlyViewed(): Flow<List<OfferEntity>>
+
+    /** Drops cached offers outside [area] that weren't viewed, and keeps only the [maxViewed] most recent views. */
+    suspend fun prune(area: BoundingBox, maxViewed: Int)
 }
 
 class RoomOfferLocalDataSource @Inject constructor(
     private val offerDao: OfferDao,
     private val syncMetadataDao: SyncMetadataDao,
+    private val viewedDao: ViewedOfferDao,
 ) : OfferLocalDataSource {
+
+    override suspend fun markViewed(offerId: String, at: Instant, source: String) =
+        viewedDao.upsert(ViewedOfferEntity(offerId, at, source))
+
+    override fun observeRecentlyViewed(): Flow<List<OfferEntity>> = viewedDao.observeRecentlyViewed()
+
+    override suspend fun prune(area: BoundingBox, maxViewed: Int) {
+        viewedDao.keepMostRecent(maxViewed)
+        viewedDao.deleteOffersOutside(area.minLatitude, area.maxLatitude, area.minLongitude, area.maxLongitude)
+    }
 
     override fun observeInArea(area: BoundingBox, category: Category?, query: String) =
         offerDao.observeInArea(

@@ -3,6 +3,7 @@ package com.example.laburin.ui.screens.detail
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.example.laburin.domain.model.RefreshResult
+import com.example.laburin.domain.model.ViewSource
 import com.example.laburin.domain.model.Session
 import com.example.laburin.domain.model.UserRole
 import com.example.laburin.domain.repository.SessionRepository
@@ -47,15 +48,21 @@ class OfferDetailViewModelTest {
     private val scheduler = FakeSyncScheduler()
     private val offer = testOffer(id = "offer-1")
 
-    private fun TestScope.createViewModel(offerId: String = "offer-1", distanceMeters: Int? = 400): OfferDetailViewModel {
+    private fun TestScope.createViewModel(
+        offerId: String = "offer-1",
+        distanceMeters: Int? = 400,
+        fromQr: Boolean = false,
+    ): OfferDetailViewModel {
         val vm = OfferDetailViewModel(
             savedStateHandle = SavedStateHandle(
                 mapOf(
                     OfferDetailDestination.ARG_OFFER_ID to offerId,
                     OfferDetailDestination.ARG_DISTANCE_METERS to distanceMeters,
+                    OfferDetailDestination.ARG_FROM_QR to fromQr,
                 )
             ),
             observeOffer = ObserveOfferUseCase(repository),
+            offerRepository = repository,
             refreshOffer = RefreshOfferUseCase(repository),
             sessionRepository = session,
             connectivityObserver = connectivity,
@@ -105,6 +112,38 @@ class OfferDetailViewModelTest {
         val vm = createViewModel(distanceMeters = null)
 
         assertEquals(OfferDetailUiState.Guest(offer.title, offer.category, null), vm.uiState.value)
+    }
+
+    // --- Recently viewed (RF-02: a viewed or scanned offer stays available outside the radius) ---
+
+    @Test
+    fun `opening an offer from the map records it as viewed`() = runTest {
+        repository.offers.value = listOf(offer)
+
+        createViewModel()
+
+        assertEquals(listOf("offer-1" to ViewSource.MAP), repository.viewed.value)
+    }
+
+    @Test
+    fun `a scanned offer is recorded as viewed from a QR`() = runTest {
+        repository.offers.value = listOf(offer)
+
+        createViewModel(fromQr = true)
+
+        assertEquals(listOf("offer-1" to ViewSource.QR), repository.viewed.value)
+    }
+
+    @Test
+    fun `an offer that is not available is not recorded until it loads`() = runTest {
+        connectivity.isOnline.value = false
+        createViewModel(offerId = "f-4")
+        assertEquals(emptyList<Any>(), repository.viewed.value)
+
+        repository.onRefreshOffer = { repository.offers.value = listOf(testOffer(id = "f-4")) }
+        connectivity.isOnline.value = true
+
+        assertEquals(listOf("f-4" to ViewSource.MAP), repository.viewed.value)
     }
 
     // --- Refresh and server-wins ---

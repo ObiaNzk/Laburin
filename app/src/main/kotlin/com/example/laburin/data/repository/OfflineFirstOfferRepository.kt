@@ -11,6 +11,7 @@ import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Offer
 import com.example.laburin.domain.model.RefreshResult
+import com.example.laburin.domain.model.ViewSource
 import com.example.laburin.domain.repository.OfferRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -42,8 +43,15 @@ class OfflineFirstOfferRepository @Inject constructor(
         val area = Haversine.boundingBox(center, radiusKm * 1_000.0)
         local.replaceInArea(area, category, dtos.mapNotNull { it.toEntityOrNull() })
         local.setLastSyncedAt(clock.instant())
+        local.prune(area, RECENTLY_VIEWED_LIMIT)
         return RefreshResult.Success
     }
+
+    override suspend fun markViewed(offerId: String, source: ViewSource) =
+        local.markViewed(offerId, clock.instant(), source.name)
+
+    override fun observeRecentlyViewed(): Flow<List<Offer>> =
+        local.observeRecentlyViewed().map { entities -> entities.map { it.toDomain() } }
 
     override fun observeOffer(id: String): Flow<Offer?> = local.observeById(id).map { it?.toDomain() }
 
@@ -62,5 +70,6 @@ class OfflineFirstOfferRepository @Inject constructor(
 
     private companion object {
         const val ACTIVE_STATUS = "ACTIVE"
+        const val RECENTLY_VIEWED_LIMIT = 30
     }
 }

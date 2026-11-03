@@ -38,6 +38,7 @@ import com.example.laburin.data.local.PendingActionDao
 import com.example.laburin.data.local.PublishedOfferDao
 import com.example.laburin.data.local.RoomTransactionRunner
 import com.example.laburin.data.local.TransactionRunner
+import com.example.laburin.data.local.ViewedOfferDao
 import com.example.laburin.data.sync.WorkManagerSyncScheduler
 import com.example.laburin.domain.repository.ApplicationRepository
 import com.example.laburin.domain.repository.CvRepository
@@ -81,7 +82,10 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): LaburinDatabase =
         Room.databaseBuilder(context, LaburinDatabase::class.java, LaburinDatabase.NAME)
-            .addMigrations(LaburinDatabase.MIGRATION_1_2, LaburinDatabase.MIGRATION_2_3, LaburinDatabase.MIGRATION_3_4)
+            .addMigrations(
+                LaburinDatabase.MIGRATION_1_2, LaburinDatabase.MIGRATION_2_3, LaburinDatabase.MIGRATION_3_4,
+                LaburinDatabase.MIGRATION_4_5,
+            )
             .build()
 
     @Provides
@@ -101,6 +105,9 @@ object AppModule {
 
     @Provides
     fun provideApplicantDao(db: LaburinDatabase): ApplicantDao = db.applicantDao()
+
+    @Provides
+    fun provideViewedOfferDao(db: LaburinDatabase): ViewedOfferDao = db.viewedOfferDao()
 
     @Provides
     @Singleton

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -199,6 +200,7 @@ fun MapContent(
         if (offlineLayout) {
             OfflineOffers(
                 offers = cached.orEmpty(),
+                recentlyViewed = state.recentlyViewed,
                 onOfferClick = onOfferClick,
                 onRetry = onRetry,
                 modifier = Modifier.padding(innerPadding),
@@ -407,6 +409,7 @@ private fun ResultsSheet(
                 )
             }
             ZoneHint(state, onChooseZone)
+            Column(Modifier.weight(1f)) {
             when (val offers = state.offers) {
                 OffersState.Loading -> CenteredBox { CircularProgressIndicator() }
                 is OffersState.Content -> {
@@ -416,7 +419,7 @@ private fun ResultsSheet(
                         fontSize = 16.sp,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
-                    OfferList(offers.offers, onOfferClick)
+                    OfferList(offers.offers, onOfferClick, recentlyViewed = state.recentlyViewed)
                 }
                 OffersState.Empty -> EmptyResults(state, onWidenRadius, onShowAllCategories, onClearQuery)
                 is OffersState.Unavailable -> CenteredMessage(
@@ -426,6 +429,21 @@ private fun ResultsSheet(
                     action = { OutlinedButton(onClick = onRetry) { Text(stringResource(R.string.map_retry)) } },
                 )
             }
+            }
+            if (state.offers !is OffersState.Content) RecentlyViewedSection(state.recentlyViewed, onOfferClick)
+        }
+    }
+}
+
+/** RF-02: offers seen or scanned before stay at hand, even outside the radius or without a connection. */
+@Composable
+private fun RecentlyViewedSection(offers: List<NearbyOffer>, onOfferClick: (String) -> Unit) {
+    if (offers.isEmpty()) return
+    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+        Text(stringResource(R.string.map_recently_viewed), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Spacer(Modifier.height(6.dp))
+        LazyColumn(Modifier.heightIn(max = 150.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(offers, key = { "viewed-" + it.offer.id }) { nearby -> NearbyOfferItem(nearby, onOfferClick) }
         }
     }
 }
@@ -526,22 +544,39 @@ private fun EmptyResults(
 }
 
 @Composable
-private fun OfferList(offers: List<NearbyOffer>, onOfferClick: (String) -> Unit) {
+private fun OfferList(
+    offers: List<NearbyOffer>,
+    onOfferClick: (String) -> Unit,
+    recentlyViewed: List<NearbyOffer> = emptyList(),
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(offers, key = { it.offer.id }) { nearby ->
-            OfferItem(
-                title = nearby.offer.title,
-                subtitle = stringResource(nearby.offer.category.labelRes()),
-                distance = formatDistance(nearby.distanceMeters),
-                onClick = { onOfferClick(nearby.offer.id) },
-            )
+        items(offers, key = { it.offer.id }) { nearby -> NearbyOfferItem(nearby, onOfferClick) }
+        // Same scroll as the results, so the results keep the whole sheet.
+        if (recentlyViewed.isNotEmpty()) {
+            item(key = "viewed-header") {
+                Text(
+                    stringResource(R.string.map_recently_viewed), fontWeight = FontWeight.Bold, fontSize = 14.sp,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            items(recentlyViewed, key = { "viewed-" + it.offer.id }) { nearby -> NearbyOfferItem(nearby, onOfferClick) }
         }
     }
+}
+
+@Composable
+private fun NearbyOfferItem(nearby: NearbyOffer, onOfferClick: (String) -> Unit) {
+    OfferItem(
+        title = nearby.offer.title,
+        subtitle = stringResource(nearby.offer.category.labelRes()),
+        distance = formatDistance(nearby.distanceMeters),
+        onClick = { onOfferClick(nearby.offer.id) },
+    )
 }
 
 @Composable
@@ -571,6 +606,7 @@ private fun OfflineBanner(lastSyncedAt: Instant?, now: Instant, hasData: Boolean
 @Composable
 private fun OfflineOffers(
     offers: List<NearbyOffer>,
+    recentlyViewed: List<NearbyOffer>,
     onOfferClick: (String) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -613,6 +649,7 @@ private fun OfflineOffers(
         } else {
             Box(modifier = Modifier.weight(1f, fill = false)) { OfferList(offers, onOfferClick) }
         }
+        RecentlyViewedSection(recentlyViewed, onOfferClick)
         OutlinedButton(
             onClick = onRetry,
             modifier = Modifier

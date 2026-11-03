@@ -25,7 +25,7 @@ class RoomOfferLocalDataSourceTest {
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, LaburinDatabase::class.java).build()
-        dataSource = RoomOfferLocalDataSource(db.offerDao(), db.syncMetadataDao())
+        dataSource = RoomOfferLocalDataSource(db.offerDao(), db.syncMetadataDao(), db.viewedOfferDao())
     }
 
     @After

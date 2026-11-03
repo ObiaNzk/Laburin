@@ -73,6 +73,16 @@ class MigrationTest {
         db.close()
     }
 
+    @Test
+    fun migration4To5AddsTheViewedOffersTable() {
+        helper.createDatabase(DB, 4).close()
+
+        val db = helper.runMigrationsAndValidate(DB, 5, true, LaburinDatabase.MIGRATION_4_5)
+
+        db.execSQL("INSERT INTO viewed_offers (offer_id, viewed_at, source) VALUES ('o-1', 0, 'QR')")
+        db.close()
+    }
+
     private companion object {
         const val DB = "migration-test.db"
     }

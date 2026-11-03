@@ -14,6 +14,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
+import com.example.laburin.ui.screens.scan.ScanRoute
 import com.example.laburin.ui.components.AppTab
 import com.example.laburin.ui.components.LaburinNavigationBar
 import com.example.laburin.ui.screens.applications.ApplicationsRoute
@@ -68,9 +70,20 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                         navController.navigate(OfferDetailDestination(offerId, distance))
                     },
                     onNavigateToPublish = { navController.navigate(PublishDestination) },
+                    onNavigateToScan = { navController.navigate(ScanDestination) },
                 )
             }
-            composable<OfferDetailDestination> {
+            composable<ScanDestination> {
+                ScanRoute(
+                    onOpenOffer = { offerId ->
+                        navController.navigate(OfferDetailDestination(offerId)) { popUpTo<ScanDestination> { inclusive = true } }
+                    },
+                    onClose = { navController.popBackStack() },
+                )
+            }
+            composable<OfferDetailDestination>(
+                deepLinks = listOf(navDeepLink<OfferDetailDestination>(basePath = OFFER_DEEP_LINK_BASE)),
+            ) {
                 OfferDetailRoute(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSignUp = { navController.navigate(SignUpDestination) },

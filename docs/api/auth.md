@@ -1,4 +1,4 @@
-# API · Autenticación (propuesta para el back en Go)
+# API · Autenticación
 
 Mientras la API no exista, la app usa `FakeBackend` (en memoria), que respeta este contrato. Cuentas demo ficticias: `postulante@demo.laburin` y `comercio@demo.laburin`, contraseña `demo1234`.
 
@@ -15,6 +15,7 @@ Body: `{ "firstName": "…", "lastName": "…", "email": "…", "password": "…
 
 - **201**: misma respuesta que el login, porque el usuario queda logueado.
 - **409**: ya existe una cuenta con ese email (el email no distingue mayúsculas).
+- **400**: faltan campos, el email no es válido o la contraseña tiene menos de 8 caracteres.
 
 ## Reglas que la app asume
 

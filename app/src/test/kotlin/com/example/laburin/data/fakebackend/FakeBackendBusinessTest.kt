@@ -3,6 +3,7 @@ package com.example.laburin.data.fakebackend
 import com.example.laburin.data.auth.BusinessSignUpDto
 import com.example.laburin.data.publish.PublishOfferDto
 import com.example.laburin.data.remote.ApiException
+import com.example.laburin.data.remote.FakeOfferRemoteDataSource
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
@@ -65,5 +66,78 @@ class FakeBackendBusinessTest {
         } catch (e: ApiException) {
             assertEquals(403, e.code)
         }
+    }
+
+    // --- Edit and close (RF-03) ---
+
+    @Test
+    fun `putting an existing offer again replaces its content`() = runTest {
+        val token = businessToken()
+        backend.publishOffer(token, draft)
+
+        backend.publishOffer(token, draft.copy(title = "Mozo/a", schedule = "Viernes y sábados"))
+
+        val offer = backend.allOffers().single { it.id == "p-1" }
+        assertEquals("Mozo/a" to "Viernes y sábados", offer.title to offer.schedule)
+    }
+
+    @Test
+    fun `a closed offer leaves the map and is listed as closed for its business`() = runTest {
+        val token = businessToken()
+        backend.publishOffer(token, draft)
+
+        backend.closeOffer(token, "p-1")
+
+        assertEquals("CLOSED", backend.myOffers(token).single { it.id == "p-1" }.status)
+        assertEquals(false, FakeOfferRemoteDataSource(backend).getOffers(
+            FakeBackend.DEMO_BUSINESS_LOCATION.first, FakeBackend.DEMO_BUSINESS_LOCATION.second, 2, null,
+        ).any { it.id == "p-1" })
+    }
+
+    @Test
+    fun `closing twice is idempotent`() = runTest {
+        val token = businessToken()
+        backend.publishOffer(token, draft)
+
+        backend.closeOffer(token, "p-1")
+        backend.closeOffer(token, "p-1")
+
+        assertEquals("CLOSED", backend.myOffers(token).single { it.id == "p-1" }.status)
+    }
+
+    @Test
+    fun `a closed offer cannot be edited`() = runTest {
+        val token = businessToken()
+        backend.publishOffer(token, draft)
+        backend.closeOffer(token, "p-1")
+
+        assertEquals(409, codeOf { backend.publishOffer(token, draft.copy(title = "Mozo/a")) })
+    }
+
+    @Test
+    fun `another business cannot edit or close the offer`() = runTest {
+        backend.publishOffer(businessToken(), draft)
+        backend.signUpBusiness(
+            BusinessSignUpDto("Otro", "MECHANICS", "9 a 18", "[DIRECCION]", -34.6, -58.4, "otro@demo.laburin", "12345678")
+        )
+        val other = backend.login("otro@demo.laburin", "12345678").token
+
+        assertEquals(403, codeOf { backend.publishOffer(other, draft.copy(title = "Otro")) })
+        assertEquals(403, codeOf { backend.closeOffer(other, "p-1") })
+    }
+
+    @Test
+    fun `closing an unknown offer is reported as 404`() = runTest {
+        assertEquals(404, codeOf { backend.closeOffer(businessToken(), "missing") })
+    }
+
+    private suspend fun codeOf(block: suspend () -> Unit): Int {
+        try {
+            block()
+        } catch (e: ApiException) {
+            return e.code
+        }
+        fail("Expected ApiException")
+        error("unreachable")
     }
 }

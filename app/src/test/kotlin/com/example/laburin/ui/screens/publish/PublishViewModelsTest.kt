@@ -6,6 +6,9 @@ import com.example.laburin.domain.model.Applicant
 import com.example.laburin.domain.model.ApplicantStatus
 import com.example.laburin.domain.model.BusinessSignUpField
 import com.example.laburin.domain.publish.ReviewApplicantUseCase
+import com.example.laburin.domain.publish.CloseOfferUseCase
+import com.example.laburin.domain.publish.EditOfferUseCase
+import com.example.laburin.ui.navigation.EditOfferDestination
 import com.example.laburin.fakes.FakeApplicantsRepository
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.GeoLocation
@@ -149,8 +152,76 @@ class PublishViewModelsTest {
     private val applicants = FakeApplicantsRepository()
     private fun publishedVm() = PublishedOfferViewModel(
         SavedStateHandle(mapOf(PublishedOfferDestination.ARG_OFFER_ID to "p-1")), offers, applicants,
-        ReviewApplicantUseCase(applicants, scheduler),
+        ReviewApplicantUseCase(applicants, scheduler), CloseOfferUseCase(offers, scheduler),
     )
+
+    @Test
+    fun `closing the offer queues the close`() = runTest {
+        offers.store.value = listOf(testPublishedOffer("p-1", status = PublishedOfferStatus.ACTIVE))
+        val vm = publishedVm()
+
+        vm.onCloseOffer()
+
+        assertEquals(listOf("p-1"), offers.closes)
+        assertEquals(1, scheduler.scheduled)
+    }
+
+    // --- Edit offer ---
+
+    private fun editVm() = EditOfferViewModel(
+        SavedStateHandle(mapOf(EditOfferDestination.ARG_OFFER_ID to "p-1")), offers, EditOfferUseCase(auth, offers, scheduler),
+    )
+
+    @Test
+    fun `the edit form opens filled with the offer's current content`() = runTest {
+        offers.store.value = listOf(testPublishedOffer("p-1", title = "Mozo", status = PublishedOfferStatus.ACTIVE))
+
+        val state = editVm().uiState.value
+
+        assertEquals(false, state.isLoading)
+        assertEquals(listOf("Mozo", "Sábados", "[DESCRIPCION]"), listOf(state.title, state.schedule, state.description))
+        assertEquals(Category.GASTRONOMY, state.category)
+    }
+
+    @Test
+    fun `saving valid changes queues them and goes back`() = runTest {
+        offers.store.value = listOf(testPublishedOffer("p-1", status = PublishedOfferStatus.ACTIVE))
+        val vm = editVm()
+        vm.onTitleChange("Mozo/a")
+
+        vm.effects.test {
+            vm.onSave()
+            assertEquals(EditOfferEffect.Saved, awaitItem())
+        }
+        assertEquals("Mozo/a", offers.edits.single().second.title)
+    }
+
+    @Test
+    fun `saving incomplete changes marks the missing fields`() = runTest {
+        offers.store.value = listOf(testPublishedOffer("p-1", status = PublishedOfferStatus.ACTIVE))
+        val vm = editVm()
+        vm.onTitleChange(" ")
+
+        vm.onSave()
+
+        assertEquals(setOf(PublishField.TITLE), vm.uiState.value.fieldErrors)
+        assertTrue(offers.edits.isEmpty())
+    }
+
+    @Test
+    fun `a closed offer can no longer be edited`() = runTest {
+        offers.store.value = listOf(testPublishedOffer("p-1", status = PublishedOfferStatus.CLOSED))
+        val vm = editVm()
+
+        vm.onSave()
+
+        assertEquals(EditOfferError.Closed, vm.uiState.value.error)
+    }
+
+    @Test
+    fun `an unknown offer shows that it was not found`() = runTest {
+        assertEquals(EditOfferError.NotFound, editVm().uiState.value.error)
+    }
 
     @Test
     fun `the published offer lists its applicants and refreshes them on open`() = runTest {

@@ -14,4 +14,10 @@ interface MyOffersRepository {
     suspend fun publish(draft: OfferDraft): PublishedOffer
 
     suspend fun refreshMine(): RefreshResult
+
+    /** Stores the changes as pending and queues them; the server decides whether the offer can still change. */
+    suspend fun edit(id: String, draft: OfferDraft)
+
+    /** Marks the offer as pending close and queues it. */
+    suspend fun close(id: String)
 }

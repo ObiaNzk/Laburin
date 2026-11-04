@@ -24,6 +24,10 @@ class FakeMyOffersRepository : MyOffersRepository {
         return offer
     }
     override suspend fun refreshMine(): RefreshResult { refreshCalls++; return RefreshResult.Success }
+    val edits = mutableListOf<Pair<String, OfferDraft>>()
+    val closes = mutableListOf<String>()
+    override suspend fun edit(id: String, draft: OfferDraft) { edits += id to draft }
+    override suspend fun close(id: String) { closes += id }
 }
 
 fun testPublishedOffer(id: String = "p-1", title: String = "Mozo", status: PublishedOfferStatus = PublishedOfferStatus.PENDING_PUBLISH) =

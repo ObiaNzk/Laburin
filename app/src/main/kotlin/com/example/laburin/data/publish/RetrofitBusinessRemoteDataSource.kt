@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import javax.inject.Inject
@@ -23,6 +24,9 @@ interface BusinessApi {
     @PUT("offers/{id}")
     suspend fun putOffer(@Header("Authorization") auth: String, @Path("id") offerId: String, @Body body: OfferContentRequest)
 
+    @POST("offers/{id}/close")
+    suspend fun closeOffer(@Header("Authorization") auth: String, @Path("id") offerId: String)
+
     @GET("offers/mine")
     suspend fun myOffers(@Header("Authorization") auth: String): List<OfferDto>
 
@@ -38,6 +42,8 @@ class RetrofitBusinessRemoteDataSource @Inject constructor(private val api: Busi
     override suspend fun publishOffer(token: String, offer: PublishOfferDto) = apiCall {
         api.putOffer(bearer(token), offer.id, OfferContentRequest(offer.title, offer.category, offer.schedule, offer.description))
     }
+
+    override suspend fun closeOffer(token: String, offerId: String) = apiCall { api.closeOffer(bearer(token), offerId) }
 
     override suspend fun myOffers(token: String) = apiCall { api.myOffers(bearer(token)) }
 

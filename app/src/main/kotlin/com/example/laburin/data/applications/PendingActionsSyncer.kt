@@ -5,6 +5,7 @@ import com.example.laburin.data.local.ApplicantDao
 import com.example.laburin.data.local.ApplicationDao
 import com.example.laburin.data.local.PendingActionDao
 import com.example.laburin.data.local.PublishedOfferDao
+import com.example.laburin.data.local.PublishedOfferEntity
 import com.example.laburin.data.publish.BusinessRemoteDataSource
 import com.example.laburin.data.publish.PublishOfferDto
 import com.example.laburin.domain.model.PublishedOfferStatus
@@ -42,6 +43,8 @@ class PendingActionsSyncer @Inject constructor(
                 APPLY -> sendApplication(token, userId, action.targetId)
                 PUBLISH -> sendPublication(token, userId, action.targetId)
                 REVIEW -> sendReview(token, action.targetId)
+                EDIT -> sendEdit(token, userId, action.targetId)
+                CLOSE -> sendClose(token, userId, action.targetId)
                 else -> Sent // Unknown types come from a newer app version that was downgraded: drop them.
             }
             when (outcome) {
@@ -82,8 +85,11 @@ class PendingActionsSyncer @Inject constructor(
         val offer = publishedOffers.find(offerId) ?: return Sent
         if (offer.businessId != userId) return Skip
         return try {
-            business.publishOffer(token, PublishOfferDto(offer.id, offer.title, offer.category, offer.schedule, offer.description))
-            publishedOffers.updateStatus(offer.id, PublishedOfferStatus.ACTIVE.name)
+            business.publishOffer(token, offer.toDto())
+            // The business may have closed it while it was on its way: only a publish still pending becomes active.
+            if (publishedOffers.find(offer.id)?.status == PublishedOfferStatus.PENDING_PUBLISH.name) {
+                publishedOffers.updateStatus(offer.id, PublishedOfferStatus.ACTIVE.name)
+            }
             Sent
         } catch (e: IOException) {
             Stop(SyncOutcome.Retry)
@@ -91,6 +97,59 @@ class PendingActionsSyncer @Inject constructor(
             if (e.code == HTTP_UNAUTHORIZED) Stop(SyncOutcome.AuthRequired) else Stop(SyncOutcome.Retry)
         }
     }
+
+    /** The same PUT as publishing: the server replaces the content, or answers 409 if the offer is closed. */
+    private suspend fun sendEdit(token: String, userId: String, offerId: String): Step {
+        val offer = publishedOffers.find(offerId) ?: return Sent
+        if (offer.businessId != userId) return Skip
+        // Closing wins over changes saved before it: they are not sent.
+        if (offer.status in CLOSING) return Sent
+        return try {
+            business.publishOffer(token, offer.toDto())
+            // Changes saved while this send was on its way keep the offer pending until they are sent too.
+            val current = publishedOffers.find(offerId)
+            if (current?.status == PublishedOfferStatus.EDIT_PENDING_SEND.name && pending.countFor(EDIT, offerId) == 1) {
+                publishedOffers.updateStatus(offerId, PublishedOfferStatus.ACTIVE.name)
+            }
+            Sent
+        } catch (e: IOException) {
+            Stop(SyncOutcome.Retry)
+        } catch (e: ApiException) {
+            when (e.code) {
+                HTTP_UNAUTHORIZED -> Stop(SyncOutcome.AuthRequired)
+                HTTP_CONFLICT -> {
+                    publishedOffers.updateStatus(offerId, PublishedOfferStatus.CLOSED.name)
+                    Sent
+                }
+                else -> Stop(SyncOutcome.Retry)
+            }
+        }
+    }
+
+    private suspend fun sendClose(token: String, userId: String, offerId: String): Step {
+        val offer = publishedOffers.find(offerId) ?: return Sent
+        if (offer.businessId != userId) return Skip
+        if (offer.status != PublishedOfferStatus.CLOSE_PENDING_SEND.name) return Sent
+        return try {
+            business.closeOffer(token, offerId)
+            publishedOffers.updateStatus(offerId, PublishedOfferStatus.CLOSED.name)
+            Sent
+        } catch (e: IOException) {
+            Stop(SyncOutcome.Retry)
+        } catch (e: ApiException) {
+            when (e.code) {
+                HTTP_UNAUTHORIZED -> Stop(SyncOutcome.AuthRequired)
+                // Already closed, or the server no longer has it: either way it is closed.
+                HTTP_NOT_FOUND, HTTP_CONFLICT -> {
+                    publishedOffers.updateStatus(offerId, PublishedOfferStatus.CLOSED.name)
+                    Sent
+                }
+                else -> Stop(SyncOutcome.Retry)
+            }
+        }
+    }
+
+    private fun PublishedOfferEntity.toDto() = PublishOfferDto(id, title, category, schedule, description)
 
     private suspend fun sendReview(token: String, applicationId: String): Step {
         val applicant = applicants.find(applicationId) ?: return Sent
@@ -120,7 +179,11 @@ class PendingActionsSyncer @Inject constructor(
         const val APPLY = "APPLY"
         const val PUBLISH = "PUBLISH"
         const val REVIEW = "REVIEW"
+        const val EDIT = "EDIT"
+        const val CLOSE = "CLOSE"
         private const val HTTP_UNAUTHORIZED = 401
         private const val HTTP_CONFLICT = 409
+        private const val HTTP_NOT_FOUND = 404
+        private val CLOSING = setOf(PublishedOfferStatus.CLOSED.name, PublishedOfferStatus.CLOSE_PENDING_SEND.name)
     }
 }

@@ -10,11 +10,23 @@ Body: `{ "businessName", "category", "schedule", "address", "latitude", "longitu
 
 ## `PUT /offers/{id}` (requiere token de comercio)
 
-Publicar. Body: `{ "title", "category", "schedule", "description" }`. **El `id` lo genera la app (UUID)**: reenviarlo es un no-op.
+Publicar o editar. Body: `{ "title", "category", "schedule", "description" }`. **El `id` lo genera la app (UUID)**.
 
-- **200 / 201**: publicada. Queda `ACTIVE` en el mapa, con la dirección y la ubicación del comercio.
-- **401**: sesión vencida. La publicación queda en la cola hasta el próximo login.
-- **403**: la cuenta no es de comercio.
+- Si la oferta no existe, la crea (publicar). Si existe, **reemplaza su contenido** (editar). Mandar el mismo contenido dos veces no cambia nada, así que los reintentos son seguros.
+- **200 / 201**: publicada o actualizada. Queda `ACTIVE` en el mapa, con la dirección y la ubicación del comercio.
+- **401**: sesión vencida. La acción queda en la cola hasta el próximo login.
+- **403**: la cuenta no es de comercio, o la oferta es de otro comercio.
+- **409**: la oferta está cerrada y ya no se puede editar. La app la muestra como cerrada (gana el servidor).
+- El back valida todo lo demás (por ejemplo, si la posición sigue abierta). La app solo evita mandar formularios incompletos.
+
+## `POST /offers/{id}/close` (requiere token del comercio dueño)
+
+Cierra la búsqueda: deja de aparecer en `GET /offers` y no acepta más postulaciones. No se puede reabrir. Es idempotente.
+
+- **200 / 204**: cerrada.
+- **404**: la oferta no existe. **409**: ya estaba cerrada. En los dos casos la app la da por cerrada.
+- **403**: la oferta es de otro comercio.
+- Sin conexión, la app la muestra como "Cierre pendiente de envío" y la manda cuando vuelve la conexión. Los cambios guardados antes del cierre y todavía sin enviar se descartan.
 
 ## `GET /offers/mine` (requiere token de comercio)
 

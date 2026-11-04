@@ -30,6 +30,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.AlertDialog
+import com.example.laburin.domain.publish.isClosing
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -94,23 +99,39 @@ fun PublishContent(
     onPublish: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val errors = state.fieldErrors
     FormScreen(title = stringResource(R.string.publish_title), onClose = onBack) {
-        FormField(stringResource(R.string.publish_job), state.title, onTitleChange,
-            placeholder = stringResource(R.string.publish_job_hint),
-            error = stringResource(R.string.publish_error_title).takeIf { PublishField.TITLE in errors })
-        CategoryField(stringResource(R.string.publish_category), state.category, onCategoryChange,
-            error = stringResource(R.string.publish_error_category).takeIf { PublishField.CATEGORY in errors })
-        FormField(stringResource(R.string.publish_schedule), state.schedule, onScheduleChange,
-            placeholder = stringResource(R.string.publish_schedule_hint),
-            error = stringResource(R.string.publish_error_schedule).takeIf { PublishField.SCHEDULE in errors })
-        FormField(stringResource(R.string.publish_description), state.description, onDescriptionChange,
-            placeholder = stringResource(R.string.publish_description_hint), singleLine = false,
-            error = stringResource(R.string.publish_error_description).takeIf { PublishField.DESCRIPTION in errors })
+        OfferFields(state.title, state.category, state.schedule, state.description, state.fieldErrors,
+            onTitleChange, onCategoryChange, onScheduleChange, onDescriptionChange)
         Text(stringResource(R.string.publish_location_note), fontSize = 12.sp, color = Color.Gray)
         Spacer(Modifier.height(12.dp))
         SubmitButton(stringResource(R.string.publish_submit), state.isPublishing, onPublish)
     }
+}
+
+/** The offer's fields, shared by publishing and editing. */
+@Composable
+private fun OfferFields(
+    title: String,
+    category: Category?,
+    schedule: String,
+    description: String,
+    errors: Set<PublishField>,
+    onTitleChange: (String) -> Unit,
+    onCategoryChange: (Category) -> Unit,
+    onScheduleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+) {
+    FormField(stringResource(R.string.publish_job), title, onTitleChange,
+        placeholder = stringResource(R.string.publish_job_hint),
+        error = stringResource(R.string.publish_error_title).takeIf { PublishField.TITLE in errors })
+    CategoryField(stringResource(R.string.publish_category), category, onCategoryChange,
+        error = stringResource(R.string.publish_error_category).takeIf { PublishField.CATEGORY in errors })
+    FormField(stringResource(R.string.publish_schedule), schedule, onScheduleChange,
+        placeholder = stringResource(R.string.publish_schedule_hint),
+        error = stringResource(R.string.publish_error_schedule).takeIf { PublishField.SCHEDULE in errors })
+    FormField(stringResource(R.string.publish_description), description, onDescriptionChange,
+        placeholder = stringResource(R.string.publish_description_hint), singleLine = false,
+        error = stringResource(R.string.publish_error_description).takeIf { PublishField.DESCRIPTION in errors })
 }
 
 // --- Business sign-up ---
@@ -185,7 +206,11 @@ fun BusinessSignUpContent(
 // --- Published offer ---
 
 @Composable
-fun PublishedOfferRoute(onBack: () -> Unit, viewModel: PublishedOfferViewModel = hiltViewModel()) {
+fun PublishedOfferRoute(
+    onBack: () -> Unit,
+    onEdit: (offerId: String) -> Unit,
+    viewModel: PublishedOfferViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val shareTemplate = stringResource(R.string.published_share_text, "%1\$s", "%2\$s")
@@ -203,6 +228,7 @@ fun PublishedOfferRoute(onBack: () -> Unit, viewModel: PublishedOfferViewModel =
     PublishedOfferContent(
         state = state, onShare = viewModel::onShare, onBack = onBack,
         onApprove = viewModel::onApprove, onReject = viewModel::onReject,
+        onEdit = onEdit, onCloseOffer = viewModel::onCloseOffer,
     )
 }
 
@@ -213,6 +239,8 @@ fun PublishedOfferContent(
     onBack: () -> Unit,
     onApprove: (applicationId: String) -> Unit = {},
     onReject: (applicationId: String) -> Unit = {},
+    onEdit: (offerId: String) -> Unit = {},
+    onCloseOffer: () -> Unit = {},
 ) {
     Column(
         Modifier
@@ -234,8 +262,15 @@ fun PublishedOfferContent(
             is PublishedOfferUiState.Content -> {
                 Text(state.offer.title, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                 Text(stringResource(state.offer.status.labelRes()), fontWeight = FontWeight.Bold)
-                if (state.offer.status == PublishedOfferStatus.PENDING_PUBLISH) {
-                    Text(stringResource(R.string.published_pending_hint), color = Color.Gray, fontSize = 12.sp)
+                when (state.offer.status) {
+                    PublishedOfferStatus.PENDING_PUBLISH ->
+                        Text(stringResource(R.string.published_pending_hint), color = Color.Gray, fontSize = 12.sp)
+                    PublishedOfferStatus.EDIT_PENDING_SEND, PublishedOfferStatus.CLOSE_PENDING_SEND ->
+                        Text(stringResource(R.string.published_change_pending_hint), color = Color.Gray, fontSize = 12.sp)
+                    PublishedOfferStatus.ACTIVE, PublishedOfferStatus.CLOSED -> Unit
+                }
+                if (!state.offer.status.isClosing()) {
+                    ManageButtons(onEdit = { onEdit(state.offer.id) }, onCloseOffer = onCloseOffer)
                 }
                 Text(stringResource(R.string.published_qr_title), fontWeight = FontWeight.Bold)
                 QrImage(state.qrLink, Modifier.align(Alignment.CenterHorizontally))
@@ -250,6 +285,33 @@ fun PublishedOfferContent(
 
             }
         }
+    }
+}
+
+@Composable
+private fun ManageButtons(onEdit: () -> Unit, onCloseOffer: () -> Unit) {
+    var confirmClose by rememberSaveable { mutableStateOf(false) }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = onEdit, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.published_edit)) }
+        OutlinedButton(onClick = { confirmClose = true }, modifier = Modifier.weight(1f)) {
+            Text(stringResource(R.string.published_close))
+        }
+    }
+    if (confirmClose) {
+        AlertDialog(
+            onDismissRequest = { confirmClose = false },
+            title = { Text(stringResource(R.string.published_close_confirm_title)) },
+            text = { Text(stringResource(R.string.published_close_confirm_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmClose = false
+                    onCloseOffer()
+                }) { Text(stringResource(R.string.published_close_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClose = false }) { Text(stringResource(R.string.published_close_cancel)) }
+            },
+        )
     }
 }
 
@@ -319,6 +381,73 @@ private const val QR_MODULES = 220
 
 private fun PublishedOfferStatus.labelRes() = when (this) {
     PublishedOfferStatus.PENDING_PUBLISH -> R.string.published_status_pending
+    PublishedOfferStatus.EDIT_PENDING_SEND -> R.string.published_status_edit_pending
+    PublishedOfferStatus.CLOSE_PENDING_SEND -> R.string.published_status_close_pending
     PublishedOfferStatus.ACTIVE -> R.string.published_status_active
     PublishedOfferStatus.CLOSED -> R.string.published_status_closed
+}
+
+// --- Edit offer ---
+
+@Composable
+fun EditOfferContent(
+    state: EditOfferUiState,
+    onTitleChange: (String) -> Unit,
+    onCategoryChange: (Category) -> Unit,
+    onScheduleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onBack: () -> Unit,
+) {
+    FormScreen(title = stringResource(R.string.edit_title), onClose = onBack) {
+        if (state.isLoading) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        } else {
+            EditOfferForm(state, onTitleChange, onCategoryChange, onScheduleChange, onDescriptionChange, onSave)
+        }
+    }
+}
+
+@Composable
+private fun EditOfferForm(
+    state: EditOfferUiState,
+    onTitleChange: (String) -> Unit,
+    onCategoryChange: (Category) -> Unit,
+    onScheduleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onSave: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        if (state.error != EditOfferError.NotFound) {
+            OfferFields(state.title, state.category, state.schedule, state.description, state.fieldErrors,
+                onTitleChange, onCategoryChange, onScheduleChange, onDescriptionChange)
+        }
+        state.error?.let {
+            FormError(
+                stringResource(
+                    when (it) {
+                        EditOfferError.Closed -> R.string.edit_error_closed
+                        EditOfferError.NotFound -> R.string.edit_error_not_found
+                        EditOfferError.NotAllowed -> R.string.edit_error_not_allowed
+                    }
+                )
+            )
+        }
+        if (state.error == null || state.error == EditOfferError.NotAllowed) {
+            Spacer(Modifier.height(12.dp))
+            SubmitButton(stringResource(R.string.edit_submit), state.isSaving, onSave)
+        }
+    }
+}
+
+@Composable
+fun EditOfferRoute(onDone: () -> Unit, viewModel: EditOfferViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect -> if (effect == EditOfferEffect.Saved) onDone() }
+    }
+    EditOfferContent(
+        state, viewModel::onTitleChange, viewModel::onCategoryChange, viewModel::onScheduleChange,
+        viewModel::onDescriptionChange, viewModel::onSave, onDone,
+    )
 }

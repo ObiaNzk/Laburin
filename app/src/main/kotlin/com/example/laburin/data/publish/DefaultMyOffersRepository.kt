@@ -83,11 +83,41 @@ class DefaultMyOffersRepository(
         }
         for (dto in fromServer) {
             val local = dao.find(dto.id)
-            // Still waiting to be published: the local pending state stands until the send is answered.
-            if (local?.status == PublishedOfferStatus.PENDING_PUBLISH.name) continue
+            // Local changes not sent yet: they stand until the server answers them.
+            if (local?.status in LOCAL_PENDING) continue
             dto.toEntity(stored.session.userId)?.let { dao.upsert(it) }
         }
         return RefreshResult.Success
+    }
+
+    override suspend fun edit(id: String, draft: OfferDraft) {
+        val offer = ownOffer(id) ?: return
+        if (offer.status in CLOSING) return
+        // Not sent yet: it stays "pending publish". The edit is queued anyway, so changes made while the publish is
+        // on its way are never lost (the server stores the latest content each time).
+        val status = if (offer.status == PublishedOfferStatus.PENDING_PUBLISH.name) offer.status else PublishedOfferStatus.EDIT_PENDING_SEND.name
+        val changed = offer.copy(
+            title = draft.title.trim(), category = checkNotNull(draft.category).name, schedule = draft.schedule.trim(),
+            description = draft.description.trim(), status = status,
+        )
+        transaction.run {
+            dao.upsert(changed)
+            pending.insert(PendingActionEntity(idGenerator(), PendingActionsSyncer.EDIT, id, clock.instant()))
+        }
+    }
+
+    override suspend fun close(id: String) {
+        val offer = ownOffer(id) ?: return
+        if (offer.status in CLOSING) return
+        transaction.run {
+            dao.updateStatus(id, PublishedOfferStatus.CLOSE_PENDING_SEND.name)
+            pending.insert(PendingActionEntity(idGenerator(), PendingActionsSyncer.CLOSE, id, clock.instant()))
+        }
+    }
+
+    private suspend fun ownOffer(id: String): PublishedOfferEntity? {
+        val owner = businessId.first() ?: return null
+        return dao.find(id)?.takeIf { it.businessId == owner }
     }
 
     private fun PublishedOfferEntity.toDomain(): PublishedOffer? {
@@ -100,5 +130,13 @@ class DefaultMyOffersRepository(
         if (Category.entries.none { it.name == category } || PublishedOfferStatus.entries.none { it.name == status }) return null
         val created = try { Instant.parse(updatedAt) } catch (_: DateTimeParseException) { return null }
         return PublishedOfferEntity(id, businessId, title, category, schedule, description, status, created)
+    }
+
+    private companion object {
+        val CLOSING = setOf(PublishedOfferStatus.CLOSED.name, PublishedOfferStatus.CLOSE_PENDING_SEND.name)
+        val LOCAL_PENDING = setOf(
+            PublishedOfferStatus.PENDING_PUBLISH.name, PublishedOfferStatus.EDIT_PENDING_SEND.name,
+            PublishedOfferStatus.CLOSE_PENDING_SEND.name,
+        )
     }
 }

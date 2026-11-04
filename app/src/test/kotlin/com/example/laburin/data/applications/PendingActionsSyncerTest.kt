@@ -219,6 +219,163 @@ class PendingActionsSyncerTest {
         pending.insert(PendingActionEntity("r-$applicationId", PendingActionsSyncer.REVIEW, applicationId, Instant.EPOCH))
     }
 
+    // --- Edit and close a published offer (RF-03) ---
+
+    private suspend fun storeOffer(status: String, owner: String = "u-1", title: String = "Mozo") =
+        published.insert(PublishedOfferEntity("p-1", owner, title, "GASTRONOMY", "Sábados", "[DESCRIPCION]", status, Instant.EPOCH))
+
+    private suspend fun queueOn(type: String, id: String, at: Long) =
+        pending.insert(PendingActionEntity(id, type, "p-1", Instant.ofEpochMilli(at)))
+
+    @Test
+    fun `an edit sends the offer's current content and the offer becomes active`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("EDIT_PENDING_SEND", title = "Mozo/a")
+        queueOn(PendingActionsSyncer.EDIT, "q-1", at = 1)
+
+        assertEquals(SyncOutcome.Done, syncer.run())
+
+        assertEquals("ACTIVE", published.find("p-1")?.status)
+        assertEquals("Mozo/a", business.sentOffers.single().title)
+        assertTrue(pending.rows.value.isEmpty())
+    }
+
+    @Test
+    fun `an edit the server rejects because the offer is closed marks it closed`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("EDIT_PENDING_SEND")
+        queueOn(PendingActionsSyncer.EDIT, "q-1", at = 1)
+        business.publishResponse = { throw ApiException(409) }
+
+        assertEquals(SyncOutcome.Done, syncer.run())
+
+        assertEquals("CLOSED", published.find("p-1")?.status)
+        assertTrue(pending.rows.value.isEmpty())
+    }
+
+    @Test
+    fun `an edit without network stays pending`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("EDIT_PENDING_SEND")
+        queueOn(PendingActionsSyncer.EDIT, "q-1", at = 1)
+        business.publishResponse = { throw IOException("offline") }
+
+        assertEquals(SyncOutcome.Retry, syncer.run())
+
+        assertEquals("EDIT_PENDING_SEND", published.find("p-1")?.status)
+        assertEquals(listOf("q-1"), pending.rows.value.map { it.id })
+    }
+
+    @Test
+    fun `changes made while an edit is being sent stay pending`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("EDIT_PENDING_SEND")
+        queueOn(PendingActionsSyncer.EDIT, "q-1", at = 1)
+        business.publishResponse = {
+            // The business saves new changes while the previous ones are on the way.
+            kotlinx.coroutines.runBlocking { queueOn(PendingActionsSyncer.EDIT, "q-2", at = 2) }
+        }
+
+        syncer.run()
+
+        assertEquals("EDIT_PENDING_SEND", published.find("p-1")?.status)
+        assertEquals(listOf("q-2"), pending.rows.value.map { it.id })
+    }
+
+    @Test
+    fun `an edit queued before a close is not sent`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("CLOSE_PENDING_SEND")
+        queueOn(PendingActionsSyncer.EDIT, "q-1", at = 1)
+        queueOn(PendingActionsSyncer.CLOSE, "q-2", at = 2)
+
+        assertEquals(SyncOutcome.Done, syncer.run())
+
+        assertTrue(business.publishCalls.isEmpty())
+        assertEquals(listOf("token-candidate:p-1"), business.closeCalls)
+        assertEquals("CLOSED", published.find("p-1")?.status)
+    }
+
+    @Test
+    fun `a close is sent and the offer becomes closed`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("CLOSE_PENDING_SEND")
+        queueOn(PendingActionsSyncer.CLOSE, "q-1", at = 1)
+
+        assertEquals(SyncOutcome.Done, syncer.run())
+
+        assertEquals("CLOSED", published.find("p-1")?.status)
+        assertTrue(pending.rows.value.isEmpty())
+    }
+
+    @Test
+    fun `closing an offer the server already closed or no longer has counts as closed`() = runTest {
+        for (code in listOf(404, 409)) {
+            pending.rows.value = emptyList()
+            published.rows.value = emptyList()
+            storeOffer("CLOSE_PENDING_SEND")
+            queueOn(PendingActionsSyncer.CLOSE, "q-1", at = 1)
+            business.closeResponse = { throw ApiException(code) }
+
+            assertEquals(SyncOutcome.Done, syncer.run())
+
+            assertEquals("CLOSED", published.find("p-1")?.status)
+            assertTrue(pending.rows.value.isEmpty())
+        }
+    }
+
+    @Test
+    fun `a close without network stays pending`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("CLOSE_PENDING_SEND")
+        queueOn(PendingActionsSyncer.CLOSE, "q-1", at = 1)
+        business.closeResponse = { throw IOException("offline") }
+
+        assertEquals(SyncOutcome.Retry, syncer.run())
+
+        assertEquals("CLOSE_PENDING_SEND", published.find("p-1")?.status)
+        assertEquals(listOf("q-1"), pending.rows.value.map { it.id })
+    }
+
+    @Test
+    fun `an expired session stops a close and keeps it queued`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("CLOSE_PENDING_SEND")
+        queueOn(PendingActionsSyncer.CLOSE, "q-1", at = 1)
+        business.closeResponse = { throw ApiException(401) }
+
+        assertEquals(SyncOutcome.AuthRequired, syncer.run())
+
+        assertEquals(1, expiredNotices)
+        assertEquals(listOf("q-1"), pending.rows.value.map { it.id })
+    }
+
+    @Test
+    fun `a publish answered after the business closed the offer does not reopen it`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("PENDING_PUBLISH")
+        queueOn(PendingActionsSyncer.PUBLISH, "q-1", at = 1)
+        business.publishResponse = { kotlinx.coroutines.runBlocking { published.updateStatus("p-1", "CLOSE_PENDING_SEND") } }
+
+        syncer.run()
+
+        assertEquals("CLOSE_PENDING_SEND", published.find("p-1")?.status)
+    }
+
+    @Test
+    fun `another business's edit and close are kept for their owner`() = runTest {
+        pending.rows.value = emptyList()
+        storeOffer("CLOSE_PENDING_SEND", owner = "otro-comercio")
+        queueOn(PendingActionsSyncer.EDIT, "q-1", at = 1)
+        queueOn(PendingActionsSyncer.CLOSE, "q-2", at = 2)
+
+        syncer.run()
+
+        assertTrue(business.publishCalls.isEmpty())
+        assertTrue(business.closeCalls.isEmpty())
+        assertEquals(listOf("q-1", "q-2"), pending.rows.value.map { it.id })
+    }
+
     @Test(expected = CancellationException::class)
     fun `cancellation is never swallowed`() = runTest {
         remote.applyResponse = { throw CancellationException("cancelled") }

@@ -17,7 +17,8 @@ enum class PublishField { TITLE, CATEGORY, SCHEDULE, DESCRIPTION }
 
 enum class BusinessSignUpField { NAME, CATEGORY, SCHEDULE, ADDRESS, EMAIL, PASSWORD }
 
-enum class PublishedOfferStatus { PENDING_PUBLISH, ACTIVE, CLOSED }
+/** The server only knows ACTIVE and CLOSED; the *_PENDING_* states are local changes waiting to be sent. */
+enum class PublishedOfferStatus { PENDING_PUBLISH, EDIT_PENDING_SEND, CLOSE_PENDING_SEND, ACTIVE, CLOSED }
 
 data class PublishedOffer(
     val id: String,
@@ -28,6 +29,14 @@ data class PublishedOffer(
     val status: PublishedOfferStatus,
     val createdAt: Instant,
 )
+
+sealed interface EditResult {
+    data object NeedsBusinessAccount : EditResult
+    data object NotFound : EditResult
+    data object Closed : EditResult
+    data class Invalid(val fields: Set<PublishField>) : EditResult
+    data object Queued : EditResult
+}
 
 sealed interface PublishResult {
     data object NeedsBusinessAccount : PublishResult

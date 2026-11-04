@@ -48,6 +48,7 @@ class FakePendingActionDao : PendingActionDao {
     val rows = MutableStateFlow<List<PendingActionEntity>>(emptyList())
     override suspend fun all() = rows.value.sortedBy { it.createdAt }
     override fun observeCount() = rows.map { it.size }
+    override suspend fun countFor(type: String, targetId: String) = rows.value.count { it.type == type && it.targetId == targetId }
     override suspend fun insert(action: PendingActionEntity) {
         if (rows.value.none { it.id == action.id }) rows.value = rows.value + action
     }

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -10,6 +12,13 @@ plugins {
 // FCM is enabled only when the team's Firebase config is present (it is not committed: see docs/api/notifications.md).
 if (file("google-services.json").exists()) {
     apply(plugin = libs.plugins.google.services.get().pluginId)
+}
+
+/** Machine-specific settings from local.properties (git-ignored), or empty when not set. */
+fun localProperty(key: String): String {
+    val file = rootProject.file("local.properties")
+    if (!file.exists()) return ""
+    return Properties().apply { file.inputStream().use { load(it) } }.getProperty(key, "").trim()
 }
 
 android {
@@ -27,8 +36,9 @@ android {
 
         testInstrumentationRunner = "com.example.laburin.HiltTestRunner"
 
-        // Base URL of the (future) Go REST API. Only used when the Retrofit data source is bound.
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        // Address of the Go REST API, e.g. laburin.apiBaseUrl=http://10.0.2.2:8080/ in local.properties (the
+        // emulator's address for the host machine). Empty: the app runs against the in-memory FakeBackend.
+        buildConfigField("String", "API_BASE_URL", "\"${localProperty("laburin.apiBaseUrl")}\"")
     }
 
     buildTypes {
@@ -95,6 +105,7 @@ dependencies {
 
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.hilt.android.testing)

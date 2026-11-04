@@ -62,6 +62,14 @@ import com.example.laburin.domain.repository.SessionExpiryNotifier
 import com.example.laburin.domain.repository.SessionRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.example.laburin.data.auth.AuthApi
+import com.example.laburin.data.auth.RetrofitAuthRemoteDataSource
+import com.example.laburin.data.applications.ApplicationsApi
+import com.example.laburin.data.applications.RetrofitApplicationsRemoteDataSource
+import com.example.laburin.data.publish.BusinessApi
+import com.example.laburin.data.publish.RetrofitBusinessRemoteDataSource
+import com.example.laburin.data.remote.ApiConfig
+import com.example.laburin.data.remote.RetrofitOfferRemoteDataSource
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -75,6 +83,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.time.Clock
+import javax.inject.Provider
 import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -149,8 +158,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
-        .baseUrl(BuildConfig.API_BASE_URL)
+    fun provideRetrofit(client: OkHttpClient, json: Json): Retrofit = buildRetrofit(client, json, BuildConfig.API_BASE_URL)
+
+    fun buildRetrofit(client: OkHttpClient, json: Json, baseUrl: String): Retrofit = Retrofit.Builder()
+        .baseUrl(baseUrl)
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
@@ -158,6 +169,51 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOfferApi(retrofit: Retrofit): OfferApi = retrofit.create(OfferApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideApplicationsApi(retrofit: Retrofit): ApplicationsApi = retrofit.create(ApplicationsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideBusinessApi(retrofit: Retrofit): BusinessApi = retrofit.create(BusinessApi::class.java)
+}
+
+/**
+ * Real Go API when `laburin.apiBaseUrl` is set in local.properties, in-memory FakeBackend otherwise.
+ * Providers keep the unused side from being built (Retrofit rejects an empty base URL).
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+object RemoteModule {
+
+    private val fake = ApiConfig.usesFakeBackend(BuildConfig.API_BASE_URL)
+
+    @Provides
+    fun provideOfferRemote(
+        fakeRemote: Provider<FakeOfferRemoteDataSource>,
+        real: Provider<RetrofitOfferRemoteDataSource>,
+    ): OfferRemoteDataSource = if (fake) fakeRemote.get() else real.get()
+
+    @Provides
+    fun provideAuthRemote(backend: Provider<FakeBackend>, real: Provider<RetrofitAuthRemoteDataSource>): AuthRemoteDataSource =
+        if (fake) backend.get() else real.get()
+
+    @Provides
+    fun provideApplicationsRemote(
+        backend: Provider<FakeBackend>,
+        real: Provider<RetrofitApplicationsRemoteDataSource>,
+    ): ApplicationsRemoteDataSource = if (fake) backend.get() else real.get()
+
+    @Provides
+    fun provideBusinessRemote(
+        backend: Provider<FakeBackend>,
+        real: Provider<RetrofitBusinessRemoteDataSource>,
+    ): BusinessRemoteDataSource = if (fake) backend.get() else real.get()
 }
 
 @Module
@@ -170,10 +226,6 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindOfferLocalDataSource(impl: RoomOfferLocalDataSource): OfferLocalDataSource
-
-    // Swap to RetrofitOfferRemoteDataSource once the Go API is available.
-    @Binds
-    abstract fun bindOfferRemoteDataSource(impl: FakeOfferRemoteDataSource): OfferRemoteDataSource
 
     @Binds
     abstract fun bindConnectivityObserver(impl: AndroidConnectivityObserver): ConnectivityObserver
@@ -198,16 +250,6 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindSessionStore(impl: KeystoreSessionStore): SessionStore
-
-    // Swap to the Retrofit implementations once the Go API is available.
-    @Binds
-    abstract fun bindAuthRemoteDataSource(impl: FakeBackend): AuthRemoteDataSource
-
-    @Binds
-    abstract fun bindApplicationsRemoteDataSource(impl: FakeBackend): ApplicationsRemoteDataSource
-
-    @Binds
-    abstract fun bindBusinessRemoteDataSource(impl: FakeBackend): BusinessRemoteDataSource
 
     @Binds
     abstract fun bindMyOffersRepository(impl: DefaultMyOffersRepository): MyOffersRepository

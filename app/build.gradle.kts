@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.laburin"
-        minSdk = 31
+        minSdk = 26
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -33,8 +33,9 @@ android {
 
     buildTypes {
         release {
+            // R8: shrinks and obfuscates code and resources, so the APK is lighter for low-end phones.
             optimization {
-                enable = false
+                enable = true
             }
         }
     }

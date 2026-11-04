@@ -1,6 +1,10 @@
 # API · Ofertas (propuesta para el back en Go)
 
-Contrato que consume la app. Mientras la API no exista, la app usa `FakeOfferRemoteDataSource`, que respeta este mismo contrato. Para usar la API real, cambiá en `di/AppModules.kt` el binding de `OfferRemoteDataSource` a `RetrofitOfferRemoteDataSource` y configurá `API_BASE_URL` en `app/build.gradle.kts`.
+Contrato que consume la app. Mientras la API no exista, la app usa un back falso en memoria (`FakeBackend`) que respeta estos mismos contratos.
+
+**Para usar la API real** agregá en `local.properties` (no se commitea) la dirección del back, por ejemplo `laburin.apiBaseUrl=http://10.0.2.2:8080/` (así ve el emulador a la máquina donde corre el back en Go). Sin esa línea, la app usa el back falso. Los builds de debug permiten `http://` solo hacia `10.0.2.2` y `localhost`; los de release exigen HTTPS.
+
+Los endpoints privados reciben el token de sesión como `Authorization: Bearer <token>`.
 
 ## `GET /offers`
 

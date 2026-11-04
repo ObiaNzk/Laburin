@@ -34,7 +34,11 @@ Cierra la búsqueda: deja de aparecer en `GET /offers` y no acepta más postulac
 
 ## QR del cartel
 
-Codifica `laburin://offer/{id}`. El escáner de la app lo lee y abre el detalle de la oferta.
+Codifica un **link web**, para que lo pueda abrir la cámara de cualquier celular, tenga o no la app: `{WEB_BASE}?oferta={id}` (definido en `OfferLink`).
+
+- **Hoy no hay dominio**, así que `WEB_BASE` es una imagen de prueba (un meme): con la cámara se abre esa imagen. El escáner de la app lee el `id` y abre la oferta.
+- **Un QR impreso no se puede cambiar.** Cuando exista el dominio: cambiar `WEB_BASE` (por ejemplo `https://[DOMINIO]/o`), pasar el valor viejo a `PREVIOUS_WEB_BASES` para que la app siga leyendo los carteles ya impresos, y declarar el App Link del dominio en el manifest (más `/.well-known/assetlinks.json` en el back). Así la cámara abre la app si está instalada, o una página que lleva al Play Store si no.
+- Los QR viejos con `laburin://offer/{id}` se siguen leyendo, y ese deep link sigue funcionando.
 
 ## `GET /offers/{id}/applicants` (requiere el token del comercio dueño de la oferta)
 

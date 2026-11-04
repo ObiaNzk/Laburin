@@ -1,6 +1,7 @@
 package com.example.laburin.ui.screens.scan
 
 import app.cash.turbine.test
+import com.example.laburin.domain.publish.OfferLink
 import com.example.laburin.fakes.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -39,6 +40,16 @@ class ScanViewModelTest {
 
         vm.effects.test {
             vm.onCodeScanned("laburin://offer/f-4")
+            assertEquals(ScanEffect.OpenOffer("f-4"), awaitItem())
+        }
+    }
+
+    @Test
+    fun `the web link printed on the sign opens that offer`() = runTest {
+        vm.onCameraPermissionResult(granted = true)
+
+        vm.effects.test {
+            vm.onCodeScanned(OfferLink.build("f-4"))
             assertEquals(ScanEffect.OpenOffer("f-4"), awaitItem())
         }
     }

@@ -15,6 +15,8 @@ import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.LocationResult
 import com.example.laburin.domain.model.PublishField
 import com.example.laburin.domain.model.PublishedOfferStatus
+import com.example.laburin.domain.model.Salary
+import com.example.laburin.domain.model.SalaryPeriod
 import com.example.laburin.domain.publish.OfferLink
 import com.example.laburin.domain.publish.PublishOfferUseCase
 import com.example.laburin.fakes.BUSINESS_SESSION
@@ -30,6 +32,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import com.example.laburin.fakes.REQUIRED_FIELDS
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -72,7 +75,7 @@ class PublishViewModelsTest {
 
         vm.onPublish()
 
-        assertEquals(PublishField.entries.toSet(), vm.uiState.value.fieldErrors)
+        assertEquals(REQUIRED_FIELDS, vm.uiState.value.fieldErrors)
         assertTrue(offers.published.isEmpty())
     }
 
@@ -96,7 +99,7 @@ class PublishViewModelsTest {
 
         vm.onTitleChange("Mozo")
 
-        assertEquals(PublishField.entries.toSet() - PublishField.TITLE, vm.uiState.value.fieldErrors)
+        assertEquals(REQUIRED_FIELDS - PublishField.TITLE, vm.uiState.value.fieldErrors)
     }
 
     // --- Business sign-up ---
@@ -194,6 +197,42 @@ class PublishViewModelsTest {
             assertEquals(EditOfferEffect.Saved, awaitItem())
         }
         assertEquals("Mozo/a", offers.edits.single().second.title)
+    }
+
+    @Test
+    fun `the edit form opens with the offer's salary`() = runTest {
+        offers.store.value = listOf(
+            testPublishedOffer("p-1", status = PublishedOfferStatus.ACTIVE).copy(salary = Salary(5_000, 7_000, SalaryPeriod.HOUR)),
+        )
+
+        val state = editVm().uiState.value
+
+        assertEquals(Triple("5000", "7000", SalaryPeriod.HOUR), Triple(state.salaryMin, state.salaryMax, state.salaryPeriod))
+    }
+
+    @Test
+    fun `the salary entered in the form is published`() = runTest {
+        val vm = publishVm()
+        vm.fill()
+        vm.onSalaryMinChange("600.000")
+        vm.onSalaryMaxChange("750.000")
+        vm.onSalaryPeriodChange(SalaryPeriod.MONTH)
+
+        vm.onPublish()
+
+        assertEquals(Salary(600_000, 750_000, SalaryPeriod.MONTH), offers.published.single().salary)
+    }
+
+    @Test
+    fun `an invalid salary is marked and nothing is published`() = runTest {
+        val vm = publishVm()
+        vm.fill()
+        vm.onSalaryMinChange("mucho")
+
+        vm.onPublish()
+
+        assertEquals(setOf(PublishField.SALARY), vm.uiState.value.fieldErrors)
+        assertTrue(offers.published.isEmpty())
     }
 
     @Test

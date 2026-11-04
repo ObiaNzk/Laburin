@@ -34,6 +34,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
+import com.example.laburin.ui.components.optionLabelRes
+import com.example.laburin.ui.components.salaryText
 import com.example.laburin.domain.publish.isClosing
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +62,7 @@ import com.example.laburin.domain.model.BusinessSignUpField
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.PublishField
 import com.example.laburin.domain.model.PublishedOfferStatus
+import com.example.laburin.domain.model.SalaryPeriod
 import com.example.laburin.ui.components.CategoryField
 import com.example.laburin.ui.components.FormError
 import com.example.laburin.ui.components.FormField
@@ -86,6 +90,7 @@ fun PublishRoute(
     PublishContent(
         state, viewModel::onTitleChange, viewModel::onCategoryChange, viewModel::onScheduleChange,
         viewModel::onDescriptionChange, viewModel::onPublish, onBack,
+        viewModel::onSalaryMinChange, viewModel::onSalaryMaxChange, viewModel::onSalaryPeriodChange,
     )
 }
 
@@ -98,14 +103,48 @@ fun PublishContent(
     onDescriptionChange: (String) -> Unit,
     onPublish: () -> Unit,
     onBack: () -> Unit,
+    onSalaryMinChange: (String) -> Unit = {},
+    onSalaryMaxChange: (String) -> Unit = {},
+    onSalaryPeriodChange: (SalaryPeriod) -> Unit = {},
 ) {
     FormScreen(title = stringResource(R.string.publish_title), onClose = onBack) {
         OfferFields(state.title, state.category, state.schedule, state.description, state.fieldErrors,
             onTitleChange, onCategoryChange, onScheduleChange, onDescriptionChange)
+        SalaryFields(state.salaryMin, state.salaryMax, state.salaryPeriod, PublishField.SALARY in state.fieldErrors,
+            onSalaryMinChange, onSalaryMaxChange, onSalaryPeriodChange)
         Text(stringResource(R.string.publish_location_note), fontSize = 12.sp, color = Color.Gray)
         Spacer(Modifier.height(12.dp))
         SubmitButton(stringResource(R.string.publish_submit), state.isPublishing, onPublish)
     }
+}
+
+/** Optional salary: a single amount or a range, per hour, day or month. */
+@Composable
+private fun SalaryFields(
+    min: String,
+    max: String,
+    period: SalaryPeriod,
+    hasError: Boolean,
+    onMinChange: (String) -> Unit,
+    onMaxChange: (String) -> Unit,
+    onPeriodChange: (SalaryPeriod) -> Unit,
+) {
+    Text(stringResource(R.string.publish_salary), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+    Text(stringResource(R.string.publish_salary_hint), fontSize = 12.sp, color = Color.Gray)
+    Spacer(Modifier.height(8.dp))
+    FormField(stringResource(R.string.publish_salary_min), min, onMinChange, keyboard = KeyboardType.Number, placeholder = "$ 600.000")
+    FormField(stringResource(R.string.publish_salary_max), max, onMaxChange, keyboard = KeyboardType.Number)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        SalaryPeriod.entries.forEach { option ->
+            FilterChip(
+                selected = option == period,
+                onClick = { onPeriodChange(option) },
+                label = { Text(stringResource(option.optionLabelRes())) },
+            )
+        }
+    }
+    if (hasError) FormError(stringResource(R.string.publish_error_salary))
+    Spacer(Modifier.height(8.dp))
 }
 
 /** The offer's fields, shared by publishing and editing. */
@@ -262,6 +301,7 @@ fun PublishedOfferContent(
             is PublishedOfferUiState.Content -> {
                 Text(state.offer.title, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                 Text(stringResource(state.offer.status.labelRes()), fontWeight = FontWeight.Bold)
+                Text(salaryText(state.offer.salary))
                 when (state.offer.status) {
                     PublishedOfferStatus.PENDING_PUBLISH ->
                         Text(stringResource(R.string.published_pending_hint), color = Color.Gray, fontSize = 12.sp)
@@ -398,12 +438,18 @@ fun EditOfferContent(
     onDescriptionChange: (String) -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
+    onSalaryMinChange: (String) -> Unit = {},
+    onSalaryMaxChange: (String) -> Unit = {},
+    onSalaryPeriodChange: (SalaryPeriod) -> Unit = {},
 ) {
     FormScreen(title = stringResource(R.string.edit_title), onClose = onBack) {
         if (state.isLoading) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         } else {
-            EditOfferForm(state, onTitleChange, onCategoryChange, onScheduleChange, onDescriptionChange, onSave)
+            EditOfferForm(
+                state, onTitleChange, onCategoryChange, onScheduleChange, onDescriptionChange, onSave,
+                onSalaryMinChange, onSalaryMaxChange, onSalaryPeriodChange,
+            )
         }
     }
 }
@@ -416,11 +462,16 @@ private fun EditOfferForm(
     onScheduleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onSave: () -> Unit,
+    onSalaryMinChange: (String) -> Unit,
+    onSalaryMaxChange: (String) -> Unit,
+    onSalaryPeriodChange: (SalaryPeriod) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
         if (state.error != EditOfferError.NotFound) {
             OfferFields(state.title, state.category, state.schedule, state.description, state.fieldErrors,
                 onTitleChange, onCategoryChange, onScheduleChange, onDescriptionChange)
+            SalaryFields(state.salaryMin, state.salaryMax, state.salaryPeriod, PublishField.SALARY in state.fieldErrors,
+                onSalaryMinChange, onSalaryMaxChange, onSalaryPeriodChange)
         }
         state.error?.let {
             FormError(
@@ -449,5 +500,6 @@ fun EditOfferRoute(onDone: () -> Unit, viewModel: EditOfferViewModel = hiltViewM
     EditOfferContent(
         state, viewModel::onTitleChange, viewModel::onCategoryChange, viewModel::onScheduleChange,
         viewModel::onDescriptionChange, viewModel::onSave, onDone,
+        viewModel::onSalaryMinChange, viewModel::onSalaryMaxChange, viewModel::onSalaryPeriodChange,
     )
 }

@@ -14,6 +14,10 @@ import com.example.laburin.domain.model.OfferDraft
 import com.example.laburin.domain.model.PublishedOffer
 import com.example.laburin.domain.model.PublishedOfferStatus
 import com.example.laburin.domain.model.RefreshResult
+import com.example.laburin.domain.model.Salary
+import com.example.laburin.domain.publish.salary
+import com.example.laburin.data.mapper.salaryFromColumns
+import com.example.laburin.data.mapper.toDomainOrNull
 import com.example.laburin.domain.repository.MyOffersRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -64,7 +68,7 @@ class DefaultMyOffersRepository(
             category = checkNotNull(draft.category).name, schedule = draft.schedule.trim(),
             description = draft.description.trim(), status = PublishedOfferStatus.PENDING_PUBLISH.name,
             createdAt = clock.instant(),
-        )
+        ).withSalary(draft.salary())
         transaction.run {
             dao.insert(entity)
             pending.insert(PendingActionEntity(idGenerator(), PendingActionsSyncer.PUBLISH, entity.id, entity.createdAt))
@@ -99,7 +103,7 @@ class DefaultMyOffersRepository(
         val changed = offer.copy(
             title = draft.title.trim(), category = checkNotNull(draft.category).name, schedule = draft.schedule.trim(),
             description = draft.description.trim(), status = status,
-        )
+        ).withSalary(draft.salary())
         transaction.run {
             dao.upsert(changed)
             pending.insert(PendingActionEntity(idGenerator(), PendingActionsSyncer.EDIT, id, clock.instant()))
@@ -123,14 +127,18 @@ class DefaultMyOffersRepository(
     private fun PublishedOfferEntity.toDomain(): PublishedOffer? {
         val category = Category.entries.firstOrNull { it.name == category } ?: return null
         val status = PublishedOfferStatus.entries.firstOrNull { it.name == status } ?: return null
-        return PublishedOffer(id, title, category, schedule, description, status, createdAt)
+        return PublishedOffer(id, title, category, schedule, description, status, createdAt, salaryFromColumns(salaryMin, salaryMax, salaryPeriod))
     }
 
     private fun OfferDto.toEntity(businessId: String): PublishedOfferEntity? {
         if (Category.entries.none { it.name == category } || PublishedOfferStatus.entries.none { it.name == status }) return null
         val created = try { Instant.parse(updatedAt) } catch (_: DateTimeParseException) { return null }
         return PublishedOfferEntity(id, businessId, title, category, schedule, description, status, created)
+            .withSalary(salary?.toDomainOrNull())
     }
+
+    private fun PublishedOfferEntity.withSalary(salary: Salary?) =
+        copy(salaryMin = salary?.min, salaryMax = salary?.max, salaryPeriod = salary?.period?.name)
 
     private companion object {
         val CLOSING = setOf(PublishedOfferStatus.CLOSED.name, PublishedOfferStatus.CLOSE_PENDING_SEND.name)

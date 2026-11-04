@@ -13,7 +13,14 @@ data class Offer(
     val address: String,
     val location: GeoLocation,
     val updatedAt: Instant,
+    /** Null means "A convenir". */
+    val salary: Salary? = null,
 )
+
+enum class SalaryPeriod { HOUR, DAY, MONTH }
+
+/** Whole pesos. [max] is null for a single amount. */
+data class Salary(val min: Long, val max: Long?, val period: SalaryPeriod)
 
 data class NearbyOffer(val offer: Offer, val distanceMeters: Int)
 

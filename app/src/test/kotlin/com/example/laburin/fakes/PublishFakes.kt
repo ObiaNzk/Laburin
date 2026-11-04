@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import com.example.laburin.domain.publish.salary
 
 class FakeMyOffersRepository : MyOffersRepository {
     val store = MutableStateFlow<List<PublishedOffer>>(emptyList())
@@ -19,7 +20,7 @@ class FakeMyOffersRepository : MyOffersRepository {
     override fun observeMine(): Flow<List<PublishedOffer>> = store
     override fun observe(id: String) = store.map { list -> list.firstOrNull { it.id == id } }
     override suspend fun publish(draft: OfferDraft): PublishedOffer {
-        val offer = testPublishedOffer("p-${store.value.size}", draft.title)
+        val offer = testPublishedOffer("p-${store.value.size}", draft.title).copy(salary = draft.salary())
         store.value = store.value + offer
         return offer
     }
@@ -53,3 +54,9 @@ class FakeApplicantsRepository : com.example.laburin.domain.repository.Applicant
     override suspend fun refresh(offerId: String): RefreshResult { refreshCalls += offerId; return RefreshResult.Success }
     override suspend fun review(applicationId: String, approve: Boolean) { reviews += "$applicationId:$approve" }
 }
+
+/** Every field of an offer except the salary, which is optional. */
+val REQUIRED_FIELDS = setOf(
+    com.example.laburin.domain.model.PublishField.TITLE, com.example.laburin.domain.model.PublishField.CATEGORY,
+    com.example.laburin.domain.model.PublishField.SCHEDULE, com.example.laburin.domain.model.PublishField.DESCRIPTION,
+)

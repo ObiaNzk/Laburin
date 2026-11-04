@@ -10,7 +10,9 @@ Body: `{ "businessName", "category", "schedule", "address", "latitude", "longitu
 
 ## `PUT /offers/{id}` (requiere token de comercio)
 
-Publicar o editar. Body: `{ "title", "category", "schedule", "description" }`. **El `id` lo genera la app (UUID)**.
+Publicar o editar. Body: `{ "title", "category", "schedule", "description", "salary" }`. **El `id` lo genera la app (UUID)**.
+
+- `salary`: `{ "min", "max", "period" }` o `null` ("A convenir"); mismo formato que en `GET /offers`. La app siempre manda el campo. Valida que los montos sean enteros positivos y que `max >= min`; el back debería validar lo mismo.
 
 - Si la oferta no existe, la crea (publicar). Si existe, **reemplaza su contenido** (editar). Mandar el mismo contenido dos veces no cambia nada, así que los reintentos son seguros.
 - **200 / 201**: publicada o actualizada. Queda `ACTIVE` en el mapa, con la dirección y la ubicación del comercio.

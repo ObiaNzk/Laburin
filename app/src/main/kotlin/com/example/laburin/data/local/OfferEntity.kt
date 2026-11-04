@@ -23,6 +23,9 @@ data class OfferEntity(
     val latitude: Double,
     val longitude: Double,
     @ColumnInfo(name = "updated_at") val updatedAt: Instant,
+    @ColumnInfo(name = "salary_min") val salaryMin: Long? = null,
+    @ColumnInfo(name = "salary_max") val salaryMax: Long? = null,
+    @ColumnInfo(name = "salary_period") val salaryPeriod: String? = null,
 )
 
 @Entity(tableName = "sync_metadata")

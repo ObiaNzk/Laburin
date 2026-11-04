@@ -33,7 +33,8 @@ Devuelve las búsquedas **activas** dentro de un radio.
     "latitude": -34.608,
     "longitude": -58.3712,
     "status": "ACTIVE",
-    "updatedAt": "2026-11-01T12:00:00Z"
+    "updatedAt": "2026-11-01T12:00:00Z",
+    "salary": { "min": 600000, "max": 750000, "period": "MONTH" }
   }
 ]
 ```
@@ -42,6 +43,7 @@ Devuelve las búsquedas **activas** dentro de un radio.
 
 - El servidor filtra por **distancia real** (círculo) y por rubro. Solo devuelve `status = ACTIVE`.
 - `updatedAt` está en ISO-8601 UTC.
+- `salary` es **opcional**: `null` (o ausente) significa "A convenir". Montos en pesos enteros, sin centavos. `max` es `null` cuando es un monto único. `period`: `HOUR`, `DAY` o `MONTH`. Si la app no reconoce el `period`, muestra la oferta como "A convenir" en lugar de descartarla.
 - La respuesta es la verdad del servidor para esa zona: la app borra de su caché las ofertas de la zona que no vengan en la respuesta.
 - La app descarta las ofertas con un `category` desconocido o con una fecha inválida, sin romper la lista.
 - La app ignora los campos extra (`ignoreUnknownKeys`), así que agregar campos no rompe clientes viejos.

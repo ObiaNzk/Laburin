@@ -1,6 +1,7 @@
 package com.example.laburin.data.publish
 
 import com.example.laburin.data.remote.OfferDto
+import com.example.laburin.data.remote.SalaryDto
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -9,7 +10,14 @@ import kotlinx.serialization.Serializable
 
 /** [id] is generated on the device so a retried publish is idempotent. Location comes from the business profile. */
 @Serializable
-data class PublishOfferDto(val id: String, val title: String, val category: String, val schedule: String, val description: String)
+data class PublishOfferDto(
+    val id: String,
+    val title: String,
+    val category: String,
+    val schedule: String,
+    val description: String,
+    val salary: SalaryDto? = null,
+)
 
 /**
  * @throws java.io.IOException on network failure

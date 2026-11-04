@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import com.example.laburin.R
 import com.example.laburin.domain.model.Category
+import com.example.laburin.domain.model.Salary
 import java.util.Locale
 
 @StringRes
@@ -32,3 +33,10 @@ fun Modifier.dashedBorder(color: Color, strokeWidth: Dp, cornerRadius: Dp) = dra
         size = size,
     )
 }
+
+/** "$ 600.000": a dot for thousands, as in Argentina, whatever the device's locale. */
+fun formatPesos(amount: Long): String = "$ " + amount.toString().reversed().chunked(3).joinToString(".").reversed()
+
+/** "$ 600.000" or "$ 600.000 – $ 750.000"; the period is added by the screen from string resources. */
+fun salaryAmounts(salary: Salary): String =
+    salary.max?.let { "${formatPesos(salary.min)} – ${formatPesos(it)}" } ?: formatPesos(salary.min)

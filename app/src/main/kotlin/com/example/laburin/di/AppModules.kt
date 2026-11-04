@@ -98,7 +98,7 @@ object AppModule {
         Room.databaseBuilder(context, LaburinDatabase::class.java, LaburinDatabase.NAME)
             .addMigrations(
                 LaburinDatabase.MIGRATION_1_2, LaburinDatabase.MIGRATION_2_3, LaburinDatabase.MIGRATION_3_4,
-                LaburinDatabase.MIGRATION_4_5,
+                LaburinDatabase.MIGRATION_4_5, LaburinDatabase.MIGRATION_5_6,
             )
             .build()
 

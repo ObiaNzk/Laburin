@@ -6,6 +6,7 @@ import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.OfferDraft
 import com.example.laburin.domain.model.PublishField
 import com.example.laburin.domain.model.PublishResult
+import com.example.laburin.domain.model.Salary
 import com.example.laburin.domain.model.PublishedOfferStatus
 import com.example.laburin.domain.model.EditResult
 import com.example.laburin.domain.model.SignUpField
@@ -58,12 +59,40 @@ object OfferLink {
     }
 }
 
+/** The draft's salary, or null when it was left empty ("A convenir"). Call it on a validated draft. */
+fun OfferDraft.salary(): Salary? {
+    val min = parsePesos(salaryMin) ?: return null
+    val max = parsePesos(salaryMax)?.takeIf { it != min }
+    return Salary(min, max, salaryPeriod)
+}
+
+/**
+ * Whole pesos as people write them: "600000", "600.000" or "$ 600.000". Null for anything else, including cents
+ * ("600,50"), negative numbers or zero.
+ */
+private fun parsePesos(text: String): Long? {
+    val digits = text.trim().removePrefix("$").trim()
+    if (!PESOS.matches(digits)) return null
+    return digits.replace(".", "").toLongOrNull()?.takeIf { it > 0 }
+}
+
+private val PESOS = Regex("\\d{1,3}(\\.\\d{3})+|\\d+")
+
+private fun OfferDraft.hasValidSalary(): Boolean {
+    if (salaryMin.isBlank()) return salaryMax.isBlank()
+    val min = parsePesos(salaryMin) ?: return false
+    if (salaryMax.isBlank()) return true
+    val max = parsePesos(salaryMax) ?: return false
+    return max >= min
+}
+
 object OfferDraftValidator {
     fun validate(draft: OfferDraft): Set<PublishField> = buildSet {
         if (draft.title.isBlank()) add(PublishField.TITLE)
         if (draft.category == null) add(PublishField.CATEGORY)
         if (draft.schedule.isBlank()) add(PublishField.SCHEDULE)
         if (draft.description.isBlank()) add(PublishField.DESCRIPTION)
+        if (!draft.hasValidSalary()) add(PublishField.SALARY)
     }
 }
 

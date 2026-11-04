@@ -241,6 +241,20 @@ class PendingActionsSyncerTest {
     }
 
     @Test
+    fun `the offer is sent with its salary`() = runTest {
+        pending.rows.value = emptyList()
+        published.insert(
+            PublishedOfferEntity("p-1", "u-1", "Mozo", "GASTRONOMY", "Sábados", "[DESCRIPCION]", "PENDING_PUBLISH", Instant.EPOCH,
+                salaryMin = 5_000, salaryMax = 7_000, salaryPeriod = "HOUR"),
+        )
+        queueOn(PendingActionsSyncer.PUBLISH, "q-1", at = 1)
+
+        syncer.run()
+
+        assertEquals(com.example.laburin.data.remote.SalaryDto(5_000, 7_000, "HOUR"), business.sentOffers.single().salary)
+    }
+
+    @Test
     fun `an edit the server rejects because the offer is closed marks it closed`() = runTest {
         pending.rows.value = emptyList()
         storeOffer("EDIT_PENDING_SEND")

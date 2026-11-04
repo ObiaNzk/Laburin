@@ -4,6 +4,7 @@ import com.example.laburin.data.auth.BusinessSignUpDto
 import com.example.laburin.data.publish.PublishOfferDto
 import com.example.laburin.data.remote.ApiException
 import com.example.laburin.data.remote.FakeOfferRemoteDataSource
+import com.example.laburin.data.remote.SalaryDto
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
@@ -92,6 +93,17 @@ class FakeBackendBusinessTest {
         assertEquals(false, FakeOfferRemoteDataSource(backend).getOffers(
             FakeBackend.DEMO_BUSINESS_LOCATION.first, FakeBackend.DEMO_BUSINESS_LOCATION.second, 2, null,
         ).any { it.id == "p-1" })
+    }
+
+    @Test
+    fun `the salary is published and can be changed or removed`() = runTest {
+        val token = businessToken()
+
+        backend.publishOffer(token, draft.copy(salary = SalaryDto(600_000, null, "MONTH")))
+        assertEquals(SalaryDto(600_000, null, "MONTH"), backend.allOffers().single { it.id == "p-1" }.salary)
+
+        backend.publishOffer(token, draft.copy(salary = null))
+        assertEquals(null, backend.allOffers().single { it.id == "p-1" }.salary)
     }
 
     @Test

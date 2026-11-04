@@ -11,9 +11,18 @@ data class BusinessSignUp(
     val password: String,
 )
 
-data class OfferDraft(val title: String, val category: Category?, val schedule: String, val description: String)
+/** The salary is typed as the user wrote it; [com.example.laburin.domain.publish.salary] reads it once validated. */
+data class OfferDraft(
+    val title: String,
+    val category: Category?,
+    val schedule: String,
+    val description: String,
+    val salaryMin: String = "",
+    val salaryMax: String = "",
+    val salaryPeriod: SalaryPeriod = SalaryPeriod.MONTH,
+)
 
-enum class PublishField { TITLE, CATEGORY, SCHEDULE, DESCRIPTION }
+enum class PublishField { TITLE, CATEGORY, SCHEDULE, DESCRIPTION, SALARY }
 
 enum class BusinessSignUpField { NAME, CATEGORY, SCHEDULE, ADDRESS, EMAIL, PASSWORD }
 
@@ -28,6 +37,7 @@ data class PublishedOffer(
     val description: String,
     val status: PublishedOfferStatus,
     val createdAt: Instant,
+    val salary: Salary? = null,
 )
 
 sealed interface EditResult {

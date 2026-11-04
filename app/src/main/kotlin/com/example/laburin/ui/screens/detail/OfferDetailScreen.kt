@@ -54,6 +54,7 @@ import com.example.laburin.ui.components.DisplayMap
 import com.example.laburin.ui.components.hintRes
 import com.example.laburin.ui.components.MapMarker
 import com.example.laburin.ui.components.formatDistance
+import com.example.laburin.ui.components.salaryText
 import com.example.laburin.ui.components.labelRes
 import com.example.laburin.ui.theme.LaburinTheme
 import java.time.Instant
@@ -194,6 +195,7 @@ private fun FullBody(state: OfferDetailUiState.Full, modifier: Modifier = Modifi
             AssistChip(onClick = {}, label = { Text(stringResource(offer.category.labelRes())) })
             if (offer.jobType.isNotBlank()) AssistChip(onClick = {}, label = { Text(offer.jobType) })
         }
+        Section(stringResource(R.string.detail_salary)) { Text(salaryText(offer.salary), fontWeight = FontWeight.SemiBold) }
         Section(stringResource(R.string.detail_schedule)) { Text(offer.schedule) }
         Section(stringResource(R.string.detail_what_we_look_for)) { Text(offer.description) }
         Section(stringResource(R.string.detail_location)) {

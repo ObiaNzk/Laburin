@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [OfferEntity::class, SyncMetadataEntity::class, ApplicationEntity::class, PendingActionEntity::class, PublishedOfferEntity::class, ApplicantEntity::class, ViewedOfferEntity::class],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -41,6 +41,17 @@ abstract class LaburinDatabase : RoomDatabase() {
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS `applicants` (`application_id` TEXT NOT NULL, `offer_id` TEXT NOT NULL, `candidate_name` TEXT NOT NULL, `cv_file_name` TEXT, `status` TEXT NOT NULL, `contact_email` TEXT, PRIMARY KEY(`application_id`))")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Optional salary on cached and own offers: existing rows keep NULL ("A convenir").
+                for (table in listOf("offers", "published_offers")) {
+                    db.execSQL("ALTER TABLE `$table` ADD COLUMN `salary_min` INTEGER")
+                    db.execSQL("ALTER TABLE `$table` ADD COLUMN `salary_max` INTEGER")
+                    db.execSQL("ALTER TABLE `$table` ADD COLUMN `salary_period` TEXT")
+                }
             }
         }
 

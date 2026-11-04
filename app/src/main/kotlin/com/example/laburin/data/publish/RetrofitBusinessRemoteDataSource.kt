@@ -1,6 +1,7 @@
 package com.example.laburin.data.publish
 
 import com.example.laburin.data.remote.OfferDto
+import com.example.laburin.data.remote.SalaryDto
 import com.example.laburin.data.remote.apiCall
 import com.example.laburin.data.remote.bearer
 import kotlinx.serialization.Serializable
@@ -14,7 +15,14 @@ import javax.inject.Inject
 
 /** The offer's content; its id goes in the path. */
 @Serializable
-data class OfferContentRequest(val title: String, val category: String, val schedule: String, val description: String)
+data class OfferContentRequest(
+    val title: String,
+    val category: String,
+    val schedule: String,
+    val description: String,
+    /** No default on purpose: always sent, null meaning "A convenir". */
+    val salary: SalaryDto?,
+)
 
 @Serializable
 data class ReviewRequest(val approve: Boolean)
@@ -40,7 +48,7 @@ interface BusinessApi {
 class RetrofitBusinessRemoteDataSource @Inject constructor(private val api: BusinessApi) : BusinessRemoteDataSource {
 
     override suspend fun publishOffer(token: String, offer: PublishOfferDto) = apiCall {
-        api.putOffer(bearer(token), offer.id, OfferContentRequest(offer.title, offer.category, offer.schedule, offer.description))
+        api.putOffer(bearer(token), offer.id, OfferContentRequest(offer.title, offer.category, offer.schedule, offer.description, offer.salary))
     }
 
     override suspend fun closeOffer(token: String, offerId: String) = apiCall { api.closeOffer(bearer(token), offerId) }

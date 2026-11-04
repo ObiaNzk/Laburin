@@ -12,6 +12,8 @@ import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.JobApplication
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Offer
+import com.example.laburin.domain.model.Salary
+import com.example.laburin.domain.model.SalaryPeriod
 import com.example.laburin.ui.theme.LaburinTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -92,6 +94,21 @@ class OfferDetailContentTest {
         composeRule.onNodeWithText("Lunes a viernes, 8 a 17 h").assertExists()
         composeRule.onNodeWithText("Buscamos alguien con ganas de aprender").assertExists()
         composeRule.onNodeWithText("Creá tu cuenta para ver la búsqueda y postularte").assertDoesNotExist()
+    }
+
+    @Test
+    fun fullShowsTheSalary() {
+        show(OfferDetailUiState.Full(offer.copy(salary = Salary(5_000, null, SalaryPeriod.HOUR)), distanceMeters = 1_200))
+
+        composeRule.onNodeWithText("Salario").assertExists()
+        composeRule.onNodeWithText("$ 5.000 por hora").assertExists()
+    }
+
+    @Test
+    fun withoutSalaryItIsToBeAgreed() {
+        show(OfferDetailUiState.Full(offer, distanceMeters = 1_200))
+
+        composeRule.onNodeWithText("A convenir").assertExists()
     }
 
     @Test

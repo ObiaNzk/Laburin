@@ -4,6 +4,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -80,6 +81,30 @@ class MigrationTest {
         val db = helper.runMigrationsAndValidate(DB, 5, true, LaburinDatabase.MIGRATION_4_5)
 
         db.execSQL("INSERT INTO viewed_offers (offer_id, viewed_at, source) VALUES ('o-1', 0, 'QR')")
+        db.close()
+    }
+
+    @Test
+    fun migration5To6KeepsOffersAndAddsTheOptionalSalary() {
+        helper.createDatabase(DB, 5).apply {
+            execSQL(
+                "INSERT INTO offers (id, title, category, description, schedule, job_type, business_name, address, latitude, " +
+                    "longitude, updated_at) VALUES ('o-1', 'Mozo', 'GASTRONOMY', '', '', '', '[COMERCIO]', '[DIRECCION]', 0, 0, 0)"
+            )
+            execSQL(
+                "INSERT INTO published_offers (id, business_id, title, category, schedule, description, status, created_at) " +
+                    "VALUES ('p-1', 'b-1', 'Mozo', 'GASTRONOMY', '', '', 'ACTIVE', 0)"
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(DB, 6, true, LaburinDatabase.MIGRATION_5_6)
+
+        db.query("SELECT salary_min, salary_max, salary_period FROM offers WHERE id = 'o-1'").use {
+            it.moveToFirst()
+            assertTrue(it.isNull(0) && it.isNull(1) && it.isNull(2))
+        }
+        db.execSQL("UPDATE published_offers SET salary_min = 5000, salary_max = 7000, salary_period = 'HOUR' WHERE id = 'p-1'")
         db.close()
     }
 

@@ -28,6 +28,7 @@ fun OfferItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     address: String = "",
+    salary: String? = null,
 ) {
     Card(
         onClick = onClick,
@@ -48,6 +49,10 @@ fun OfferItem(
                 Text(text = title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF222222))
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(text = subtitle, color = Color(0xFF777777), fontSize = 13.sp)
+                if (salary != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(text = salary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF2E7D32))
+                }
                 if (address.isNotBlank()) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(text = address, fontSize = 12.sp, color = Color(0xFF555555))

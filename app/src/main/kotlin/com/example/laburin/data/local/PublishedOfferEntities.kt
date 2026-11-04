@@ -22,6 +22,9 @@ data class PublishedOfferEntity(
     val description: String,
     val status: String,
     @ColumnInfo(name = "created_at") val createdAt: Instant,
+    @ColumnInfo(name = "salary_min") val salaryMin: Long? = null,
+    @ColumnInfo(name = "salary_max") val salaryMax: Long? = null,
+    @ColumnInfo(name = "salary_period") val salaryPeriod: String? = null,
 )
 
 @Dao

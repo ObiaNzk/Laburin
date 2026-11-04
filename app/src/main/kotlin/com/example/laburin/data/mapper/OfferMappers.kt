@@ -11,6 +11,7 @@ import java.time.format.DateTimeParseException
 /** Returns null for records the app can't represent (unknown category, bad date) so one bad row doesn't break the list. */
 fun OfferDto.toEntityOrNull(): OfferEntity? {
     val category = Category.entries.firstOrNull { it.name == category } ?: return null
+    val readableSalary = salary?.toDomainOrNull()
     val updatedAt = try {
         Instant.parse(updatedAt)
     } catch (_: DateTimeParseException) {
@@ -28,6 +29,9 @@ fun OfferDto.toEntityOrNull(): OfferEntity? {
         latitude = latitude,
         longitude = longitude,
         updatedAt = updatedAt,
+        salaryMin = readableSalary?.min,
+        salaryMax = readableSalary?.max,
+        salaryPeriod = readableSalary?.period?.name,
     )
 }
 
@@ -42,4 +46,5 @@ fun OfferEntity.toDomain() = Offer(
     address = address,
     location = GeoLocation(latitude, longitude),
     updatedAt = updatedAt,
+    salary = salaryFromColumns(salaryMin, salaryMax, salaryPeriod),
 )

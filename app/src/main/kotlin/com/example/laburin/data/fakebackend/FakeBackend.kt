@@ -12,6 +12,7 @@ import com.example.laburin.data.publish.PublishOfferDto
 import com.example.laburin.data.auth.UserDto
 import com.example.laburin.data.remote.ApiException
 import com.example.laburin.data.remote.OfferDto
+import com.example.laburin.data.remote.SalaryDto
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -86,7 +87,7 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
             if (offers[existing].status != ACTIVE) throw ApiException(409)
             offers[existing] = offers[existing].copy(
                 title = offer.title, category = offer.category, schedule = offer.schedule, description = offer.description,
-                updatedAt = Instant.now().toString(),
+                salary = offer.salary, updatedAt = Instant.now().toString(),
             )
             return@call
         }
@@ -94,6 +95,7 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
             id = offer.id, title = offer.title, category = offer.category, description = offer.description,
             schedule = offer.schedule, jobType = "", businessName = business.name, address = business.address,
             latitude = business.latitude, longitude = business.longitude, status = ACTIVE, updatedAt = Instant.now().toString(),
+            salary = offer.salary,
         )
         offerOwners[offer.id] = businessId
     }
@@ -194,21 +196,24 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
 
         private fun seed(
             id: String, title: String, category: String, lat: Double, lng: Double,
-            business: String, address: String, status: String = ACTIVE,
+            business: String, address: String, status: String = ACTIVE, salary: SalaryDto? = null,
         ) = OfferDto(
             id = id, title = title, category = category,
             description = "Buscamos una persona responsable y con ganas de aprender. No se requiere experiencia previa.",
             schedule = "Lunes a viernes, 9 a 17 h", jobType = "Jornada completa",
             businessName = business, address = address,
-            latitude = lat, longitude = lng, status = status, updatedAt = UPDATED,
+            latitude = lat, longitude = lng, status = status, updatedAt = UPDATED, salary = salary,
         )
 
         // Around the default map center, at different distances, so the radius filter has something to do.
         private val SEED_OFFERS = listOf(
-            seed("f-1", "Ayudante de taller", "MECHANICS", -34.6080, -58.3712, "Taller Ejemplo", "Av. Ejemplo 100"),
-            seed("f-2", "Mozo/a fin de semana", "GASTRONOMY", -34.5997, -58.3819, "Bodegón Ejemplo", "Calle Ficticia 200"),
+            seed("f-1", "Ayudante de taller", "MECHANICS", -34.6080, -58.3712, "Taller Ejemplo", "Av. Ejemplo 100",
+                salary = SalaryDto(650_000, 800_000, "MONTH")),
+            seed("f-2", "Mozo/a fin de semana", "GASTRONOMY", -34.5997, -58.3819, "Bodegón Ejemplo", "Calle Ficticia 200",
+                salary = SalaryDto(6_500, null, "HOUR")),
             seed("f-3", "Repositor/a", "STOCK", -34.6120, -58.3900, "Autoservicio Ejemplo", "Av. Ejemplo 300"),
-            seed("f-4", "Vendedor/a", "CLOTHING", -34.6010, -58.3770, "Tienda Ejemplo", "Calle Ficticia 400"),
+            seed("f-4", "Vendedor/a", "CLOTHING", -34.6010, -58.3770, "Tienda Ejemplo", "Calle Ficticia 400",
+                salary = SalaryDto(700_000, null, "MONTH")),
             seed("f-5", "Cocinero/a", "GASTRONOMY", -34.5850, -58.3950, "Parrilla Ejemplo", "Av. Ejemplo 500"),
             seed("f-6", "Mecánico/a", "MECHANICS", -34.6400, -58.4200, "Lubricentro Ejemplo", "Calle Ficticia 600"),
             seed("f-7", "Cajero/a", "STOCK", -34.6050, -58.3800, "Kiosco Ejemplo", "Av. Ejemplo 700", status = "CLOSED"),

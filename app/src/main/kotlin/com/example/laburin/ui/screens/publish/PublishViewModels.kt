@@ -11,6 +11,7 @@ import com.example.laburin.domain.model.LocationResult
 import com.example.laburin.domain.model.OfferDraft
 import com.example.laburin.domain.model.PublishField
 import com.example.laburin.domain.model.PublishResult
+import com.example.laburin.domain.model.SalaryPeriod
 import com.example.laburin.domain.model.EditResult
 import com.example.laburin.domain.model.PublishedOffer
 import com.example.laburin.domain.publish.BusinessSignUpValidator
@@ -47,6 +48,9 @@ data class PublishUiState(
     val category: Category? = null,
     val schedule: String = "",
     val description: String = "",
+    val salaryMin: String = "",
+    val salaryMax: String = "",
+    val salaryPeriod: SalaryPeriod = SalaryPeriod.MONTH,
     val fieldErrors: Set<PublishField> = emptySet(),
     val isPublishing: Boolean = false,
 )
@@ -70,13 +74,18 @@ class PublishViewModel @Inject constructor(private val publishOffer: PublishOffe
     fun onCategoryChange(value: Category) = edit(PublishField.CATEGORY) { copy(category = value) }
     fun onScheduleChange(value: String) = edit(PublishField.SCHEDULE) { copy(schedule = value) }
     fun onDescriptionChange(value: String) = edit(PublishField.DESCRIPTION) { copy(description = value) }
+    fun onSalaryMinChange(value: String) = edit(PublishField.SALARY) { copy(salaryMin = value) }
+    fun onSalaryMaxChange(value: String) = edit(PublishField.SALARY) { copy(salaryMax = value) }
+    fun onSalaryPeriodChange(value: SalaryPeriod) = edit(PublishField.SALARY) { copy(salaryPeriod = value) }
 
     fun onPublish() {
         val state = _uiState.value
         if (state.isPublishing) return
         _uiState.update { it.copy(isPublishing = true) }
         viewModelScope.launch {
-            val result = publishOffer(OfferDraft(state.title, state.category, state.schedule, state.description))
+            val result = publishOffer(
+                OfferDraft(state.title, state.category, state.schedule, state.description, state.salaryMin, state.salaryMax, state.salaryPeriod),
+            )
             _uiState.update { it.copy(isPublishing = false) }
             when (result) {
                 PublishResult.NeedsBusinessAccount -> _effects.emit(PublishEffect.NeedsBusinessAccount)
@@ -215,6 +224,9 @@ data class EditOfferUiState(
     val category: Category? = null,
     val schedule: String = "",
     val description: String = "",
+    val salaryMin: String = "",
+    val salaryMax: String = "",
+    val salaryPeriod: SalaryPeriod = SalaryPeriod.MONTH,
     val fieldErrors: Set<PublishField> = emptySet(),
     val isSaving: Boolean = false,
     val error: EditOfferError? = null,
@@ -252,6 +264,9 @@ class EditOfferViewModel @Inject constructor(
                     it.copy(
                         isLoading = false, title = offer.title, category = offer.category, schedule = offer.schedule,
                         description = offer.description,
+                        salaryMin = offer.salary?.min?.toString().orEmpty(),
+                        salaryMax = offer.salary?.max?.toString().orEmpty(),
+                        salaryPeriod = offer.salary?.period ?: SalaryPeriod.MONTH,
                     )
                 }
             }
@@ -262,13 +277,19 @@ class EditOfferViewModel @Inject constructor(
     fun onCategoryChange(value: Category) = edit(PublishField.CATEGORY) { copy(category = value) }
     fun onScheduleChange(value: String) = edit(PublishField.SCHEDULE) { copy(schedule = value) }
     fun onDescriptionChange(value: String) = edit(PublishField.DESCRIPTION) { copy(description = value) }
+    fun onSalaryMinChange(value: String) = edit(PublishField.SALARY) { copy(salaryMin = value) }
+    fun onSalaryMaxChange(value: String) = edit(PublishField.SALARY) { copy(salaryMax = value) }
+    fun onSalaryPeriodChange(value: SalaryPeriod) = edit(PublishField.SALARY) { copy(salaryPeriod = value) }
 
     fun onSave() {
         val state = _uiState.value
         if (state.isSaving || state.isLoading) return
         _uiState.update { it.copy(isSaving = true, error = null) }
         viewModelScope.launch {
-            val result = editOffer(offerId, OfferDraft(state.title, state.category, state.schedule, state.description))
+            val result = editOffer(
+                offerId,
+                OfferDraft(state.title, state.category, state.schedule, state.description, state.salaryMin, state.salaryMax, state.salaryPeriod),
+            )
             _uiState.update { it.copy(isSaving = false) }
             when (result) {
                 EditResult.Queued -> _effects.emit(EditOfferEffect.Saved)

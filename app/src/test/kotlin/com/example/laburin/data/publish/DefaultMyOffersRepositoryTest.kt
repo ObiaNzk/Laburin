@@ -4,6 +4,9 @@ import com.example.laburin.data.applications.PendingActionsSyncer
 import com.example.laburin.data.auth.StoredSession
 import com.example.laburin.data.local.PublishedOfferEntity
 import com.example.laburin.data.remote.OfferDto
+import com.example.laburin.data.remote.SalaryDto
+import com.example.laburin.domain.model.Salary
+import com.example.laburin.domain.model.SalaryPeriod
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.OfferDraft
 import com.example.laburin.domain.model.PublishedOfferStatus
@@ -151,6 +154,36 @@ class DefaultMyOffersRepositoryTest {
         assertEquals(PublishedOfferStatus.EDIT_PENDING_SEND, repository.observe("p-1").first()?.status)
         assertEquals("Mozo", repository.observe("p-1").first()?.title)
         assertEquals(PublishedOfferStatus.CLOSE_PENDING_SEND, repository.observe("p-2").first()?.status)
+    }
+
+    // --- Salary ---
+
+    @Test
+    fun `publishing keeps the salary`() = runTest {
+        val offer = repository.publish(draft.copy(salaryMin = "600.000", salaryMax = "750000"))
+
+        assertEquals(Salary(600_000, 750_000, SalaryPeriod.MONTH), offer.salary)
+        assertEquals(offer.salary, repository.observe(offer.id).first()?.salary)
+    }
+
+    @Test
+    fun `editing can change or remove the salary`() = runTest {
+        dao.insert(stored("p-1", PublishedOfferStatus.ACTIVE))
+
+        repository.edit("p-1", changes.copy(salaryMin = "5000", salaryPeriod = SalaryPeriod.HOUR))
+        assertEquals(Salary(5_000, null, SalaryPeriod.HOUR), repository.observe("p-1").first()?.salary)
+
+        repository.edit("p-1", changes)
+        assertEquals(null, repository.observe("p-1").first()?.salary)
+    }
+
+    @Test
+    fun `refresh brings the salary from the server`() = runTest {
+        remote.mine = { listOf(dto("srv-1", "ACTIVE").copy(salary = SalaryDto(600_000, null, "MONTH"))) }
+
+        repository.refreshMine()
+
+        assertEquals(Salary(600_000, null, SalaryPeriod.MONTH), repository.observe("srv-1").first()?.salary)
     }
 
     private fun dto(id: String, status: String) = OfferDto(

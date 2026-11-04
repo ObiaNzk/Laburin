@@ -17,7 +17,13 @@ data class OfferDto(
     val status: String,
     /** ISO-8601 UTC, e.g. "2026-11-01T12:00:00Z". */
     val updatedAt: String,
+    /** Null: "A convenir". */
+    val salary: SalaryDto? = null,
 )
+
+/** Whole pesos. [period]: HOUR, DAY or MONTH. [max] is null for a single amount. */
+@Serializable
+data class SalaryDto(val min: Long, val max: Long?, val period: String)
 
 /** Server answered with a non-2xx status. Network failures are reported as [java.io.IOException]. */
 class ApiException(val code: Int, message: String? = null) : Exception(message ?: "HTTP $code")

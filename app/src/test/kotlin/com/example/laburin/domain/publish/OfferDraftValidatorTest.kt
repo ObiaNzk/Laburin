@@ -4,6 +4,7 @@ import com.example.laburin.domain.model.BusinessSignUpField
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.OfferDraft
 import com.example.laburin.domain.model.PublishField
+import com.example.laburin.fakes.REQUIRED_FIELDS
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -19,7 +20,7 @@ class OfferDraftValidatorTest {
     @Test
     fun `every field is required`() {
         assertEquals(
-            PublishField.entries.toSet(),
+            REQUIRED_FIELDS,
             OfferDraftValidator.validate(OfferDraft(" ", null, "", "")),
         )
     }

@@ -11,6 +11,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.NearbyOffer
 import com.example.laburin.domain.model.Offer
+import com.example.laburin.domain.model.Salary
+import com.example.laburin.domain.model.SalaryPeriod
 import com.example.laburin.ui.theme.LaburinTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -177,6 +179,15 @@ class MapContentTest {
         ),
         distanceMeters = 2_700,
     )
+
+    @Test
+    fun eachOfferShowsItsSalaryOrThatItIsToBeAgreed() {
+        val paid = viewed.copy(offer = viewed.offer.copy(id = "f-1", title = "Mozo/a", salary = Salary(600_000, 750_000, SalaryPeriod.MONTH)))
+        show(granted.copy(offers = OffersState.Empty, recentlyViewed = listOf(paid, viewed)))
+
+        composeRule.onNodeWithText("$ 600.000 – $ 750.000 por mes").assertExists()
+        composeRule.onNodeWithText("A convenir").assertExists()
+    }
 
     @Test
     fun recentlyViewedOffersAreListedAndOpenTheirDetail() {

@@ -4,6 +4,7 @@ import com.example.laburin.data.auth.apiErrorCode
 import com.example.laburin.data.remote.ApiTestServer
 import com.example.laburin.data.remote.bodyJson
 import com.example.laburin.data.remote.json
+import com.example.laburin.data.remote.SalaryDto
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -28,8 +29,22 @@ class RetrofitBusinessRemoteDataSourceTest {
         assertEquals("/offers/o-1", request.url.encodedPath)
         assertEquals("Bearer t-1", request.headers["Authorization"])
         assertEquals(
-            json("""{"title":"Mozo","category":"GASTRONOMY","schedule":"Fines de semana","description":"[DESCRIPCION]"}"""),
+            json("""{"title":"Mozo","category":"GASTRONOMY","schedule":"Fines de semana","description":"[DESCRIPCION]","salary":null}"""),
             request.bodyJson(),
+        )
+    }
+
+    @Test
+    fun `the salary travels with the offer`() = runTest {
+        server.respond(code = 201)
+
+        dataSource.publishOffer(
+            "t-1", PublishOfferDto("o-1", "Mozo", "GASTRONOMY", "", "", salary = SalaryDto(600_000, 750_000, "MONTH")),
+        )
+
+        assertEquals(
+            json("""{"min":600000,"max":750000,"period":"MONTH"}"""),
+            (server.takeRequest().bodyJson() as kotlinx.serialization.json.JsonObject)["salary"],
         )
     }
 

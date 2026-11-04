@@ -6,6 +6,8 @@ import com.example.laburin.data.local.ApplicationDao
 import com.example.laburin.data.local.PendingActionDao
 import com.example.laburin.data.local.PublishedOfferDao
 import com.example.laburin.data.local.PublishedOfferEntity
+import com.example.laburin.data.mapper.salaryFromColumns
+import com.example.laburin.data.mapper.toDto
 import com.example.laburin.data.publish.BusinessRemoteDataSource
 import com.example.laburin.data.publish.PublishOfferDto
 import com.example.laburin.domain.model.PublishedOfferStatus
@@ -149,7 +151,8 @@ class PendingActionsSyncer @Inject constructor(
         }
     }
 
-    private fun PublishedOfferEntity.toDto() = PublishOfferDto(id, title, category, schedule, description)
+    private fun PublishedOfferEntity.toDto() =
+        PublishOfferDto(id, title, category, schedule, description, salaryFromColumns(salaryMin, salaryMax, salaryPeriod)?.toDto())
 
     private suspend fun sendReview(token: String, applicationId: String): Step {
         val applicant = applicants.find(applicationId) ?: return Sent

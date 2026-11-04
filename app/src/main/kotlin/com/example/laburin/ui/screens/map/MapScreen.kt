@@ -76,6 +76,7 @@ import com.example.laburin.ui.components.MapMarker
 import com.example.laburin.ui.components.OfferItem
 import com.example.laburin.ui.components.dashedBorder
 import com.example.laburin.ui.components.formatDistance
+import com.example.laburin.ui.components.salaryText
 import com.example.laburin.ui.components.labelRes
 import com.example.laburin.ui.theme.LaburinTheme
 import kotlinx.coroutines.delay
@@ -576,6 +577,7 @@ private fun NearbyOfferItem(nearby: NearbyOffer, onOfferClick: (String) -> Unit)
         subtitle = stringResource(nearby.offer.category.labelRes()),
         distance = formatDistance(nearby.distanceMeters),
         onClick = { onOfferClick(nearby.offer.id) },
+        salary = salaryText(nearby.offer.salary),
     )
 }
 

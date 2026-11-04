@@ -14,6 +14,8 @@ import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.PublishField
 import com.example.laburin.domain.model.PublishedOffer
 import com.example.laburin.domain.model.PublishedOfferStatus
+import com.example.laburin.domain.model.Salary
+import com.example.laburin.domain.model.SalaryPeriod
 import com.example.laburin.ui.theme.LaburinTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -36,6 +38,8 @@ class PublishContentTest {
             PublishContent(
                 state = state, onTitleChange = {}, onCategoryChange = { clicks += "category:$it" }, onScheduleChange = {},
                 onDescriptionChange = {}, onPublish = { clicks += "publish" }, onBack = { clicks += "back" },
+                onSalaryMinChange = { clicks += "min:$it" }, onSalaryMaxChange = { clicks += "max:$it" },
+                onSalaryPeriodChange = { clicks += "period:$it" },
             )
         }
     }
@@ -247,6 +251,7 @@ class PublishContentTest {
             EditOfferContent(
                 state = state, onTitleChange = {}, onCategoryChange = {}, onScheduleChange = {}, onDescriptionChange = {},
                 onSave = { clicks += "save" }, onBack = { clicks += "back" },
+                onSalaryMinChange = {}, onSalaryMaxChange = {}, onSalaryPeriodChange = {},
             )
         }
     }
@@ -267,5 +272,44 @@ class PublishContentTest {
         showEdit(EditOfferUiState(isLoading = false, title = "Mozo", error = EditOfferError.Closed))
 
         composeRule.onNodeWithText("Esta búsqueda ya está cerrada y no se puede editar.").performScrollTo().assertIsDisplayed()
+    }
+
+    // --- Salary (optional) ---
+
+    @Test
+    fun theFormOffersAnOptionalSalaryWithItsPeriod() {
+        showForm(PublishUiState())
+
+        composeRule.onNodeWithText("Salario (opcional)").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Si no lo completás, se muestra “A convenir”.").assertExists()
+        composeRule.onNodeWithText("Por hora").performScrollTo().performClick()
+
+        assertEquals(listOf("period:HOUR"), clicks)
+    }
+
+    @Test
+    fun anInvalidSalaryIsExplained() {
+        showForm(PublishUiState(salaryMin = "mucho", fieldErrors = setOf(PublishField.SALARY)))
+
+        composeRule.onNodeWithText("Revisá el salario: montos en pesos, sin centavos, y el máximo no menor que el mínimo.")
+            .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun thePublishedOfferShowsItsSalary() {
+        composeRule.setContent {
+            LaburinTheme {
+                PublishedOfferContent(
+                    state = PublishedOfferUiState.Content(
+                        PublishedOffer("p-1", "Mozo", Category.GASTRONOMY, "Sábados", "[DESCRIPCION]", PublishedOfferStatus.ACTIVE,
+                            Instant.EPOCH, salary = Salary(600_000, null, SalaryPeriod.MONTH)),
+                        qrLink = "laburin://offer/p-1",
+                    ),
+                    onShare = {}, onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("$ 600.000 por mes").assertIsDisplayed()
     }
 }

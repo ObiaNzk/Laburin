@@ -25,7 +25,9 @@ Dependencies are declared in `gradle/libs.versions.toml` (version catalog). Some
 
 ## Current state of the code
 
-- Single module `:app`, package `com.example.laburin`, `minSdk 31`, `compileSdk/targetSdk 37`.
+- Single module `:app`, package `com.example.laburin`, `minSdk 26` (Android 8.0), `compileSdk/targetSdk 37`.
+- **Low-end phones are the target.** Keep `minSdk 26`, and guard any newer API with `Build.VERSION.SDK_INT`. Before merging UI or platform changes, run the instrumented suite on an Android 8 emulator with little RAM as well as a recent one. Release builds use R8 (`optimization.enable = true`); smoke-test a release build after adding libraries that use reflection. ML Kit's QR model is bundled on purpose so the scanner works offline and without Play services (the unbundled variant failed silently). Distribute as an AAB so each phone downloads only its ABI.
+- Up to Android 8.1 the system gives initial focus to the first focusable view even in touch mode; `MainActivity` keeps it on the content container so the keyboard doesn't open on launch (`LaunchFocusTest`).
 - **Map (RF-01) and Offer detail (RF-02, guest/full) are the reference implementations** of the full stack. Copy their patterns for new screens: `ui/screens/map/` and `ui/screens/detail/` (Route/Content/ViewModel/UiState), `domain/` (models, `OfferRepository`, use cases, `Haversine`), `data/` (Room, remote, mappers, `OfflineFirstOfferRepository`, location, connectivity, DataStore), `di/AppModules.kt`. Design doc: `docs/superpowers/specs/2026-11-02-map-data-layer-design.md`.
 - **The Go API doesn't exist yet.** `DataModule` binds `FakeOfferRemoteDataSource`. The contract is in `docs/api/offers.md`. `RetrofitOfferRemoteDataSource` is ready; swap the binding when the API exists.
 - Interfaces the ViewModel/use cases need (`LocationProvider`, `ConnectivityObserver`, `FiltersRepository`) live in `domain/repository`, with implementations in `data/`. The repository depends on `OfferLocalDataSource`/`OfferRemoteDataSource` interfaces so it is JVM-testable with fakes (see `app/src/test/.../fakes`).

@@ -56,8 +56,12 @@ interface ApplicationDao {
 
 @Dao
 interface PendingActionDao {
-    @Query("SELECT * FROM pending_actions ORDER BY created_at ASC")
+    // rowid breaks ties: actions queued in the same millisecond keep their order (publish before edit before close).
+    @Query("SELECT * FROM pending_actions ORDER BY created_at ASC, rowid ASC")
     suspend fun all(): List<PendingActionEntity>
+
+    @Query("SELECT COUNT(*) FROM pending_actions WHERE type = :type AND target_id = :targetId")
+    suspend fun countFor(type: String, targetId: String): Int
 
     @Query("SELECT COUNT(*) FROM pending_actions")
     fun observeCount(): Flow<Int>

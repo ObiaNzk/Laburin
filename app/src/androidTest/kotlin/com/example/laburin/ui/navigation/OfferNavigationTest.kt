@@ -1,13 +1,11 @@
 package com.example.laburin.ui.navigation
 
-import android.Manifest
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.rule.GrantPermissionRule
 import com.example.laburin.MainActivity
 import com.example.laburin.domain.repository.AuthRepository
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -31,7 +29,7 @@ class OfferNavigationTest {
     @get:Rule
     val rules: RuleChain = RuleChain
         .outerRule(hiltRule)
-        .around(GrantPermissionRule.grant(Manifest.permission.ACCESS_COARSE_LOCATION))
+        .around(e2ePermissions())
         .around(composeRule)
 
     @Inject

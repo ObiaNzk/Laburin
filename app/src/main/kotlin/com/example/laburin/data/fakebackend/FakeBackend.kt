@@ -79,13 +79,31 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
     override suspend fun publishOffer(token: String, offer: PublishOfferDto) = call {
         val businessId = userFor(token)
         val business = businesses[businessId] ?: throw ApiException(403)
-        if (offers.any { it.id == offer.id }) return@call
+        val existing = offers.indexOfFirst { it.id == offer.id }
+        if (existing >= 0) {
+            // PUT on an existing offer replaces its content (edit), only for its owner and while it is open.
+            if (offerOwners[offer.id] != businessId) throw ApiException(403)
+            if (offers[existing].status != ACTIVE) throw ApiException(409)
+            offers[existing] = offers[existing].copy(
+                title = offer.title, category = offer.category, schedule = offer.schedule, description = offer.description,
+                updatedAt = Instant.now().toString(),
+            )
+            return@call
+        }
         offers += OfferDto(
             id = offer.id, title = offer.title, category = offer.category, description = offer.description,
             schedule = offer.schedule, jobType = "", businessName = business.name, address = business.address,
             latitude = business.latitude, longitude = business.longitude, status = ACTIVE, updatedAt = Instant.now().toString(),
         )
         offerOwners[offer.id] = businessId
+    }
+
+    override suspend fun closeOffer(token: String, offerId: String) = call {
+        val businessId = userFor(token)
+        val index = offers.indexOfFirst { it.id == offerId }
+        if (index < 0) throw ApiException(404)
+        if (offerOwners[offerId] != businessId) throw ApiException(403)
+        offers[index] = offers[index].copy(status = CLOSED, updatedAt = Instant.now().toString())
     }
 
     override suspend fun myOffers(token: String): List<OfferDto> = call {
@@ -170,6 +188,7 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
         const val DEMO_PASSWORD = "demo1234"
         val DEMO_BUSINESS_LOCATION = -34.6037 to -58.3816
         const val ACTIVE = "ACTIVE"
+        const val CLOSED = "CLOSED"
         private const val LATENCY_MS = 400L
         private const val UPDATED = "2026-11-01T12:00:00Z"
 

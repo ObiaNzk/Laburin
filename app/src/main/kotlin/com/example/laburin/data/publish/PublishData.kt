@@ -19,6 +19,9 @@ interface BusinessRemoteDataSource {
     suspend fun publishOffer(token: String, offer: PublishOfferDto)
     suspend fun myOffers(token: String): List<OfferDto>
 
+    /** Idempotent. @throws com.example.laburin.data.remote.ApiException 404 unknown offer, 403 not the owner */
+    suspend fun closeOffer(token: String, offerId: String)
+
     /** @throws com.example.laburin.data.remote.ApiException 403 when the offer isn't the business's */
     suspend fun applicants(token: String, offerId: String): List<ApplicantDto>
 

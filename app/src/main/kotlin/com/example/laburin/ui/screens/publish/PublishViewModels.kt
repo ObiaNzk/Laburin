@@ -11,11 +11,15 @@ import com.example.laburin.domain.model.LocationResult
 import com.example.laburin.domain.model.OfferDraft
 import com.example.laburin.domain.model.PublishField
 import com.example.laburin.domain.model.PublishResult
+import com.example.laburin.domain.model.EditResult
 import com.example.laburin.domain.model.PublishedOffer
 import com.example.laburin.domain.publish.BusinessSignUpValidator
 import com.example.laburin.domain.publish.OfferLink
 import com.example.laburin.domain.publish.PublishOfferUseCase
 import com.example.laburin.domain.publish.ReviewApplicantUseCase
+import com.example.laburin.domain.publish.CloseOfferUseCase
+import com.example.laburin.domain.publish.EditOfferUseCase
+import com.example.laburin.ui.navigation.EditOfferDestination
 import com.example.laburin.domain.repository.ApplicantsRepository
 import com.example.laburin.domain.model.Applicant
 import com.example.laburin.domain.repository.AuthRepository
@@ -32,6 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -170,6 +175,7 @@ class PublishedOfferViewModel @Inject constructor(
     offers: MyOffersRepository,
     private val applicants: ApplicantsRepository,
     private val reviewApplicant: ReviewApplicantUseCase,
+    private val closeOffer: CloseOfferUseCase,
 ) : ViewModel() {
 
     private val offerId: String = checkNotNull(savedStateHandle[PublishedOfferDestination.ARG_OFFER_ID])
@@ -193,8 +199,87 @@ class PublishedOfferViewModel @Inject constructor(
         viewModelScope.launch { reviewApplicant(applicationId, approve = false) }
     }
 
+    fun onCloseOffer() {
+        viewModelScope.launch { closeOffer(offerId) }
+    }
+
     fun onShare() {
         val content = uiState.value as? PublishedOfferUiState.Content ?: return
         viewModelScope.launch { _effects.emit(PublishedOfferEffect.Share(content.offer.title, content.qrLink)) }
     }
+}
+
+data class EditOfferUiState(
+    val isLoading: Boolean = true,
+    val title: String = "",
+    val category: Category? = null,
+    val schedule: String = "",
+    val description: String = "",
+    val fieldErrors: Set<PublishField> = emptySet(),
+    val isSaving: Boolean = false,
+    val error: EditOfferError? = null,
+)
+
+enum class EditOfferError { NotFound, Closed, NotAllowed }
+
+sealed interface EditOfferEffect {
+    data object Saved : EditOfferEffect
+}
+
+@HiltViewModel
+class EditOfferViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val offers: MyOffersRepository,
+    private val editOffer: EditOfferUseCase,
+) : ViewModel() {
+
+    private val offerId: String = checkNotNull(savedStateHandle[EditOfferDestination.ARG_OFFER_ID])
+
+    private val _uiState = MutableStateFlow(EditOfferUiState())
+    val uiState: StateFlow<EditOfferUiState> = _uiState.asStateFlow()
+
+    private val _effects = MutableSharedFlow<EditOfferEffect>()
+    val effects: SharedFlow<EditOfferEffect> = _effects.asSharedFlow()
+
+    init {
+        // Loaded once: the form then belongs to the user until they save.
+        viewModelScope.launch {
+            val offer = offers.observe(offerId).first()
+            _uiState.update {
+                if (offer == null) {
+                    it.copy(isLoading = false, error = EditOfferError.NotFound)
+                } else {
+                    it.copy(
+                        isLoading = false, title = offer.title, category = offer.category, schedule = offer.schedule,
+                        description = offer.description,
+                    )
+                }
+            }
+        }
+    }
+
+    fun onTitleChange(value: String) = edit(PublishField.TITLE) { copy(title = value) }
+    fun onCategoryChange(value: Category) = edit(PublishField.CATEGORY) { copy(category = value) }
+    fun onScheduleChange(value: String) = edit(PublishField.SCHEDULE) { copy(schedule = value) }
+    fun onDescriptionChange(value: String) = edit(PublishField.DESCRIPTION) { copy(description = value) }
+
+    fun onSave() {
+        val state = _uiState.value
+        if (state.isSaving || state.isLoading) return
+        _uiState.update { it.copy(isSaving = true, error = null) }
+        viewModelScope.launch {
+            val result = editOffer(offerId, OfferDraft(state.title, state.category, state.schedule, state.description))
+            _uiState.update { it.copy(isSaving = false) }
+            when (result) {
+                EditResult.Queued -> _effects.emit(EditOfferEffect.Saved)
+                is EditResult.Invalid -> _uiState.update { it.copy(fieldErrors = result.fields) }
+                EditResult.Closed -> _uiState.update { it.copy(error = EditOfferError.Closed) }
+                EditResult.NotFound -> _uiState.update { it.copy(error = EditOfferError.NotFound) }
+                EditResult.NeedsBusinessAccount -> _uiState.update { it.copy(error = EditOfferError.NotAllowed) }
+            }
+        }
+    }
+
+    private fun edit(field: PublishField, change: EditOfferUiState.() -> EditOfferUiState) =
+        _uiState.update { it.change().copy(fieldErrors = it.fieldErrors - field, error = null) }
 }

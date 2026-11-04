@@ -43,6 +43,7 @@ import com.example.laburin.ui.screens.profile.ProfileRoute
 import com.example.laburin.ui.screens.publish.BusinessSignUpRoute
 import com.example.laburin.ui.screens.publish.PublishRoute
 import com.example.laburin.ui.screens.publish.PublishedOfferRoute
+import com.example.laburin.ui.screens.publish.EditOfferRoute
 
 /** App shell: the bottom bar is shown only on top-level destinations. */
 @Composable
@@ -152,7 +153,13 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                 )
             }
             composable<PublishedOfferDestination> {
-                PublishedOfferRoute(onBack = { navController.popBackStack() })
+                PublishedOfferRoute(
+                    onBack = { navController.popBackStack() },
+                    onEdit = { offerId -> navController.navigate(EditOfferDestination(offerId)) },
+                )
+            }
+            composable<EditOfferDestination> {
+                EditOfferRoute(onDone = { navController.popBackStack() })
             }
             composable<ApplicationsDestination> {
                 ApplicationsRoute(

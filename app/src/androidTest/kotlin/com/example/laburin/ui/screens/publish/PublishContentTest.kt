@@ -104,6 +104,7 @@ class PublishContentTest {
                 ),
                 onShare = { clicks += "share" }, onBack = {},
                 onApprove = { clicks += "approve:$it" }, onReject = { clicks += "reject:$it" },
+                onEdit = { clicks += "edit:$it" }, onCloseOffer = { clicks += "close" },
             )
         }
     }
@@ -177,5 +178,94 @@ class PublishContentTest {
 
         composeRule.onNodeWithText("Pendiente de publicación").assertIsDisplayed()
         composeRule.onNodeWithText("Todavía no se ve en el mapa: se publica cuando vuelva la conexión.").assertExists()
+    }
+
+    // --- Edit and close (RF-03) ---
+
+    @Test
+    fun anOpenOfferCanBeEdited() {
+        showPublished(PublishedOfferStatus.ACTIVE)
+
+        composeRule.onNodeWithText("Editar").performScrollTo().performClick()
+
+        assertEquals(listOf("edit:p-1"), clicks)
+    }
+
+    @Test
+    fun closingAsksForConfirmationFirst() {
+        showPublished(PublishedOfferStatus.ACTIVE)
+
+        composeRule.onNodeWithText("Cerrar búsqueda").performScrollTo().performClick()
+        composeRule.onNodeWithText("¿Cerrar esta búsqueda?").assertIsDisplayed()
+        assertEquals(emptyList<String>(), clicks)
+
+        composeRule.onNodeWithText("Sí, cerrar").performClick()
+
+        assertEquals(listOf("close"), clicks)
+        composeRule.onNodeWithText("¿Cerrar esta búsqueda?").assertDoesNotExist()
+    }
+
+    @Test
+    fun cancellingTheConfirmationKeepsTheOfferOpen() {
+        showPublished(PublishedOfferStatus.ACTIVE)
+
+        composeRule.onNodeWithText("Cerrar búsqueda").performScrollTo().performClick()
+        composeRule.onNodeWithText("Cancelar").performClick()
+
+        assertEquals(emptyList<String>(), clicks)
+        composeRule.onNodeWithText("¿Cerrar esta búsqueda?").assertDoesNotExist()
+    }
+
+    @Test
+    fun aClosedOfferCanNoLongerBeEditedOrClosed() {
+        showPublished(PublishedOfferStatus.CLOSED)
+
+        composeRule.onNodeWithText("Cerrada").assertIsDisplayed()
+        composeRule.onNodeWithText("Editar").assertDoesNotExist()
+        composeRule.onNodeWithText("Cerrar búsqueda").assertDoesNotExist()
+    }
+
+    @Test
+    fun aCloseWaitingToBeSentIsExplainedAndCannotBeEdited() {
+        showPublished(PublishedOfferStatus.CLOSE_PENDING_SEND)
+
+        composeRule.onNodeWithText("Cierre pendiente de envío").assertIsDisplayed()
+        composeRule.onNodeWithText("Editar").assertDoesNotExist()
+        composeRule.onNodeWithText("Cerrar búsqueda").assertDoesNotExist()
+    }
+
+    @Test
+    fun unsentChangesAreExplained() {
+        showPublished(PublishedOfferStatus.EDIT_PENDING_SEND)
+
+        composeRule.onNodeWithText("Cambios pendientes de envío").assertIsDisplayed()
+        composeRule.onNodeWithText("Editar").performScrollTo().assertIsDisplayed()
+    }
+
+    private fun showEdit(state: EditOfferUiState) = composeRule.setContent {
+        LaburinTheme {
+            EditOfferContent(
+                state = state, onTitleChange = {}, onCategoryChange = {}, onScheduleChange = {}, onDescriptionChange = {},
+                onSave = { clicks += "save" }, onBack = { clicks += "back" },
+            )
+        }
+    }
+
+    @Test
+    fun theEditFormShowsTheCurrentContentAndSaves() {
+        showEdit(EditOfferUiState(isLoading = false, title = "Mozo", category = Category.GASTRONOMY, schedule = "Sábados", description = "Salón"))
+
+        composeRule.onNodeWithText("Editar búsqueda").assertIsDisplayed()
+        composeRule.onNodeWithText("Mozo").assertIsDisplayed()
+        composeRule.onNodeWithText("Guardar cambios").performScrollTo().performClick()
+
+        assertEquals(listOf("save"), clicks)
+    }
+
+    @Test
+    fun aClosedOfferExplainsWhyItCannotBeSaved() {
+        showEdit(EditOfferUiState(isLoading = false, title = "Mozo", error = EditOfferError.Closed))
+
+        composeRule.onNodeWithText("Esta búsqueda ya está cerrada y no se puede editar.").performScrollTo().assertIsDisplayed()
     }
 }

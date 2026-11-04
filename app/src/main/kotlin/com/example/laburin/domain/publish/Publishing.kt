@@ -6,6 +6,8 @@ import com.example.laburin.domain.model.Category
 import com.example.laburin.domain.model.OfferDraft
 import com.example.laburin.domain.model.PublishField
 import com.example.laburin.domain.model.PublishResult
+import com.example.laburin.domain.model.PublishedOfferStatus
+import com.example.laburin.domain.model.EditResult
 import com.example.laburin.domain.model.SignUpField
 import com.example.laburin.domain.model.UserRole
 import com.example.laburin.domain.repository.ApplicantsRepository
@@ -66,6 +68,38 @@ class PublishOfferUseCase @Inject constructor(
         return PublishResult.Queued(offer)
     }
 }
+
+class EditOfferUseCase @Inject constructor(
+    private val session: SessionRepository,
+    private val offers: MyOffersRepository,
+    private val scheduler: SyncScheduler,
+) {
+    suspend operator fun invoke(offerId: String, draft: OfferDraft): EditResult {
+        if (session.session.first()?.role != UserRole.BUSINESS) return EditResult.NeedsBusinessAccount
+        val offer = offers.observe(offerId).first() ?: return EditResult.NotFound
+        if (offer.status.isClosing()) return EditResult.Closed
+        val invalid = OfferDraftValidator.validate(draft)
+        if (invalid.isNotEmpty()) return EditResult.Invalid(invalid)
+        offers.edit(offerId, draft)
+        scheduler.schedule()
+        return EditResult.Queued
+    }
+}
+
+class CloseOfferUseCase @Inject constructor(
+    private val offers: MyOffersRepository,
+    private val scheduler: SyncScheduler,
+) {
+    suspend operator fun invoke(offerId: String) {
+        val offer = offers.observe(offerId).first() ?: return
+        if (offer.status.isClosing()) return
+        offers.close(offerId)
+        scheduler.schedule()
+    }
+}
+
+/** Closed, or closed locally and waiting to be sent: either way it can't change anymore. */
+fun PublishedOfferStatus.isClosing() = this == PublishedOfferStatus.CLOSED || this == PublishedOfferStatus.CLOSE_PENDING_SEND
 
 class ReviewApplicantUseCase @Inject constructor(
     private val applicants: ApplicantsRepository,

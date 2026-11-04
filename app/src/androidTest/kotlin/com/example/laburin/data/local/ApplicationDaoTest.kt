@@ -82,6 +82,16 @@ class ApplicationDaoTest {
     }
 
     @Test
+    fun actionsQueuedInTheSameMillisecondKeepTheirOrder() = runTest {
+        // Ids chosen so that sorting by id would give the wrong order.
+        pending.insert(PendingActionEntity("z", "PUBLISH", "o-1", Instant.EPOCH))
+        pending.insert(PendingActionEntity("m", "EDIT", "o-1", Instant.EPOCH))
+        pending.insert(PendingActionEntity("a", "CLOSE", "o-1", Instant.EPOCH))
+
+        assertEquals(listOf("PUBLISH", "EDIT", "CLOSE"), pending.all().map { it.type })
+    }
+
+    @Test
     fun countsPendingActionsAsAFlow() = runTest {
         pending.insert(PendingActionEntity("p-1", "APPLY", "a-1", Instant.EPOCH))
 

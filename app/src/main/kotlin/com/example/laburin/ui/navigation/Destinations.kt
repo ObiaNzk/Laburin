@@ -41,6 +41,13 @@ data object PublishDestination
 data object BusinessSignUpDestination
 
 @Serializable
+data class EditOfferDestination(val offerId: String) {
+    companion object {
+        const val ARG_OFFER_ID = "offerId"
+    }
+}
+
+@Serializable
 data class PublishedOfferDestination(val offerId: String) {
     companion object {
         const val ARG_OFFER_ID = "offerId"

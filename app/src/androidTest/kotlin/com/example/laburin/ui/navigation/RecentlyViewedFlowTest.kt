@@ -1,6 +1,5 @@
 package com.example.laburin.ui.navigation
 
-import android.Manifest
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -8,7 +7,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.rule.GrantPermissionRule
 import com.example.laburin.MainActivity
 import com.example.laburin.domain.repository.AuthRepository
 import com.example.laburin.domain.repository.FiltersRepository
@@ -34,7 +32,7 @@ class RecentlyViewedFlowTest {
     @get:Rule
     val rules: RuleChain = RuleChain
         .outerRule(hiltRule)
-        .around(GrantPermissionRule.grant(Manifest.permission.ACCESS_COARSE_LOCATION))
+        .around(e2ePermissions())
         .around(composeRule)
 
     @Inject lateinit var auth: AuthRepository

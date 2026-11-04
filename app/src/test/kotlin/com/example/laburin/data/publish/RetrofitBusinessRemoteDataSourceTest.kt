@@ -104,4 +104,23 @@ class RetrofitBusinessRemoteDataSourceTest {
         assertEquals(json("""{"approve":true}"""), request.bodyJson())
         assertEquals(ApplicantDto("a-1", "o-1", "[NOMBRE]", "cv.pdf", "APPROVED", "[EMAIL]"), confirmed)
     }
+
+    @Test
+    fun `closing posts to the offer's close endpoint with the session token`() = runTest {
+        server.respond()
+
+        dataSource.closeOffer("t-1", "o-1")
+
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/offers/o-1/close", request.url.encodedPath)
+        assertEquals("Bearer t-1", request.headers["Authorization"])
+    }
+
+    @Test
+    fun `closing an offer that is already closed is reported as 409`() = runTest {
+        server.respond(code = 409)
+
+        assertEquals(409, apiErrorCode { dataSource.closeOffer("t-1", "o-1") })
+    }
 }

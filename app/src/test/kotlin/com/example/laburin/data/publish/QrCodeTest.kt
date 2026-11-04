@@ -1,5 +1,6 @@
 package com.example.laburin.data.publish
 
+import com.example.laburin.domain.publish.OfferLink
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
@@ -14,6 +15,13 @@ class QrCodeTest {
         val matrix = QrCode.encode("laburin://offer/o-1", sizePx = 300)
 
         assertEquals("laburin://offer/o-1", decode(matrix))
+    }
+
+    @Test
+    fun `the printed web link with a real offer id is readable at the size shown on screen`() {
+        val link = OfferLink.build("3f2b8c1e-9a4d-4e7b-8c21-5d6f7a8b9c0d")
+
+        assertEquals(link, decode(QrCode.encode(link, sizePx = 220)))
     }
 
     @Test

@@ -15,19 +15,47 @@ import com.example.laburin.domain.repository.MyOffersRepository
 import com.example.laburin.domain.repository.SessionRepository
 import com.example.laburin.domain.repository.SyncScheduler
 import kotlinx.coroutines.flow.first
+import java.net.URLDecoder
+import java.net.URLEncoder
 import javax.inject.Inject
 
-/** The text encoded in the QR printed on the shop sign. */
+/**
+ * The text encoded in the QR printed on the shop sign: a web link, so any phone camera can open it.
+ *
+ * There is no LaburIN domain yet, so [WEB_BASE] is a placeholder image. Printed QRs can't change: when the domain
+ * exists, change [WEB_BASE] and move the old value to [PREVIOUS_WEB_BASES] so the app keeps reading signs already
+ * printed. Then add the domain's App Link to the manifest so the camera opens the app directly.
+ */
 object OfferLink {
-    private const val PREFIX = "laburin://offer/"
+    private const val WEB_BASE = "https://i.kym-cdn.com/entries/icons/original/000/017/618/pepefroggie.jpg"
+    private val PREVIOUS_WEB_BASES = emptyList<String>()
+    private const val PARAM = "oferta"
 
-    fun build(offerId: String): String = PREFIX + offerId
+    /** Links printed before the web link; also the app's deep link. */
+    private const val APP_PREFIX = "laburin://offer/"
 
-    fun parse(text: String): String? = text.trim()
-        .takeIf { it.startsWith(PREFIX) }
-        ?.removePrefix(PREFIX)
-        ?.trimEnd('/')
-        ?.takeIf { it.isNotEmpty() && '/' !in it }
+    fun build(offerId: String): String = "$WEB_BASE?$PARAM=${URLEncoder.encode(offerId, Charsets.UTF_8.name())}"
+
+    fun parse(text: String): String? {
+        val link = text.trim()
+        return if (link.startsWith(APP_PREFIX)) parseAppLink(link) else parseWebLink(link)
+    }
+
+    private fun parseAppLink(link: String) = link.removePrefix(APP_PREFIX)
+        .trimEnd('/')
+        .takeIf { it.isNotEmpty() && '/' !in it }
+
+    private fun parseWebLink(link: String): String? {
+        val base = link.substringBefore('?')
+        if (base != WEB_BASE && base !in PREVIOUS_WEB_BASES) return null
+        return link.substringAfter('?', missingDelimiterValue = "")
+            .split('&')
+            .firstNotNullOfOrNull { pair ->
+                pair.split('=', limit = 2).takeIf { it.size == 2 && it[0] == PARAM }?.get(1)
+            }
+            ?.let { URLDecoder.decode(it, Charsets.UTF_8.name()) }
+            ?.takeIf { it.isNotBlank() }
+    }
 }
 
 object OfferDraftValidator {

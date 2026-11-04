@@ -68,7 +68,7 @@ class OfferDeepLinkTest {
     @get:Rule
     val rules: RuleChain = RuleChain
         .outerRule(hiltRule)
-        .around(GrantPermissionRule.grant(Manifest.permission.ACCESS_COARSE_LOCATION))
+        .around(e2ePermissions())
         .around(composeRule)
 
     @Inject lateinit var auth: AuthRepository

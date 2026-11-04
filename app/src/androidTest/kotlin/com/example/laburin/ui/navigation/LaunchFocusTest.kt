@@ -1,13 +1,11 @@
 package com.example.laburin.ui.navigation
 
-import android.Manifest
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.rule.GrantPermissionRule
 import com.example.laburin.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -31,7 +29,7 @@ class LaunchFocusTest {
     @get:Rule
     val rules: RuleChain = RuleChain
         .outerRule(hiltRule)
-        .around(GrantPermissionRule.grant(Manifest.permission.ACCESS_COARSE_LOCATION))
+        .around(e2ePermissions())
         .around(composeRule)
 
     @Before

@@ -1,6 +1,5 @@
 package com.example.laburin.ui.navigation
 
-import android.Manifest
 import android.content.Context
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -8,7 +7,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.rule.GrantPermissionRule
 import androidx.work.Configuration
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
@@ -35,7 +33,7 @@ class PublishFlowTest {
     @get:Rule
     val rules: RuleChain = RuleChain
         .outerRule(hiltRule)
-        .around(GrantPermissionRule.grant(Manifest.permission.ACCESS_COARSE_LOCATION))
+        .around(e2ePermissions())
         .around(composeRule)
 
     @Inject lateinit var auth: AuthRepository

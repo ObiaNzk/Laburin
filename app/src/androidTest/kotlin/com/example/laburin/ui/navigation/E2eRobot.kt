@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performScrollTo
 
@@ -45,3 +46,21 @@ fun connectionIsBack(context: android.content.Context) {
         .filter { !it.state.isFinished }
         .forEach { driver.setAllConstraintsMet(it.id) }
 }
+
+/** Replaces the whole text of the n-th editable field on screen (0-based). */
+fun AndroidComposeTestRule<*, *>.replaceInField(index: Int, text: String) {
+    onAllNodes(hasSetTextAction())[index].performTextReplacement(text)
+}
+
+/**
+ * Permissions the app asks for along the end-to-end flows: location on the map and, from Android 13, notifications
+ * after login. Granted up front so a system dialog never covers the app, whatever test ran before.
+ */
+fun e2ePermissions(): androidx.test.rule.GrantPermissionRule = androidx.test.rule.GrantPermissionRule.grant(
+    *buildList {
+        add(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            add(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }.toTypedArray(),
+)

@@ -1,4 +1,4 @@
-# API · Comercios y publicaciones (propuesta para el back en Go)
+# API · Comercios y publicaciones
 
 ## `POST /auth/signup/business`
 
@@ -25,8 +25,8 @@ Publicar o editar. Body: `{ "title", "category", "schedule", "description", "sal
 
 Cierra la búsqueda: deja de aparecer en `GET /offers` y no acepta más postulaciones. No se puede reabrir. Es idempotente.
 
-- **200 / 204**: cerrada.
-- **404**: la oferta no existe. **409**: ya estaba cerrada. En los dos casos la app la da por cerrada.
+- **204**: cerrada, también si ya estaba cerrada (el back en Go no usa el 409 acá).
+- **404**: la oferta no existe. La app la da por cerrada.
 - **403**: la oferta es de otro comercio.
 - Sin conexión, la app la muestra como "Cierre pendiente de envío" y la manda cuando vuelve la conexión. Los cambios guardados antes del cierre y todavía sin enviar se descartan.
 
@@ -47,7 +47,15 @@ Codifica un **link web**, para que lo pueda abrir la cámara de cualquier celula
 `200 [ { "applicationId", "offerId", "candidateName", "cvFileName", "status": "PENDING_REVIEW" | "APPROVED" | "REJECTED", "contactEmail" } ]`
 
 - `contactEmail` viene **solo** para postulantes aprobados (RNF-05). Para el resto es `null`.
-- **403**: la oferta no es de ese comercio.
+- **403**: la oferta no es de ese comercio. **404**: la oferta no existe.
+
+## `GET /applications/{id}/cv` (requiere el token del comercio dueño de la oferta)
+
+Descarga el PDF del CV del postulante (`Content-Type: application/pdf`, `Content-Disposition: attachment; filename="…"`).
+
+- **403**: la postulación es de una oferta de otro comercio. **404**: no existe la postulación o el postulante ya no tiene CV.
+- **Pendiente en la app**: hoy la lista de postulantes muestra solo el nombre del archivo.
+- **A decidir (RNF-05)**: el back oculta el email hasta el Match, pero el PDF puede traer los datos de contacto que el postulante haya escrito. El back no puede ocultarlos dentro del archivo.
 
 ## `PUT /applications/{id}/review` (requiere el token del comercio dueño)
 

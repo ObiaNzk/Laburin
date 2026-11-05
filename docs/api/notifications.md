@@ -1,4 +1,4 @@
-# Notificaciones (propuesta para el back en Go)
+# Notificaciones
 
 La app tiene dos fuentes de notificaciones. Las dos producen los mismos eventos y usan el mismo `Notifier`.
 
@@ -13,7 +13,10 @@ La app tiene dos fuentes de notificaciones. Las dos producen los mismos eventos 
 
 ## `POST /me/push-token` (requiere token de sesión)
 
-Body: `{ "token": "<FCM registration token>" }`. Pendiente del lado de la app: `LaburinMessagingService.onNewToken` tiene que llamarlo.
+Body: `{ "token": "<FCM registration token>" }`. **204**. Cualquier cuenta. Si el token ya era de otro usuario, pasa al último que lo registró.
+
+- El back en Go ya guarda el token (`push_tokens`), pero **todavía no manda mensajes**: hacen falta las credenciales de servicio de Firebase.
+- Pendiente del lado de la app: `LaburinMessagingService.onNewToken` tiene que llamarlo.
 
 ## Mensajes que manda el back
 

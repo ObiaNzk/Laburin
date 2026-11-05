@@ -1,0 +1,37 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "db/migrations/"
+    queries: "db/query/"
+    gen:
+      go:
+        package: "dbmodel"
+        out: "internal/dbmodel"
+        sql_package: "pgx/v5"
+        emit_enum_valid_method: true
+        emit_all_enum_values: true
+        emit_interface: true
+        overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - db_type: "timestamptz"
+            go_type:
+              import: "time"
+              type: "Time"
+          - db_type: "timestamptz"
+            nullable: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              type: "Time"
+          - db_type: "text"
+            nullable: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              type: "String"
+          - db_type: "pg_catalog.int8"
+            nullable: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              type: "Int64"

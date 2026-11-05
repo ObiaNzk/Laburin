@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 LaburIN is an Android app (UADE, "Desarrollo de Aplicaciones 1") that digitizes the "Se busca empleado" shop sign. Neighborhood shops (*comercio*) publish job offers with a printable QR. Job seekers (*postulante*) find offers on a map within a radius, filtered by category (*rubro*), and apply with a digital CV. The shop sees the CV with contact details hidden until it approves the *Match*.
 
-This repo is **only the Android client**. The REST API is a separate Go backend and is out of scope here. The app talks to it through Retrofit. The source of truth for requirements is the course "Pre Entrega 1" document (RF-01..04, RNF-01..09). Its key points are summarized below.
+This repo holds the Android client (`app/`) and its Go REST API (`backend/`, see `backend/CLAUDE.md`: Gin, PostgreSQL via SQLC, Redis). The app talks to the API through Retrofit; the contract between them is `docs/api/*.md`. Unless a task says otherwise, the sections below are about the Android app. The source of truth for requirements is the course "Pre Entrega 1" document (RF-01..04, RNF-01..09). Its key points are summarized below.
 
 ## Commands
 

@@ -135,6 +135,14 @@ class MapViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The map became visible again (onStart). Only a permission granted meanwhile in Settings changes anything;
+     * otherwise the location is not requested again (RNF-07: only when the map opens or the user refreshes).
+     */
+    fun onLocationPermissionRechecked(granted: Boolean) {
+        if (granted && location.value.status == LocationStatus.Denied) onLocationPermissionResult(granted = true)
+    }
+
     fun onChooseZone() {
         zoneSearch.value = ZoneSearchState(isOpen = true)
     }

@@ -44,3 +44,6 @@ captures/
 
 # Firebase config (per team, not committed)
 app/google-services.json
+
+# Course material kept locally, never pushed
+COSAS_DE_DESARROLLO/

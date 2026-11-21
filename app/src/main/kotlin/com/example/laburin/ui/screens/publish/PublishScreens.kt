@@ -53,6 +53,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.laburin.R
 import com.example.laburin.data.publish.QrCode
@@ -251,6 +253,8 @@ fun PublishedOfferRoute(
     viewModel: PublishedOfferViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // onStart: coming back from another app or screen. The ViewModel only asks the server if the data is stale.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onScreenStarted() }
     val context = LocalContext.current
     val shareTemplate = stringResource(R.string.published_share_text, "%1\$s", "%2\$s")
     LaunchedEffect(viewModel) {

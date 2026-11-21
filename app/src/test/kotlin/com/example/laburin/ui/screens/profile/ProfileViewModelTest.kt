@@ -10,6 +10,7 @@ import com.example.laburin.fakes.FakeCvRepository
 import com.example.laburin.fakes.FakeMyOffersRepository
 import com.example.laburin.fakes.testPublishedOffer
 import com.example.laburin.fakes.MainDispatcherRule
+import com.example.laburin.fakes.MutableClock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -18,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import java.time.Duration
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModelTest {
@@ -28,9 +30,10 @@ class ProfileViewModelTest {
     private val cv = FakeCvRepository(initial = null)
     private val myOffers = FakeMyOffersRepository()
     private val pdf = byteArrayOf(0x25, 0x50, 0x44, 0x46)
+    private val clock = MutableClock()
 
     private fun TestScope.createViewModel(auth: FakeAuthRepository): ProfileViewModel {
-        val vm = ProfileViewModel(auth, cv, myOffers)
+        val vm = ProfileViewModel(auth, cv, myOffers, clock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -46,6 +49,36 @@ class ProfileViewModelTest {
     @Test
     fun `opening the profile loads the CV from the server if needed`() = runTest {
         createViewModel(FakeAuthRepository(CANDIDATE_SESSION))
+
+        assertEquals(1, cv.currentCalls)
+    }
+
+    @Test
+    fun `coming back to the profile after a while reloads the CV from the server`() = runTest {
+        val vm = createViewModel(FakeAuthRepository(CANDIDATE_SESSION))
+
+        clock.advance(Duration.ofMinutes(5))
+        vm.onScreenStarted()
+
+        assertEquals(2, cv.currentCalls)
+    }
+
+    @Test
+    fun `coming back to a business profile after a while reloads its offers`() = runTest {
+        val vm = createViewModel(FakeAuthRepository(BUSINESS_SESSION))
+
+        clock.advance(Duration.ofMinutes(5))
+        vm.onScreenStarted()
+
+        assertEquals(2, myOffers.refreshCalls)
+    }
+
+    @Test
+    fun `coming back to the profile right away does not ask the server again`() = runTest {
+        val vm = createViewModel(FakeAuthRepository(CANDIDATE_SESSION))
+
+        clock.advance(Duration.ofMinutes(4))
+        vm.onScreenStarted()
 
         assertEquals(1, cv.currentCalls)
     }

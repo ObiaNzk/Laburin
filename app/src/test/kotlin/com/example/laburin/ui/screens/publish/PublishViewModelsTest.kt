@@ -25,6 +25,8 @@ import com.example.laburin.fakes.FakeLocationProvider
 import com.example.laburin.fakes.FakeMyOffersRepository
 import com.example.laburin.fakes.FakeSyncScheduler
 import com.example.laburin.fakes.MainDispatcherRule
+import com.example.laburin.fakes.MutableClock
+import com.example.laburin.fakes.afterProcessDeath
 import com.example.laburin.fakes.testPublishedOffer
 import com.example.laburin.ui.navigation.PublishedOfferDestination
 import com.example.laburin.ui.screens.map.MapUiState
@@ -37,6 +39,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.time.Duration
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PublishViewModelsTest {
@@ -49,7 +52,8 @@ class PublishViewModelsTest {
     private val auth = FakeAuthRepository(BUSINESS_SESSION)
     private val offers = FakeMyOffersRepository()
     private val scheduler = FakeSyncScheduler()
-    private fun publishVm() = PublishViewModel(PublishOfferUseCase(auth, offers, scheduler))
+    private fun publishVm(state: SavedStateHandle = SavedStateHandle()) =
+        PublishViewModel(state, PublishOfferUseCase(auth, offers, scheduler))
 
     private fun PublishViewModel.fill() {
         onTitleChange("Mozo")
@@ -102,10 +106,30 @@ class PublishViewModelsTest {
         assertEquals(REQUIRED_FIELDS - PublishField.TITLE, vm.uiState.value.fieldErrors)
     }
 
+    @Test
+    fun `the publish form survives Android killing the process`() = runTest {
+        val state = SavedStateHandle()
+        publishVm(state).apply {
+            fill()
+            onSalaryMinChange("600.000")
+            onSalaryMaxChange("800.000")
+            onSalaryPeriodChange(SalaryPeriod.DAY)
+        }
+
+        val restored = publishVm(state.afterProcessDeath()).uiState.value
+
+        assertEquals(
+            listOf("Mozo", "Sábados", "Atención en salón", "600.000", "800.000"),
+            listOf(restored.title, restored.schedule, restored.description, restored.salaryMin, restored.salaryMax),
+        )
+        assertEquals(Category.GASTRONOMY, restored.category)
+        assertEquals(SalaryPeriod.DAY, restored.salaryPeriod)
+    }
+
     // --- Business sign-up ---
 
     private val location = FakeLocationProvider(LocationResult.Located(GeoLocation(-34.61, -58.39)))
-    private fun businessVm() = BusinessSignUpViewModel(auth, location)
+    private fun businessVm(state: SavedStateHandle = SavedStateHandle()) = BusinessSignUpViewModel(state, auth, location)
 
     private fun BusinessSignUpViewModel.fill() {
         onNameChange("Taller Nuevo")
@@ -150,13 +174,49 @@ class PublishViewModelsTest {
         assertTrue(auth.calls.isEmpty())
     }
 
+    @Test
+    fun `the business sign-up survives Android killing the process but the password does not`() = runTest {
+        val state = SavedStateHandle()
+        businessVm(state).fill()
+
+        val restored = businessVm(state.afterProcessDeath()).uiState.value
+
+        assertEquals(
+            listOf("Taller Nuevo", "9 a 18", "[DIRECCION]", "taller@demo.laburin", ""),
+            listOf(restored.name, restored.schedule, restored.address, restored.email, restored.password),
+        )
+        assertEquals(Category.MECHANICS, restored.category)
+        assertTrue(state.keys().none { state.get<String>(it) == "12345678" })
+    }
+
     // --- Published offer ---
 
     private val applicants = FakeApplicantsRepository()
     private fun publishedVm() = PublishedOfferViewModel(
         SavedStateHandle(mapOf(PublishedOfferDestination.ARG_OFFER_ID to "p-1")), offers, applicants,
-        ReviewApplicantUseCase(applicants, scheduler), CloseOfferUseCase(offers, scheduler),
+        ReviewApplicantUseCase(applicants, scheduler), CloseOfferUseCase(offers, scheduler), clock,
     )
+    private val clock = MutableClock()
+
+    @Test
+    fun `coming back to the published offer after a while reloads its applicants`() = runTest {
+        val vm = publishedVm()
+
+        clock.advance(Duration.ofMinutes(5))
+        vm.onScreenStarted()
+
+        assertEquals(listOf("p-1", "p-1"), applicants.refreshCalls)
+    }
+
+    @Test
+    fun `coming back to the published offer right away does not ask the server again`() = runTest {
+        val vm = publishedVm()
+
+        clock.advance(Duration.ofMinutes(4))
+        vm.onScreenStarted()
+
+        assertEquals(listOf("p-1"), applicants.refreshCalls)
+    }
 
     @Test
     fun `closing the offer queues the close`() = runTest {
@@ -171,9 +231,26 @@ class PublishViewModelsTest {
 
     // --- Edit offer ---
 
-    private fun editVm() = EditOfferViewModel(
-        SavedStateHandle(mapOf(EditOfferDestination.ARG_OFFER_ID to "p-1")), offers, EditOfferUseCase(auth, offers, scheduler),
-    )
+    private fun editVm(state: SavedStateHandle = SavedStateHandle(mapOf(EditOfferDestination.ARG_OFFER_ID to "p-1"))) =
+        EditOfferViewModel(state, offers, EditOfferUseCase(auth, offers, scheduler))
+
+    @Test
+    fun `unsaved edits survive Android killing the process instead of reloading the stored offer`() = runTest {
+        offers.store.value = listOf(testPublishedOffer("p-1", title = "Mozo", status = PublishedOfferStatus.ACTIVE))
+        val state = SavedStateHandle(mapOf(EditOfferDestination.ARG_OFFER_ID to "p-1"))
+        editVm(state).apply {
+            onTitleChange("Mozo/a")
+            onSalaryMinChange("5.000")
+            onSalaryPeriodChange(SalaryPeriod.HOUR)
+        }
+
+        val restored = editVm(state.afterProcessDeath()).uiState.value
+
+        assertEquals(false, restored.isLoading)
+        assertEquals(listOf("Mozo/a", "Sábados", "5.000"), listOf(restored.title, restored.schedule, restored.salaryMin))
+        assertEquals(SalaryPeriod.HOUR, restored.salaryPeriod)
+        assertEquals(Category.GASTRONOMY, restored.category)
+    }
 
     @Test
     fun `the edit form opens filled with the offer's current content`() = runTest {

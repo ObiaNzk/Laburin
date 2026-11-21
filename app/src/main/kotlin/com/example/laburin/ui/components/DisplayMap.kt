@@ -3,6 +3,10 @@ package com.example.laburin.ui.components
 import android.graphics.DashPathEffect
 import android.graphics.drawable.GradientDrawable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.laburin.domain.model.GeoLocation
@@ -32,24 +36,41 @@ fun DisplayMap(
     bottomObstructionFraction: Float = 0f,
     onMarkerClick: (String) -> Unit = {},
 ) {
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            Configuration.getInstance().userAgentValue = "Laburin"
-            MapView(context).apply {
-                setTileSource(TileSourceFactory.MAPNIK)
-                setMultiTouchControls(true)
-                controller.setZoom(zoomLevel)
-                // Keep the search center visible above a bottom panel that covers part of the map.
-                addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
-                    if (bottom - top != oldBottom - oldTop) {
-                        setMapCenterOffset(0, mapCenterOffsetY(bottom - top, bottomObstructionFraction))
-                        (tag as? GeoLocation)?.let { controller.setCenter(it.toOsmGeoPoint()) }
-                    }
+    val context = LocalContext.current
+    val mapView = remember {
+        Configuration.getInstance().userAgentValue = "Laburin"
+        MapView(context).apply {
+            setTileSource(TileSourceFactory.MAPNIK)
+            setMultiTouchControls(true)
+            controller.setZoom(zoomLevel)
+            // Keep the search center visible above a bottom panel that covers part of the map.
+            addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+                if (bottom - top != oldBottom - oldTop) {
+                    setMapCenterOffset(0, mapCenterOffsetY(bottom - top, bottomObstructionFraction))
+                    (tag as? GeoLocation)?.let { controller.setCenter(it.toOsmGeoPoint()) }
                 }
             }
-        },
-        update = { mapView ->
+        }
+    }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle, mapView) {
+        val binding = MapLifecycleBinding(
+            object : PausableMap {
+                override fun onResume() = mapView.onResume()
+                override fun onPause() = mapView.onPause()
+                override fun onDetach() = mapView.onDetach()
+            },
+        )
+        lifecycle.addObserver(binding)
+        onDispose {
+            lifecycle.removeObserver(binding)
+            binding.release()
+        }
+    }
+    AndroidView(
+        modifier = modifier,
+        factory = { mapView },
+        update = {
             // Recenter only when the search center changes, so recompositions don't undo the user's panning.
             if (mapView.tag != center) {
                 mapView.controller.setCenter(center.toOsmGeoPoint())

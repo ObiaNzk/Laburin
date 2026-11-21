@@ -48,6 +48,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.laburin.R
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -69,6 +71,12 @@ fun ScanRoute(
     LaunchedEffect(Unit) {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         if (granted) viewModel.onCameraPermissionResult(true) else permission.launch(Manifest.permission.CAMERA)
+    }
+    // onStart: the camera may have been allowed in Settings while the app was in the background.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) {
+        viewModel.onCameraPermissionRechecked(
+            granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED,
+        )
     }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect -> if (effect is ScanEffect.OpenOffer) onOpenOffer(effect.offerId) }

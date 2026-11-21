@@ -18,7 +18,8 @@ import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 
 class FakeLocationProvider(var result: LocationResult = LocationResult.Located(OBELISCO)) : LocationProvider {
-    override suspend fun currentLocation(): LocationResult = result
+    var calls = 0
+    override suspend fun currentLocation(): LocationResult { calls++; return result }
 }
 
 class FakeConnectivityObserver(online: Boolean = true) : ConnectivityObserver {

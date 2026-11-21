@@ -3,6 +3,7 @@ package com.example.laburin.ui.screens.map
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
@@ -15,6 +16,7 @@ import com.example.laburin.domain.model.Salary
 import com.example.laburin.domain.model.SalaryPeriod
 import com.example.laburin.ui.theme.LaburinTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -212,5 +214,20 @@ class MapContentTest {
         show(granted.copy(offers = OffersState.Empty))
 
         composeRule.onNodeWithText("Vistas recientemente").assertDoesNotExist()
+    }
+
+    /** The handle at the top of the results makes the list taller to see more offers, and back. */
+    @Test
+    fun theHandleExpandsAndCollapsesTheResults() {
+        show(granted.copy(offers = OffersState.Content(emptyList())))
+        val collapsed = composeRule.onNodeWithContentDescription("Agrandar la lista").fetchSemanticsNode().boundsInRoot
+
+        composeRule.onNodeWithContentDescription("Agrandar la lista").performClick()
+
+        val expanded = composeRule.onNodeWithContentDescription("Achicar la lista").fetchSemanticsNode().boundsInRoot
+        assertTrue("the list grows upwards", expanded.top < collapsed.top)
+
+        composeRule.onNodeWithContentDescription("Achicar la lista").performClick()
+        composeRule.onNodeWithContentDescription("Agrandar la lista").assertIsDisplayed()
     }
 }

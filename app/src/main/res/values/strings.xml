@@ -29,6 +29,8 @@
     <string name="map_unavailable_offline">Necesitás conexión para cargar las búsquedas</string>
     <string name="map_unavailable_server">No pudimos cargar las búsquedas</string>
     <string name="map_retry">Reintentar</string>
+    <string name="map_results_expand">Agrandar la lista</string>
+    <string name="map_results_collapse">Achicar la lista</string>
     <string name="map_offline_banner">Sin conexión · datos de hace %1$d min</string>
     <string name="map_offline_banner_no_data">Sin conexión</string>
     <string name="map_offline_banner_now">Sin conexión · datos recientes</string>

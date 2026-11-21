@@ -1,5 +1,10 @@
 package com.example.laburin.ui.screens.map
 
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.WindowInsets
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -86,6 +91,8 @@ import java.time.Duration
 import java.time.Instant
 
 private const val RESULTS_SHEET_HEIGHT_FRACTION = 0.42f
+private const val RESULTS_SHEET_EXPANDED_FRACTION = 0.92f
+private const val DRAG_THRESHOLD_PX = 8f
 
 private val LOCATION_PERMISSIONS = arrayOf(
     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -207,6 +214,9 @@ fun MapContent(
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        // The app's Scaffold already leaves room for the bottom bar and the system navigation; adding the insets here
+        // again left a strip of map between the results and the bottom bar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { innerPadding ->
         if (state.zoneSearch.isOpen) ZoneDialog(state.zoneSearch, onZoneSearch, onDismissZone)
         if (offlineLayout) {
@@ -398,10 +408,13 @@ private fun ResultsSheet(
     onChooseZone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // The handle makes the list taller to see more offers (tap, or drag up/down), and back.
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val handleDescription = stringResource(if (expanded) R.string.map_results_collapse else R.string.map_results_expand)
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .fillMaxHeight(RESULTS_SHEET_HEIGHT_FRACTION),
+            .fillMaxHeight(if (expanded) RESULTS_SHEET_EXPANDED_FRACTION else RESULTS_SHEET_HEIGHT_FRACTION),
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         shadowElevation = 16.dp,
         color = Color.White,
@@ -410,7 +423,15 @@ private fun ResultsSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .clickable { expanded = !expanded }
+                    .draggable(
+                        orientation = Orientation.Vertical,
+                        state = rememberDraggableState { delta ->
+                            if (delta < -DRAG_THRESHOLD_PX) expanded = true else if (delta > DRAG_THRESHOLD_PX) expanded = false
+                        },
+                    )
+                    .semantics { contentDescription = handleDescription }
+                    .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Box(

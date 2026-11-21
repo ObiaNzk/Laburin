@@ -1,5 +1,6 @@
 package com.example.laburin.ui.navigation
 
+import com.example.laburin.fakes.BUSINESS_SESSION
 import com.example.laburin.fakes.CANDIDATE_SESSION
 import com.example.laburin.fakes.FakeAuthRepository
 import com.example.laburin.fakes.MainDispatcherRule
@@ -40,5 +41,17 @@ class AppShellViewModelTest {
 
         vm.onExpiredNoticeDismissed()
         assertEquals(false, vm.isSessionExpired.value)
+    }
+
+    @Test
+    fun `a business account gets the publications tab instead of applications`() = runTest {
+        val auth = FakeAuthRepository(initial = CANDIDATE_SESSION)
+        val vm = AppShellViewModel(auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.isBusiness.collect {} }
+        assertEquals(false, vm.isBusiness.value)
+
+        auth.session.value = BUSINESS_SESSION
+
+        assertEquals(true, vm.isBusiness.value)
     }
 }

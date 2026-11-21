@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,9 +69,12 @@ func main() {
 		params := service.SignUpCandidateParams{FirstName: "Postulante", LastName: "Demo", Email: "postulante@demo.laburin", Password: demoPassword, AcceptedTerms: model.CurrentTermsVersion}
 		return authService.SignUpCandidate(ctx, params)
 	})
-	cv := model.CV{FileName: "cv-demo.pdf", Content: demoPDF("CV de ejemplo - [NOMBRE] [APELLIDO]")}
-	must(profile.UploadCV(ctx, candidate.ID, cv), "demo CV")
-	account(ctx, postgres, "comercio@demo.laburin", func() (service.Session, error) {
+	// Keep a CV someone already uploaded to the demo account (e.g. to try the viewer with a real-looking PDF).
+	if _, err := profile.CVFileName(ctx, candidate.ID); errors.Is(err, model.ErrNotFound) {
+		cv := model.CV{FileName: "cv-demo.pdf", Content: demoPDF("CV de ejemplo - [NOMBRE] [APELLIDO]")}
+		must(profile.UploadCV(ctx, candidate.ID, cv), "demo CV")
+	}
+	demoBusiness := account(ctx, postgres, "comercio@demo.laburin", func() (service.Session, error) {
 		params := service.SignUpBusinessParams{BusinessName: "Comercio Demo", Category: model.CategoryGastronomy, Schedule: "Lunes a viernes, 9 a 17 h", Address: "Av. Ejemplo 1000", Latitude: -34.6037, Longitude: -58.3816, Email: "comercio@demo.laburin", Password: demoPassword}
 		return authService.SignUpBusiness(ctx, params)
 	})
@@ -92,6 +96,7 @@ func main() {
 			must(offerService.Close(ctx, owner.ID, id), "close seed offer")
 		}
 	}
+	seedDemoBusinessApplicants(ctx, postgres, authService, offerService, profile, service.NewApplicationService(postgres), demoBusiness)
 	log.Info().Int("offers", len(offers)).Msg("seed done")
 }
 
@@ -106,6 +111,53 @@ func account(ctx context.Context, users *repository.Postgres, email string, sign
 	must(err, "sign up")
 	return session.User
 }
+
+// Fictional candidates, so the demo business sees applicants in every state, with their CVs.
+var demoApplicants = []struct {
+	email, firstName, lastName, applicationID, offerID string
+	review                                             *bool
+}{
+	{"candidato-1@demo.laburin", "Ana", "Ejemplo", "5eed0000-0000-4000-8000-000000000201", demoOfferWaiter, ptr(true)},
+	{"candidato-2@demo.laburin", "Bruno", "Prueba", "5eed0000-0000-4000-8000-000000000202", demoOfferWaiter, nil},
+	{"candidato-3@demo.laburin", "Carla", "Muestra", "5eed0000-0000-4000-8000-000000000203", demoOfferWaiter, ptr(false)},
+	{"candidato-1@demo.laburin", "Ana", "Ejemplo", "5eed0000-0000-4000-8000-000000000204", demoOfferKitchen, nil},
+}
+
+const (
+	demoOfferWaiter  = "5eed0000-0000-4000-8000-000000000101"
+	demoOfferKitchen = "5eed0000-0000-4000-8000-000000000102"
+)
+
+func seedDemoBusinessApplicants(ctx context.Context, postgres *repository.Postgres, authService *service.AuthService, offerService *service.OfferService, profile *service.ProfileService, applications *service.ApplicationService, business model.User) {
+	demoOffers := map[string]model.OfferContent{
+		demoOfferWaiter:  {Title: "Mozo/a de salón", Category: model.CategoryGastronomy, Schedule: "Viernes y sábados, 19 a 1 h", Description: "Atención de mesas en un restaurante de barrio. Buscamos buena onda y ganas de aprender.", Salary: &model.Salary{Min: 7_000, Period: model.SalaryPeriodHour}},
+		demoOfferKitchen: {Title: "Ayudante de cocina", Category: model.CategoryGastronomy, Schedule: "Lunes a viernes, 9 a 15 h", Description: "Preparación de ingredientes y limpieza de la cocina.", Salary: nil},
+	}
+	for id, content := range demoOffers {
+		_, err := offerService.Put(ctx, business.ID, uuid.MustParse(id), content)
+		if err != nil && !errors.Is(err, model.ErrConflict) {
+			log.Fatal().Err(err).Str("offer", id).Msg("seed demo business offer")
+		}
+	}
+	for _, a := range demoApplicants {
+		candidate := account(ctx, postgres, a.email, func() (service.Session, error) {
+			params := service.SignUpCandidateParams{FirstName: a.firstName, LastName: a.lastName, Email: a.email, Password: demoPassword, AcceptedTerms: model.CurrentTermsVersion}
+			return authService.SignUpCandidate(ctx, params)
+		})
+		if _, err := profile.CVFileName(ctx, candidate.ID); errors.Is(err, model.ErrNotFound) {
+			cv := model.CV{FileName: "cv-" + strings.ToLower(a.firstName) + ".pdf", Content: demoPDF("CV de ejemplo - " + a.firstName + " " + a.lastName)}
+			must(profile.UploadCV(ctx, candidate.ID, cv), "demo applicant CV")
+		}
+		applicationID := uuid.MustParse(a.applicationID)
+		must(applications.Apply(ctx, candidate.ID, applicationID, uuid.MustParse(a.offerID)), "demo application")
+		if a.review != nil {
+			_, err := applications.Review(ctx, business.ID, applicationID, *a.review)
+			must(err, "demo review")
+		}
+	}
+}
+
+func ptr[T any](v T) *T { return &v }
 
 func randomPassword() string {
 	bytes := make([]byte, 24)

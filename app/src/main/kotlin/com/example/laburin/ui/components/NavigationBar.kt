@@ -7,6 +7,7 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -19,7 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.laburin.R
 
-enum class AppTab { SEARCH, APPLICATIONS, ACCOUNT }
+enum class AppTab { SEARCH, APPLICATIONS, OFFERS, ACCOUNT }
 
 @Composable
 fun LaburinNavigationBar(
@@ -28,6 +29,8 @@ fun LaburinNavigationBar(
     onSearchClick: () -> Unit,
     onApplicationsClick: () -> Unit,
     onAccountClick: () -> Unit,
+    isBusiness: Boolean = false,
+    onOffersClick: () -> Unit = {},
 ) {
     val accountLabel = stringResource(if (isLoggedIn) R.string.nav_profile else R.string.nav_login)
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -39,12 +42,21 @@ fun LaburinNavigationBar(
                 icon = { Icon(Icons.Default.Search, contentDescription = null) },
                 label = { Text(stringResource(R.string.nav_search)) },
             )
-            NavigationBarItem(
-                selected = selected == AppTab.APPLICATIONS,
-                onClick = onApplicationsClick,
-                icon = { Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null) },
-                label = { Text(stringResource(R.string.nav_applications)) },
-            )
+            if (isBusiness) {
+                NavigationBarItem(
+                    selected = selected == AppTab.OFFERS,
+                    onClick = onOffersClick,
+                    icon = { Icon(Icons.Default.Storefront, contentDescription = null) },
+                    label = { Text(stringResource(R.string.nav_offers)) },
+                )
+            } else {
+                NavigationBarItem(
+                    selected = selected == AppTab.APPLICATIONS,
+                    onClick = onApplicationsClick,
+                    icon = { Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null) },
+                    label = { Text(stringResource(R.string.nav_applications)) },
+                )
+            }
             NavigationBarItem(
                 selected = selected == AppTab.ACCOUNT,
                 onClick = onAccountClick,

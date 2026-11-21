@@ -18,11 +18,12 @@ class LaburinNavigationBarTest {
 
     private val clicks = mutableListOf<String>()
 
-    private fun show(selected: AppTab, isLoggedIn: Boolean) = composeRule.setContent {
+    private fun show(selected: AppTab, isLoggedIn: Boolean, isBusiness: Boolean = false) = composeRule.setContent {
         LaburinNavigationBar(
             selected = selected, isLoggedIn = isLoggedIn,
             onSearchClick = { clicks += "search" },
             onApplicationsClick = { clicks += "applications" },
+            isBusiness = isBusiness, onOffersClick = { clicks += "offers" },
             onAccountClick = { clicks += "account" },
         )
     }
@@ -58,5 +59,15 @@ class LaburinNavigationBarTest {
         composeRule.onNodeWithText("Ingresar").performClick()
 
         assertEquals(listOf("search", "applications", "account"), clicks)
+    }
+
+    @Test
+    fun aBusinessSeesItsPublicationsInsteadOfApplications() {
+        show(AppTab.OFFERS, isLoggedIn = true, isBusiness = true)
+
+        composeRule.onNodeWithText("Postulaciones").assertDoesNotExist()
+        composeRule.onNodeWithText("Publicaciones").performClick()
+
+        assertEquals(listOf("offers"), clicks)
     }
 }

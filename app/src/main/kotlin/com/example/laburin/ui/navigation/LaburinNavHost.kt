@@ -41,6 +41,7 @@ import com.example.laburin.ui.screens.detail.OfferDetailRoute
 import com.example.laburin.ui.screens.map.MapRoute
 import com.example.laburin.ui.screens.cv.CvViewerRoute
 import com.example.laburin.ui.screens.terms.TermsContent
+import com.example.laburin.ui.screens.myoffers.MyOffersRoute
 import com.example.laburin.ui.screens.profile.ProfileRoute
 import com.example.laburin.ui.screens.publish.BusinessSignUpRoute
 import com.example.laburin.ui.screens.publish.PublishRoute
@@ -53,12 +54,14 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
     val navController = rememberNavController()
     val isLoggedIn by shell.isLoggedIn.collectAsStateWithLifecycle()
     val isSessionExpired by shell.isSessionExpired.collectAsStateWithLifecycle()
+    val isBusiness by shell.isBusiness.collectAsStateWithLifecycle()
     AskNotificationPermissionOnce(isLoggedIn)
     val destination = navController.currentBackStackEntryAsState().value?.destination
     val tab = when {
         destination?.hasRoute<MapDestination>() == true -> AppTab.SEARCH
         destination?.hasRoute<ProfileDestination>() == true -> AppTab.ACCOUNT
         destination?.hasRoute<ApplicationsDestination>() == true -> AppTab.APPLICATIONS
+        destination?.hasRoute<MyOffersDestination>() == true -> AppTab.OFFERS
         else -> null
     }
 
@@ -76,6 +79,8 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                     onAccountClick = {
                         if (isLoggedIn) navController.openTab(ProfileDestination) else navController.navigate(LoginDestination)
                     },
+                    isBusiness = isBusiness,
+                    onOffersClick = { navController.openTab(MyOffersDestination) },
                 )
             }
         },
@@ -135,6 +140,12 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                     onSignedUp = { navController.leaveAuthFlow() },
                     onClose = { navController.popBackStack() },
                     onOpenTerms = { navController.navigate(TermsDestination) },
+                )
+            }
+            composable<MyOffersDestination> {
+                MyOffersRoute(
+                    onOfferClick = { offerId -> navController.navigate(PublishedOfferDestination(offerId)) },
+                    onPublish = { navController.navigate(PublishDestination) },
                 )
             }
             composable<TermsDestination> {

@@ -25,6 +25,10 @@ data object LoginDestination
 @Serializable
 data object ProfileDestination
 
+/** The business's middle tab: its publications. */
+@Serializable
+data object MyOffersDestination
+
 /** Provisional terms and conditions a candidate accepts when signing up. */
 @Serializable
 data object TermsDestination

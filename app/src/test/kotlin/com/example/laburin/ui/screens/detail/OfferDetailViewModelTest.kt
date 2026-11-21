@@ -312,6 +312,26 @@ class OfferDetailViewModelTest {
         }
     }
 
+    @Test
+    fun `a business sees the whole offer without the option to apply`() = runTest {
+        repository.offers.value = listOf(offer)
+        session.session.value = BUSINESS_SESSION
+
+        val state = createViewModel().uiState.value
+
+        assertEquals(false, (state as OfferDetailUiState.Full).canApply)
+    }
+
+    @Test
+    fun `a candidate can apply`() = runTest {
+        repository.offers.value = listOf(offer)
+        session.session.value = CANDIDATE_SESSION
+
+        val state = createViewModel().uiState.value
+
+        assertEquals(true, (state as OfferDetailUiState.Full).canApply)
+    }
+
     private class FakeSessionRepository : SessionRepository {
         override val session = MutableStateFlow<Session?>(null)
     }

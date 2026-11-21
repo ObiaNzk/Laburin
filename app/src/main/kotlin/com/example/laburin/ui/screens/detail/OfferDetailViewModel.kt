@@ -1,5 +1,7 @@
 package com.example.laburin.ui.screens.detail
 
+import com.example.laburin.domain.model.UserRole
+import com.example.laburin.domain.model.Session
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -55,7 +57,7 @@ class OfferDetailViewModel @Inject constructor(
     private val offer = observeOffer(offerId).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val uiState: StateFlow<OfferDetailUiState> = combine(
-        offer, sessionRepository.isLoggedIn, lastRefresh, applications.observeForOffer(offerId), ::toUiState,
+        offer, sessionRepository.session, lastRefresh, applications.observeForOffer(offerId), ::toUiState,
     ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OfferDetailUiState.Loading)
 
     private val _effects = MutableSharedFlow<OfferDetailEffect>()
@@ -111,11 +113,12 @@ class OfferDetailViewModel @Inject constructor(
 
     private fun toUiState(
         offer: Offer?,
-        isLoggedIn: Boolean,
+        session: Session?,
         refresh: RefreshResult?,
         application: JobApplication?,
     ): OfferDetailUiState = when {
-        offer != null && isLoggedIn -> OfferDetailUiState.Full(offer, distanceMeters, application)
+        offer != null && session != null ->
+            OfferDetailUiState.Full(offer, distanceMeters, application, canApply = session.role == UserRole.CANDIDATE)
         offer != null -> OfferDetailUiState.Guest(offer.title, offer.category, distanceMeters)
         refresh == null -> OfferDetailUiState.Loading
         refresh == RefreshResult.Success -> OfferDetailUiState.NoLongerAvailable

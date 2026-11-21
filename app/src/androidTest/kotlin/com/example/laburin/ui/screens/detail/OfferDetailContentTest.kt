@@ -178,4 +178,12 @@ class OfferDetailContentTest {
 
         assertEquals(listOf("back"), clicks)
     }
+
+    /** A business can look at any offer but never apply, so the button isn't there at all. */
+    @Test
+    fun aBusinessDoesNotSeeTheApplyButton() {
+        show(OfferDetailUiState.Full(offer, distanceMeters = 1_200, canApply = false))
+
+        composeRule.onNodeWithText("Postularme").assertDoesNotExist()
+    }
 }

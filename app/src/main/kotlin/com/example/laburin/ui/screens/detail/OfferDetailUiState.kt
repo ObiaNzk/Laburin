@@ -11,7 +11,13 @@ sealed interface OfferDetailUiState {
     data class Guest(val title: String, val category: Category, val distanceMeters: Int?) : OfferDetailUiState
 
     /** [application] is the user's application to this offer, if they already applied. */
-    data class Full(val offer: Offer, val distanceMeters: Int?, val application: JobApplication? = null) : OfferDetailUiState
+    data class Full(
+        val offer: Offer,
+        val distanceMeters: Int?,
+        val application: JobApplication? = null,
+        /** False for a business account: it can look at offers but never apply, so the option isn't shown. */
+        val canApply: Boolean = true,
+    ) : OfferDetailUiState
 
     /** The server closed or removed the offer. */
     data object NoLongerAvailable : OfferDetailUiState

@@ -141,10 +141,10 @@ fun OfferDetailContent(
             is OfferDetailUiState.Guest -> SignUpPrompt(onCreateAccount, onLogin, Modifier.align(Alignment.BottomCenter))
             is OfferDetailUiState.Full -> {
                 val application = state.application
-                if (application == null) {
-                    ApplyButton(onApply, Modifier.align(Alignment.BottomCenter))
-                } else {
-                    AppliedStatus(application.status, Modifier.align(Alignment.BottomCenter))
+                when {
+                    application != null -> AppliedStatus(application.status, Modifier.align(Alignment.BottomCenter))
+                    // A business can look at offers but never apply: the option isn't shown at all.
+                    state.canApply -> ApplyButton(onApply, Modifier.align(Alignment.BottomCenter))
                 }
             }
             else -> Unit

@@ -32,6 +32,7 @@ class ProfileContentTest {
             ProfileContent(
                 state = state, onLogout = { clicks += "logout" }, onLogin = { clicks += "login" },
                 onPickCv = { clicks += "pickCv" }, onMyOfferClick = { clicks += "offer:$it" },
+                onViewCv = { clicks += "viewCv" },
             )
         }
     }
@@ -54,6 +55,22 @@ class ProfileContentTest {
     }
 
     private val candidate = Session("u-1", UserRole.CANDIDATE, "[NOMBRE]", "[EMAIL]")
+
+    @Test
+    fun candidateWithCvCanSeeIt() {
+        show(ProfileUiState.LoggedIn(candidate, cv = CvInfo("mi-cv.pdf")))
+
+        composeRule.onNodeWithText("Ver mi CV").performScrollTo().performClick()
+
+        assertEquals(listOf("viewCv"), clicks)
+    }
+
+    @Test
+    fun candidateWithoutCvHasNothingToSee() {
+        show(ProfileUiState.LoggedIn(candidate, cv = null))
+
+        composeRule.onNodeWithText("Ver mi CV").assertDoesNotExist()
+    }
 
     @Test
     fun candidateWithoutCvIsInvitedToUploadAPdf() {

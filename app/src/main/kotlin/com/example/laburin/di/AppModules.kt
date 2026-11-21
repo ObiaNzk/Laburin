@@ -24,7 +24,9 @@ import com.example.laburin.data.remote.OfferRemoteDataSource
 import com.example.laburin.data.repository.OfflineFirstOfferRepository
 import com.example.laburin.data.applications.ApplicationsRemoteDataSource
 import com.example.laburin.data.applications.DefaultApplicationRepository
+import com.example.laburin.data.cv.CacheCvFileStore
 import com.example.laburin.data.cv.CvCache
+import com.example.laburin.data.cv.CvFileStore
 import com.example.laburin.data.publish.BusinessRemoteDataSource
 import com.example.laburin.data.publish.DefaultApplicantsRepository
 import com.example.laburin.data.publish.DefaultMyOffersRepository
@@ -266,6 +268,9 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindCvCache(impl: DataStoreCvCache): CvCache
+
+    @Binds
+    abstract fun bindCvFileStore(impl: CacheCvFileStore): CvFileStore
 
     @Binds
     abstract fun bindSyncScheduler(impl: WorkManagerSyncScheduler): SyncScheduler

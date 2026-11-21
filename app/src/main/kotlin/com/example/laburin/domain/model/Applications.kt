@@ -31,4 +31,13 @@ sealed interface CvUploadResult {
     data class ServerError(val code: Int) : CvUploadResult
 }
 
+/** The user's own CV, downloaded to be shown in the app. */
+sealed interface CvFileResult {
+    /** [path] is a private file of the app, deleted with [com.example.laburin.domain.repository.CvRepository.closeFile]. */
+    data class Ready(val path: String) : CvFileResult
+    data object NotUploaded : CvFileResult
+    data object NetworkError : CvFileResult
+    data class ServerError(val code: Int) : CvFileResult
+}
+
 enum class SyncOutcome { Done, Retry, AuthRequired }

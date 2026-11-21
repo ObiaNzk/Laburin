@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.laburin.data.applications.ApplicationsRemoteDataSource
 import com.example.laburin.data.auth.SessionStore
 import com.example.laburin.data.remote.ApiException
+import com.example.laburin.domain.model.CvFileResult
 import com.example.laburin.domain.model.CvInfo
 import com.example.laburin.domain.model.CvUploadResult
 import com.example.laburin.domain.repository.CvRepository
@@ -33,11 +34,19 @@ class DataStoreCvCache @Inject constructor(private val dataStore: DataStore<Pref
     private fun key(userId: String) = stringPreferencesKey("cv_file_$userId")
 }
 
+/** Where the downloaded CV is kept while it is shown: a private file of the app. */
+interface CvFileStore {
+    /** Replaces the previous copy and returns its path. */
+    suspend fun save(bytes: ByteArray): String
+    fun delete()
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class DefaultCvRepository @Inject constructor(
     private val remote: ApplicationsRemoteDataSource,
     private val session: SessionStore,
     private val cache: CvCache,
+    private val files: CvFileStore,
 ) : CvRepository {
 
     override fun observeCv(): Flow<CvInfo?> = session.stored.flatMapLatest { stored ->
@@ -72,6 +81,20 @@ class DefaultCvRepository @Inject constructor(
         cache.save(stored.session.userId, fileName)
         return CvUploadResult.Success
     }
+
+    override suspend fun openFile(): CvFileResult {
+        val stored = session.stored.first() ?: return CvFileResult.ServerError(HTTP_UNAUTHORIZED)
+        val bytes = try {
+            remote.downloadCv(stored.token)
+        } catch (e: IOException) {
+            return CvFileResult.NetworkError
+        } catch (e: ApiException) {
+            return CvFileResult.ServerError(e.code)
+        } ?: return CvFileResult.NotUploaded
+        return CvFileResult.Ready(files.save(bytes))
+    }
+
+    override fun closeFile() = files.delete()
 
     /** Type and extension can lie (a renamed file), so the content must also start with the PDF signature. */
     private fun looksLikePdf(fileName: String, mimeType: String?, bytes: ByteArray): Boolean {

@@ -75,6 +75,34 @@ func TestCVFileName_ReturnsTheStoredName(t *testing.T) {
 	require.Equal(t, "cv.pdf", got)
 }
 
+func TestCV_ReturnsTheStoredFile(t *testing.T) {
+	// begin
+	setup := setupProfileTest(t)
+	userID := uuid.New()
+	stored := model.CV{FileName: "cv.pdf", Content: []byte("%PDF-1.4 ...")}
+	setup.repo.EXPECT().GetCV(gomock.Any(), userID).Return(stored, nil)
+
+	// when
+	got, err := setup.service.CV(context.Background(), userID)
+
+	// then
+	require.NoError(t, err)
+	require.Equal(t, stored, got)
+}
+
+func TestCV_WithoutCVIsNotFound(t *testing.T) {
+	// begin
+	setup := setupProfileTest(t)
+	userID := uuid.New()
+	setup.repo.EXPECT().GetCV(gomock.Any(), userID).Return(model.CV{}, model.ErrNotFound)
+
+	// when
+	_, err := setup.service.CV(context.Background(), userID)
+
+	// then
+	require.ErrorIs(t, err, model.ErrNotFound)
+}
+
 func TestSavePushToken_StoresIt(t *testing.T) {
 	// begin
 	setup := setupProfileTest(t)

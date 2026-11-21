@@ -48,6 +48,7 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
     private val offerOwners = SEED_OFFERS.associate { it.id to DEMO_BUSINESS_ID }.toMutableMap()
     private val applications = mutableMapOf<String, ApplicationRecord>()
     private val cvs = mutableMapOf(DEMO_CANDIDATE_ID to CvDto("cv-postulante-demo.pdf"))
+    private val cvFiles = mutableMapOf(DEMO_CANDIDATE_ID to demoPdf("[NOMBRE] - CV de prueba"))
     private val businesses = mutableMapOf(
         DEMO_BUSINESS_ID to Business("Comercio Demo", "[DIRECCION]", DEMO_BUSINESS_LOCATION.first, DEMO_BUSINESS_LOCATION.second),
     )
@@ -159,10 +160,14 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
     }
 
     override suspend fun uploadCv(token: String, fileName: String, bytes: ByteArray) = call {
-        cvs[userFor(token)] = CvDto(fileName)
+        val user = userFor(token)
+        cvs[user] = CvDto(fileName)
+        cvFiles[user] = bytes
     }
 
     override suspend fun getCv(token: String): CvDto? = call { cvs[userFor(token)] }
+
+    override suspend fun downloadCv(token: String): ByteArray? = call { cvFiles[userFor(token)] }
 
     // --- Internals ---
 
@@ -219,4 +224,25 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
             seed("f-7", "Cajero/a", "STOCK", -34.6050, -58.3800, "Kiosco Ejemplo", "Av. Ejemplo 700", status = "CLOSED"),
         )
     }
+}
+
+/** A one-page PDF with [text], valid enough for Android's PdfRenderer. Fictional demo data only. */
+private fun demoPdf(text: String): ByteArray {
+    val stream = "BT /F1 18 Tf 72 720 Td ($text) Tj ET"
+    val objects = listOf(
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        "<< /Length ${stream.length} >>\nstream\n$stream\nendstream",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    )
+    val pdf = StringBuilder("%PDF-1.4\n")
+    val offsets = objects.mapIndexed { i, obj ->
+        pdf.length.also { pdf.append("${i + 1} 0 obj\n$obj\nendobj\n") }
+    }
+    val xref = pdf.length
+    pdf.append("xref\n0 ${objects.size + 1}\n0000000000 65535 f \n")
+    offsets.forEach { pdf.append("%010d 00000 n \n".format(it)) }
+    pdf.append("trailer\n<< /Size ${objects.size + 1} /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n")
+    return pdf.toString().toByteArray(Charsets.US_ASCII)
 }

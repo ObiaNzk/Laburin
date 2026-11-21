@@ -5,6 +5,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 
@@ -64,6 +65,24 @@ class FakeBackendApplicationsTest {
         backend.uploadCv(token, "mi-cv.pdf", byteArrayOf(1, 2, 3))
 
         assertEquals("mi-cv.pdf", backend.getCv(token)?.fileName)
+    }
+
+    @Test
+    fun `the demo candidate's CV is a real PDF the app can show`() = runTest {
+        val pdf = backend.downloadCv(candidateToken())!!.decodeToString()
+
+        assertTrue(pdf.startsWith("%PDF-"))
+        assertTrue(pdf.trimEnd().endsWith("%%EOF"))
+    }
+
+    @Test
+    fun `the uploaded CV file is the one downloaded`() = runTest {
+        val token = backend.signUpCandidate("[NOMBRE]", "[APELLIDO]", "nuevo@demo.laburin", "12345678").token
+        assertNull(backend.downloadCv(token))
+
+        backend.uploadCv(token, "mi-cv.pdf", "%PDF-1.4 cv".toByteArray())
+
+        assertEquals("%PDF-1.4 cv", backend.downloadCv(token)?.decodeToString())
     }
 
     private suspend fun apiCode(block: suspend () -> Unit): Int {

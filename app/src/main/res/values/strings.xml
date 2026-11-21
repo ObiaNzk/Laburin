@@ -106,6 +106,13 @@
     <string name="profile_cv_error_network">Necesitás conexión para cargar el CV</string>
     <string name="profile_cv_error_server">No pudimos cargar el CV. Probá de nuevo.</string>
     <string name="profile_cv_error_unreadable">No pudimos leer el archivo</string>
+    <string name="profile_cv_view">Ver mi CV</string>
+    <string name="cv_viewer_title">Mi CV</string>
+    <string name="cv_viewer_not_uploaded">Todavía no cargaste tu CV.</string>
+    <string name="cv_viewer_error_network">Necesitás conexión para ver tu CV</string>
+    <string name="cv_viewer_error_server">No pudimos traer tu CV. Probá de nuevo.</string>
+    <string name="cv_viewer_error_unreadable">No pudimos mostrar el PDF. Probá cargarlo de nuevo desde Perfil.</string>
+    <string name="cv_viewer_page">Página %1$d de %2$d</string>
 
     <string name="applications_title">Mis postulaciones</string>
     <plurals name="applications_pending">

@@ -159,6 +159,11 @@ func TestFullFlow(t *testing.T) {
 	status, data = candidate.call(http.MethodGet, "/me/cv", nil)
 	require.Equal(t, http.StatusOK, status)
 	require.JSONEq(t, `{"fileName":"cv.pdf"}`, string(data))
+	status, data = candidate.call(http.MethodGet, "/me/cv/file", nil)
+	require.Equal(t, http.StatusOK, status)
+	require.Equal(t, "%PDF-1.4 cv de prueba", string(data))
+	status, _ = business.call(http.MethodGet, "/me/cv/file", nil)
+	require.Equal(t, http.StatusForbidden, status)
 
 	// Apply, twice (retry): one application.
 	for range 2 {

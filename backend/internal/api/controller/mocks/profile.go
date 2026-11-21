@@ -42,6 +42,21 @@ func (m *MockProfileService) EXPECT() *MockProfileServiceMockRecorder {
 	return m.recorder
 }
 
+// CV mocks base method.
+func (m *MockProfileService) CV(ctx context.Context, userID uuid.UUID) (model.CV, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CV", ctx, userID)
+	ret0, _ := ret[0].(model.CV)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CV indicates an expected call of CV.
+func (mr *MockProfileServiceMockRecorder) CV(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CV", reflect.TypeOf((*MockProfileService)(nil).CV), ctx, userID)
+}
+
 // CVFileName mocks base method.
 func (m *MockProfileService) CVFileName(ctx context.Context, userID uuid.UUID) (string, error) {
 	m.ctrl.T.Helper()

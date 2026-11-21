@@ -1,6 +1,7 @@
 package com.example.laburin.fakes
 
 import com.example.laburin.domain.model.ApplicationStatus
+import com.example.laburin.domain.model.CvFileResult
 import com.example.laburin.domain.model.CvInfo
 import com.example.laburin.domain.model.CvUploadResult
 import com.example.laburin.domain.model.JobApplication
@@ -26,6 +27,11 @@ class FakeCvRepository(initial: CvInfo? = CvInfo("cv.pdf")) : CvRepository {
         if (nextUpload == CvUploadResult.Success) cv.value = CvInfo(fileName)
         return nextUpload
     }
+    var nextOpen: CvFileResult = CvFileResult.Ready("/cache/cv/mi-cv.pdf")
+    var openCalls = 0
+    var closed = false
+    override suspend fun openFile(): CvFileResult { openCalls++; return nextOpen }
+    override fun closeFile() { closed = true }
 }
 
 class FakeSyncScheduler : SyncScheduler {

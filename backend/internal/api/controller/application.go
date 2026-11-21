@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"mime"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -145,8 +144,7 @@ func (a *ApplicationController) ApplicantCV(c *gin.Context) {
 		response.WriteError(c, err)
 		return
 	}
-	c.Header("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": cv.FileName}))
-	c.Data(http.StatusOK, "application/pdf", cv.Content)
+	writePDF(c, cv)
 }
 
 func applicantResp(applicant model.Applicant) ApplicantResp {

@@ -76,6 +76,7 @@ Después de cambiar `db/query/*.sql` o una interfaz, corré `make generate` (SQL
 | PUT | `/applications/{id}` | postulante |
 | GET | `/applications/mine` | postulante |
 | PUT / GET | `/me/cv` | postulante |
+| GET | `/me/cv/file` (el PDF) | postulante |
 | POST | `/me/push-token` | cualquier cuenta |
 | GET | `/healthz` | público |
 

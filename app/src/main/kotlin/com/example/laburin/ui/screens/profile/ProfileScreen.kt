@@ -57,6 +57,7 @@ fun ProfileRoute(
     onLoggedOut: () -> Unit,
     onLogin: () -> Unit,
     onMyOfferClick: (String) -> Unit = {},
+    onViewCv: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -78,6 +79,7 @@ fun ProfileRoute(
         state = state, onLogout = viewModel::onLogout, onLogin = onLogin,
         onPickCv = { pickCv.launch(arrayOf(PDF_MIME)) },
         onMyOfferClick = onMyOfferClick,
+        onViewCv = onViewCv,
     )
 }
 
@@ -106,6 +108,7 @@ fun ProfileContent(
     onPickCv: () -> Unit,
     onMyOfferClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
+    onViewCv: () -> Unit = {},
     roleSection: @Composable () -> Unit = {},
 ) {
     Column(
@@ -138,7 +141,7 @@ fun ProfileContent(
                         Text(state.session.email, color = Color.Gray)
                     }
                 }
-                if (state.showsCv) CvSection(state, onPickCv) else MyOffersSection(state, onMyOfferClick)
+                if (state.showsCv) CvSection(state, onPickCv, onViewCv) else MyOffersSection(state, onMyOfferClick)
                 roleSection()
                 OutlinedButton(
                     onClick = onLogout,
@@ -155,7 +158,7 @@ fun ProfileContent(
 }
 
 @Composable
-private fun CvSection(state: ProfileUiState.LoggedIn, onPickCv: () -> Unit) {
+private fun CvSection(state: ProfileUiState.LoggedIn, onPickCv: () -> Unit, onViewCv: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -166,6 +169,8 @@ private fun CvSection(state: ProfileUiState.LoggedIn, onPickCv: () -> Unit) {
         Text(stringResource(R.string.profile_cv_title), fontWeight = FontWeight.Bold)
         Text(state.cv?.fileName ?: stringResource(R.string.profile_cv_missing))
         state.cvError?.let { Text(stringResource(it.messageRes()), color = MaterialTheme.colorScheme.error) }
+        // See exactly what businesses will get.
+        if (state.cv != null) Button(onClick = onViewCv) { Text(stringResource(R.string.profile_cv_view)) }
         OutlinedButton(onClick = onPickCv, enabled = !state.isUploadingCv) {
             if (state.isUploadingCv) {
                 CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)

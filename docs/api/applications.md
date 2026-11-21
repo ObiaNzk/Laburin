@@ -31,6 +31,13 @@ Sube el CV (`multipart/form-data`, parte `file`, un PDF de 5 MB como máximo). R
 
 `200 { "fileName": "…" }`, o `404` si el usuario todavía no cargó un CV.
 
+## `GET /me/cv/file`
+
+El PDF que cargó el postulante, para que vea lo mismo que van a ver los comercios. Solo cuentas de postulante.
+
+- **200** con el PDF (`Content-Type: application/pdf`, `Content-Disposition: attachment; filename="…"` con el nombre original).
+- **404**: todavía no cargó un CV. **403**: la cuenta no es de postulante.
+
 ## Reglas
 
 - Para postularse hacen falta una cuenta de postulante y el CV cargado (RF-02).

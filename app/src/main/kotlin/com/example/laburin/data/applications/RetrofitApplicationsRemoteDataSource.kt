@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -33,6 +34,9 @@ interface ApplicationsApi {
 
     @GET("me/cv")
     suspend fun getCv(@Header("Authorization") auth: String): CvDto
+
+    @GET("me/cv/file")
+    suspend fun downloadCv(@Header("Authorization") auth: String): ResponseBody
 }
 
 class RetrofitApplicationsRemoteDataSource @Inject constructor(private val api: ApplicationsApi) : ApplicationsRemoteDataSource {
@@ -50,6 +54,13 @@ class RetrofitApplicationsRemoteDataSource @Inject constructor(private val api: 
     override suspend fun getCv(token: String): CvDto? =
         try {
             apiCall { api.getCv(bearer(token)) }
+        } catch (e: ApiException) {
+            if (e.code == HTTP_NOT_FOUND) null else throw e
+        }
+
+    override suspend fun downloadCv(token: String): ByteArray? =
+        try {
+            apiCall { api.downloadCv(bearer(token)).use { it.bytes() } }
         } catch (e: ApiException) {
             if (e.code == HTTP_NOT_FOUND) null else throw e
         }

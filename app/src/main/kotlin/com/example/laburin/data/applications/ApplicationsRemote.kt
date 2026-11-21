@@ -27,4 +27,7 @@ interface ApplicationsRemoteDataSource {
     suspend fun myApplications(token: String): List<ApplicationDto>
     suspend fun uploadCv(token: String, fileName: String, bytes: ByteArray)
     suspend fun getCv(token: String): CvDto?
+
+    /** The uploaded PDF, or null when there is none yet. */
+    suspend fun downloadCv(token: String): ByteArray?
 }

@@ -25,6 +25,10 @@ data object LoginDestination
 @Serializable
 data object ProfileDestination
 
+/** The logged-in candidate's own CV. */
+@Serializable
+data object CvViewerDestination
+
 @Serializable
 data object ApplicationsDestination
 

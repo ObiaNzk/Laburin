@@ -17,6 +17,7 @@ import (
 type ProfileService interface {
 	UploadCV(ctx context.Context, userID uuid.UUID, cv model.CV) error
 	CVFileName(ctx context.Context, userID uuid.UUID) (string, error)
+	CV(ctx context.Context, userID uuid.UUID) (model.CV, error)
 	SavePushToken(ctx context.Context, userID uuid.UUID, token string) error
 }
 
@@ -74,6 +75,16 @@ func (p *ProfileController) GetCV(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, CVResp{FileName: name})
+}
+
+// GET /me/cv/file (candidate): the uploaded PDF itself.
+func (p *ProfileController) GetCVFile(c *gin.Context) {
+	cv, err := p.profile.CV(c.Request.Context(), middleware.UserID(c))
+	if err != nil {
+		response.WriteError(c, err)
+		return
+	}
+	writePDF(c, cv)
 }
 
 // POST /me/push-token (any account): the FCM token for this device.

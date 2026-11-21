@@ -30,6 +30,7 @@ func setupProfileController(t *testing.T) profileControllerSetup {
 	authenticated := router.Group("", asUser(user, model.RoleCandidate))
 	authenticated.PUT("/me/cv", controller.UploadCV)
 	authenticated.GET("/me/cv", controller.GetCV)
+	authenticated.GET("/me/cv/file", controller.GetCVFile)
 	authenticated.POST("/me/push-token", controller.SavePushToken)
 	return profileControllerSetup{profile: profile, router: router, user: user}
 }
@@ -100,6 +101,33 @@ func TestGetCVController_FoundAndMissing(t *testing.T) {
 	require.Equal(t, http.StatusOK, found.Code)
 	require.JSONEq(t, `{"fileName":"cv.pdf"}`, found.Body.String())
 	require.Equal(t, http.StatusNotFound, missing.Code)
+}
+
+func TestGetCVFileController_ServesThePdf(t *testing.T) {
+	// begin
+	setup := setupProfileController(t)
+	setup.profile.EXPECT().CV(gomock.Any(), setup.user).Return(model.CV{FileName: "mi cv.pdf", Content: []byte("%PDF-1.4")}, nil)
+
+	// when
+	rec := do(setup.router, http.MethodGet, "/me/cv/file", "")
+
+	// then
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "application/pdf", rec.Header().Get("Content-Type"))
+	require.Equal(t, `attachment; filename="mi cv.pdf"`, rec.Header().Get("Content-Disposition"))
+	require.Equal(t, "%PDF-1.4", rec.Body.String())
+}
+
+func TestGetCVFileController_WithoutCVIsNotFound(t *testing.T) {
+	// begin
+	setup := setupProfileController(t)
+	setup.profile.EXPECT().CV(gomock.Any(), setup.user).Return(model.CV{}, model.ErrNotFound)
+
+	// when
+	rec := do(setup.router, http.MethodGet, "/me/cv/file", "")
+
+	// then
+	require.Equal(t, http.StatusNotFound, rec.Code)
 }
 
 func TestSavePushTokenController_NoContent(t *testing.T) {

@@ -39,6 +39,7 @@ import com.example.laburin.ui.screens.auth.LoginRoute
 import com.example.laburin.ui.screens.auth.SignUpRoute
 import com.example.laburin.ui.screens.detail.OfferDetailRoute
 import com.example.laburin.ui.screens.map.MapRoute
+import com.example.laburin.ui.screens.cv.CvViewerRoute
 import com.example.laburin.ui.screens.profile.ProfileRoute
 import com.example.laburin.ui.screens.publish.BusinessSignUpRoute
 import com.example.laburin.ui.screens.publish.PublishRoute
@@ -172,7 +173,11 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                     onLoggedOut = { navController.openTab(MapDestination) },
                     onLogin = { navController.navigate(LoginDestination) },
                     onMyOfferClick = { offerId -> navController.navigate(PublishedOfferDestination(offerId)) },
+                    onViewCv = { navController.navigate(CvViewerDestination) },
                 )
+            }
+            composable<CvViewerDestination> {
+                CvViewerRoute(onBack = { navController.popBackStack() })
             }
         }
     }

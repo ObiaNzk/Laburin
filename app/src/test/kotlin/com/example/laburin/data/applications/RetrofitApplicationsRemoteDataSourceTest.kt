@@ -107,6 +107,25 @@ class RetrofitApplicationsRemoteDataSourceTest {
         assertEquals(500, apiErrorCode { dataSource.getCv("t-1") })
     }
 
+    @Test
+    fun `the uploaded CV file is downloaded with the session token`() = runTest {
+        server.respond(body = "%PDF-1.4 cv de prueba")
+
+        val bytes = dataSource.downloadCv("t-1")
+
+        val request = server.takeRequest()
+        assertEquals("/me/cv/file", request.url.encodedPath)
+        assertEquals("Bearer t-1", request.headers["Authorization"])
+        assertArrayEquals("%PDF-1.4 cv de prueba".toByteArray(), bytes)
+    }
+
+    @Test
+    fun `no CV file yet is null, not an error`() = runTest {
+        server.respond(code = 404)
+
+        assertNull(dataSource.downloadCv("t-1"))
+    }
+
     private fun ByteArray.sliceContaining(part: ByteArray): ByteArray {
         val start = (0..size - part.size).first { i -> part.indices.all { this[i + it] == part[it] } }
         return copyOfRange(start, start + part.size)

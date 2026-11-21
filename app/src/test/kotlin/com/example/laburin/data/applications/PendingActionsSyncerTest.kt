@@ -410,6 +410,7 @@ class FakeApplicationsRemote : ApplicationsRemoteDataSource {
     var mine: () -> List<ApplicationDto> = { emptyList() }
     var cv: () -> CvDto? = { null }
     var uploadResponse: () -> Unit = {}
+    var cvFile: () -> ByteArray? = { null }
 
     override suspend fun apply(token: String, applicationId: String, offerId: String) {
         applyCalls += "$token:$applicationId:$offerId"
@@ -419,4 +420,5 @@ class FakeApplicationsRemote : ApplicationsRemoteDataSource {
     override suspend fun myApplications(token: String) = mine()
     override suspend fun uploadCv(token: String, fileName: String, bytes: ByteArray) = uploadResponse()
     override suspend fun getCv(token: String) = cv()
+    override suspend fun downloadCv(token: String) = cvFile()
 }

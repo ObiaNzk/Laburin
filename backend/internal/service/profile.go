@@ -15,6 +15,8 @@ type ProfileRepository interface {
 	SaveCV(ctx context.Context, userID uuid.UUID, cv model.CV) error
 	// GetCVFileName returns model.ErrNotFound when the user has no CV.
 	GetCVFileName(ctx context.Context, userID uuid.UUID) (string, error)
+	// GetCV returns model.ErrNotFound when the user has no CV.
+	GetCV(ctx context.Context, userID uuid.UUID) (model.CV, error)
 	SavePushToken(ctx context.Context, userID uuid.UUID, token string) error
 }
 
@@ -45,6 +47,11 @@ func (s *ProfileService) UploadCV(ctx context.Context, userID uuid.UUID, cv mode
 // CVFileName returns model.ErrNotFound when the user has no CV.
 func (s *ProfileService) CVFileName(ctx context.Context, userID uuid.UUID) (string, error) {
 	return s.repo.GetCVFileName(ctx, userID)
+}
+
+// CV returns the user's own PDF so they can see what businesses will get.
+func (s *ProfileService) CV(ctx context.Context, userID uuid.UUID) (model.CV, error) {
+	return s.repo.GetCV(ctx, userID)
 }
 
 func (s *ProfileService) SavePushToken(ctx context.Context, userID uuid.UUID, token string) error {

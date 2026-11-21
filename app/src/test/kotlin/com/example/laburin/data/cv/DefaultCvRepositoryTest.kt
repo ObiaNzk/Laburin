@@ -3,6 +3,7 @@ package com.example.laburin.data.cv
 import com.example.laburin.data.applications.CvDto
 import com.example.laburin.data.applications.FakeApplicationsRemote
 import com.example.laburin.data.remote.ApiException
+import com.example.laburin.domain.model.CvFileResult
 import com.example.laburin.domain.model.CvInfo
 import com.example.laburin.domain.model.CvUploadResult
 import com.example.laburin.fakes.CANDIDATE_STORED
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -22,7 +24,8 @@ class DefaultCvRepositoryTest {
     private val remote = FakeApplicationsRemote()
     private val session = FakeSessionStore(CANDIDATE_STORED)
     private val cache = FakeCvCache()
-    private val repository = DefaultCvRepository(remote, session, cache)
+    private val files = FakeCvFileStore()
+    private val repository = DefaultCvRepository(remote, session, cache, files)
     private val pdf = byteArrayOf(0x25, 0x50, 0x44, 0x46) // "%PDF"
 
     @Test
@@ -103,6 +106,55 @@ class DefaultCvRepositoryTest {
         remote.uploadResponse = { throw ApiException(500) }
 
         assertEquals(CvUploadResult.ServerError(500), repository.upload("cv.pdf", "application/pdf", pdf))
+    }
+
+    @Test
+    fun `opening the CV downloads it into a private file`() = runTest {
+        remote.cvFile = { pdf }
+
+        val result = repository.openFile()
+
+        assertEquals(CvFileResult.Ready(FakeCvFileStore.PATH), result)
+        assertArrayEquals(pdf, files.saved)
+    }
+
+    @Test
+    fun `opening without an uploaded CV says so`() = runTest {
+        assertEquals(CvFileResult.NotUploaded, repository.openFile())
+    }
+
+    @Test
+    fun `opening without network reports it`() = runTest {
+        remote.cvFile = { throw IOException("offline") }
+
+        assertEquals(CvFileResult.NetworkError, repository.openFile())
+    }
+
+    @Test
+    fun `opening reports server errors`() = runTest {
+        remote.cvFile = { throw ApiException(500) }
+
+        assertEquals(CvFileResult.ServerError(500), repository.openFile())
+    }
+
+    @Test
+    fun `closing the CV deletes the private copy`() = runTest {
+        remote.cvFile = { pdf }
+        repository.openFile()
+
+        repository.closeFile()
+
+        assertNull(files.saved)
+    }
+
+    private class FakeCvFileStore : CvFileStore {
+        var saved: ByteArray? = null
+        override suspend fun save(bytes: ByteArray): String { saved = bytes; return PATH }
+        override fun delete() { saved = null }
+
+        companion object {
+            const val PATH = "/cache/cv/mi-cv.pdf"
+        }
     }
 
     private class FakeCvCache : CvCache {

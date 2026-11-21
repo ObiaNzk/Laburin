@@ -50,6 +50,7 @@ func NewRouter(tokens middleware.TokenParser, controllers Controllers, extra ...
 	candidate.GET("/applications/mine", controllers.Applications.Mine)
 	candidate.PUT("/me/cv", controllers.Profile.UploadCV)
 	candidate.GET("/me/cv", controllers.Profile.GetCV)
+	candidate.GET("/me/cv/file", controllers.Profile.GetCVFile)
 
 	anyAccount := router.Group("", middleware.Authorized(tokens))
 	anyAccount.POST("/me/push-token", controllers.Profile.SavePushToken)

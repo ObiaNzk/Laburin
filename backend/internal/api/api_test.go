@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/laburin/backend/internal/api/controller"
 	"github.com/laburin/backend/internal/auth"
+	"github.com/laburin/backend/internal/model"
 	"github.com/laburin/backend/internal/repository"
 	"github.com/laburin/backend/internal/service"
 	"github.com/laburin/backend/internal/testutil"
@@ -112,10 +113,17 @@ func TestFullFlow(t *testing.T) {
 	})
 	candidate := signUp(t, server, "/auth/signup/candidate", map[string]any{
 		"firstName": "[NOMBRE]", "lastName": "[APELLIDO]", "email": "[postulante]@e2e.laburin", "password": "demo1234",
+		"acceptedTerms": model.CurrentTermsVersion,
 	})
 
+	// Signing up as a candidate requires accepting the terms (the CV is shared with businesses).
+	status, _ := guest.call(http.MethodPost, "/auth/signup/candidate", map[string]any{
+		"firstName": "[NOMBRE]", "lastName": "[APELLIDO]", "email": "[sin-terminos]@e2e.laburin", "password": "demo1234",
+	})
+	require.Equal(t, http.StatusBadRequest, status)
+
 	// Login works with the same credentials, in any case.
-	status, _ := guest.call(http.MethodPost, "/auth/login", map[string]any{"email": "[POSTULANTE]@E2E.laburin", "password": "demo1234"})
+	status, _ = guest.call(http.MethodPost, "/auth/login", map[string]any{"email": "[POSTULANTE]@E2E.laburin", "password": "demo1234"})
 	require.Equal(t, http.StatusOK, status)
 	status, _ = guest.call(http.MethodPost, "/auth/login", map[string]any{"email": "[postulante]@e2e.laburin", "password": "otra-clave"})
 	require.Equal(t, http.StatusUnauthorized, status)

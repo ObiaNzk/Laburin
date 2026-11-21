@@ -221,4 +221,10 @@ class FakeBusinessRemote : BusinessRemoteDataSource {
         reviewCalls += "$applicationId:$approve"
         return reviewResponse(applicationId, approve)
     }
+    var applicantCv: (String) -> ByteArray? = { null }
+    val applicantCvCalls = mutableListOf<String>()
+    override suspend fun applicantCv(token: String, applicationId: String): ByteArray? {
+        applicantCvCalls += "$token:$applicationId"
+        return applicantCv(applicationId)
+    }
 }

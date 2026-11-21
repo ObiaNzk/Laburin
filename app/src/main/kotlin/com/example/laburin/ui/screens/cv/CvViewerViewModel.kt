@@ -1,9 +1,11 @@
 package com.example.laburin.ui.screens.cv
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.laburin.domain.model.CvFileResult
 import com.example.laburin.domain.repository.CvRepository
+import com.example.laburin.ui.navigation.CvViewerDestination
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +23,15 @@ sealed interface CvViewerUiState {
 enum class CvViewerError { Network, Server, Unreadable }
 
 @HiltViewModel
-class CvViewerViewModel @Inject constructor(private val cv: CvRepository) : ViewModel() {
+class CvViewerViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val cv: CvRepository,
+) : ViewModel() {
+
+    /** Null for the user's own CV; set when a business opens an applicant's. */
+    private val applicationId: String? = savedStateHandle[CvViewerDestination.ARG_APPLICATION_ID]
+
+    val isOwnCv: Boolean = applicationId == null
 
     private val _uiState = MutableStateFlow<CvViewerUiState>(CvViewerUiState.Loading)
     val uiState: StateFlow<CvViewerUiState> = _uiState.asStateFlow()
@@ -43,7 +53,7 @@ class CvViewerViewModel @Inject constructor(private val cv: CvRepository) : View
     private fun load() {
         _uiState.value = CvViewerUiState.Loading
         viewModelScope.launch {
-            _uiState.value = when (val result = cv.openFile()) {
+            _uiState.value = when (val result = cv.openFile(applicationId)) {
                 is CvFileResult.Ready -> CvViewerUiState.Ready(result.path)
                 CvFileResult.NotUploaded -> CvViewerUiState.NotUploaded
                 CvFileResult.NetworkError -> CvViewerUiState.Error(CvViewerError.Network)

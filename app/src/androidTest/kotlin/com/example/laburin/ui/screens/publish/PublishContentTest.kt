@@ -3,6 +3,8 @@ package com.example.laburin.ui.screens.publish
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -109,6 +111,7 @@ class PublishContentTest {
                 onShare = { clicks += "share" }, onBack = {},
                 onApprove = { clicks += "approve:$it" }, onReject = { clicks += "reject:$it" },
                 onEdit = { clicks += "edit:$it" }, onCloseOffer = { clicks += "close" },
+                onViewCv = { clicks += "cv:$it" },
             )
         }
     }
@@ -311,5 +314,21 @@ class PublishContentTest {
         }
 
         composeRule.onNodeWithText("$ 600.000 por mes").assertIsDisplayed()
+    }
+
+    @Test
+    fun theBusinessCanOpenTheCvOfAnApplicantWhoHasOne() {
+        showPublished(
+            PublishedOfferStatus.ACTIVE,
+            applicants = listOf(
+                Applicant("a-1", "[NOMBRE]", "cv.pdf", ApplicantStatus.PENDING_REVIEW, null),
+                Applicant("a-2", "[OTRO NOMBRE]", null, ApplicantStatus.PENDING_REVIEW, null),
+            ),
+        )
+
+        composeRule.onAllNodesWithText("Ver CV").assertCountEquals(1)
+        composeRule.onNodeWithText("Ver CV").performScrollTo().performClick()
+
+        assertEquals(listOf("cv:a-1"), clicks)
     }
 }

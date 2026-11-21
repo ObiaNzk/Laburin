@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/guregu/null/v5"
 	"github.com/laburin/backend/internal/model"
 )
 
@@ -100,7 +101,7 @@ func (s *ApplicationService) Applicants(ctx context.Context, businessID, offerID
 		return nil, err
 	}
 	for i := range applicants {
-		applicants[i] = withContactOnlyIfApproved(applicants[i])
+		applicants[i] = withCVOnlyIfShared(withContactOnlyIfApproved(applicants[i]))
 	}
 	return applicants, nil
 }
@@ -128,6 +129,9 @@ func (s *ApplicationService) ApplicantCV(ctx context.Context, businessID, applic
 	if err != nil {
 		return model.CV{}, err
 	}
+	if !applicant.SharesCV {
+		return model.CV{}, fmt.Errorf("%w: the candidate did not accept to share their CV", model.ErrForbidden)
+	}
 	return s.repo.GetCV(ctx, applicant.CandidateID)
 }
 
@@ -146,6 +150,14 @@ func (s *ApplicationService) ownedApplicant(ctx context.Context, businessID, app
 func withContactOnlyIfApproved(applicant model.Applicant) model.Applicant {
 	if applicant.Status != model.ApplicationStatusApproved {
 		applicant.CandidateEmail = ""
+	}
+	return applicant
+}
+
+// withCVOnlyIfShared hides the CV of candidates who never accepted the terms that let businesses see it.
+func withCVOnlyIfShared(applicant model.Applicant) model.Applicant {
+	if !applicant.SharesCV {
+		applicant.CVFileName = null.String{}
 	}
 	return applicant
 }

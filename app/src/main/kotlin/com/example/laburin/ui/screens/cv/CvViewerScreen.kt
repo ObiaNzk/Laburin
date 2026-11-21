@@ -43,7 +43,10 @@ import java.io.File
 @Composable
 fun CvViewerRoute(onBack: () -> Unit, viewModel: CvViewerViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    CvViewerContent(state = state, onBack = onBack, onRetry = viewModel::onRetry, onRenderFailed = viewModel::onRenderFailed)
+    CvViewerContent(
+        state = state, onBack = onBack, onRetry = viewModel::onRetry, onRenderFailed = viewModel::onRenderFailed,
+        isOwnCv = viewModel.isOwnCv,
+    )
 }
 
 @Composable
@@ -53,6 +56,7 @@ fun CvViewerContent(
     onRetry: () -> Unit,
     onRenderFailed: () -> Unit,
     modifier: Modifier = Modifier,
+    isOwnCv: Boolean = true,
 ) {
     Column(
         modifier
@@ -65,11 +69,17 @@ fun CvViewerContent(
             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
             Text(stringResource(R.string.detail_back))
         }
-        Text(stringResource(R.string.cv_viewer_title), fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        Text(
+            stringResource(if (isOwnCv) R.string.cv_viewer_title else R.string.cv_viewer_title_applicant),
+            fontWeight = FontWeight.Bold, fontSize = 24.sp,
+        )
         when (state) {
             CvViewerUiState.Loading -> Centered { CircularProgressIndicator() }
             is CvViewerUiState.Ready -> PdfPages(state.path, onRenderFailed)
-            CvViewerUiState.NotUploaded -> Centered { Text(stringResource(R.string.cv_viewer_not_uploaded), textAlign = TextAlign.Center) }
+            CvViewerUiState.NotUploaded -> Centered {
+                val message = if (isOwnCv) R.string.cv_viewer_not_uploaded else R.string.cv_viewer_applicant_not_uploaded
+                Text(stringResource(message), textAlign = TextAlign.Center)
+            }
             is CvViewerUiState.Error -> Centered {
                 Text(stringResource(state.error.messageRes()), textAlign = TextAlign.Center)
                 if (state.error != CvViewerError.Unreadable) {

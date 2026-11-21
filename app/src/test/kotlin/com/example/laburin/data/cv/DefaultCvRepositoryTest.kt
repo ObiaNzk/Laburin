@@ -2,6 +2,7 @@ package com.example.laburin.data.cv
 
 import com.example.laburin.data.applications.CvDto
 import com.example.laburin.data.applications.FakeApplicationsRemote
+import com.example.laburin.data.publish.FakeBusinessRemote
 import com.example.laburin.data.remote.ApiException
 import com.example.laburin.domain.model.CvFileResult
 import com.example.laburin.domain.model.CvInfo
@@ -25,7 +26,8 @@ class DefaultCvRepositoryTest {
     private val session = FakeSessionStore(CANDIDATE_STORED)
     private val cache = FakeCvCache()
     private val files = FakeCvFileStore()
-    private val repository = DefaultCvRepository(remote, session, cache, files)
+    private val business = FakeBusinessRemote()
+    private val repository = DefaultCvRepository(remote, business, session, cache, files)
     private val pdf = byteArrayOf(0x25, 0x50, 0x44, 0x46) // "%PDF"
 
     @Test
@@ -115,6 +117,17 @@ class DefaultCvRepositoryTest {
         val result = repository.openFile()
 
         assertEquals(CvFileResult.Ready(FakeCvFileStore.PATH), result)
+        assertArrayEquals(pdf, files.saved)
+    }
+
+    @Test
+    fun `opening an applicant's CV downloads it with the session token`() = runTest {
+        business.applicantCv = { pdf }
+
+        val result = repository.openFile(applicationId = "a-1")
+
+        assertEquals(CvFileResult.Ready(FakeCvFileStore.PATH), result)
+        assertEquals(listOf("${CANDIDATE_STORED.token}:a-1"), business.applicantCvCalls)
         assertArrayEquals(pdf, files.saved)
     }
 

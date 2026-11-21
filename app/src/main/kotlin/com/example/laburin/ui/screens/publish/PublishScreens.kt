@@ -250,6 +250,7 @@ fun BusinessSignUpContent(
 fun PublishedOfferRoute(
     onBack: () -> Unit,
     onEdit: (offerId: String) -> Unit,
+    onViewCv: (applicationId: String) -> Unit = {},
     viewModel: PublishedOfferViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -271,7 +272,7 @@ fun PublishedOfferRoute(
     PublishedOfferContent(
         state = state, onShare = viewModel::onShare, onBack = onBack,
         onApprove = viewModel::onApprove, onReject = viewModel::onReject,
-        onEdit = onEdit, onCloseOffer = viewModel::onCloseOffer,
+        onEdit = onEdit, onCloseOffer = viewModel::onCloseOffer, onViewCv = onViewCv,
     )
 }
 
@@ -284,6 +285,7 @@ fun PublishedOfferContent(
     onReject: (applicationId: String) -> Unit = {},
     onEdit: (offerId: String) -> Unit = {},
     onCloseOffer: () -> Unit = {},
+    onViewCv: (applicationId: String) -> Unit = {},
 ) {
     Column(
         Modifier
@@ -325,7 +327,7 @@ fun PublishedOfferContent(
                 OutlinedButton(onClick = onShare, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.published_share))
                 }
-                ApplicantsSection(state.applicants, onApprove, onReject)
+                ApplicantsSection(state.applicants, onApprove, onReject, onViewCv)
 
             }
         }
@@ -360,7 +362,7 @@ private fun ManageButtons(onEdit: () -> Unit, onCloseOffer: () -> Unit) {
 }
 
 @Composable
-private fun ApplicantsSection(applicants: List<Applicant>, onApprove: (String) -> Unit, onReject: (String) -> Unit) {
+private fun ApplicantsSection(applicants: List<Applicant>, onApprove: (String) -> Unit, onReject: (String) -> Unit, onViewCv: (String) -> Unit) {
     Text(stringResource(R.string.applicants_title, applicants.size), fontWeight = FontWeight.Bold, fontSize = 18.sp)
     if (applicants.isEmpty()) {
         Text(stringResource(R.string.applicants_empty), color = Color.Gray)
@@ -375,7 +377,11 @@ private fun ApplicantsSection(applicants: List<Applicant>, onApprove: (String) -
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(applicant.candidateName, fontWeight = FontWeight.Bold)
-            applicant.cvFileName?.let { Text(stringResource(R.string.applicants_cv, it)) }
+            applicant.cvFileName?.let {
+                Text(stringResource(R.string.applicants_cv, it))
+                // Shared because the candidate accepted the (provisional) terms when signing up.
+                OutlinedButton(onClick = { onViewCv(applicant.applicationId) }) { Text(stringResource(R.string.applicants_view_cv)) }
+            }
             // RNF-05: the contact is shown only once the server has confirmed the match.
             val contact = applicant.contactEmail
             Text(

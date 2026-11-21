@@ -25,9 +25,17 @@ data object LoginDestination
 @Serializable
 data object ProfileDestination
 
-/** The logged-in candidate's own CV. */
+/** Provisional terms and conditions a candidate accepts when signing up. */
 @Serializable
-data object CvViewerDestination
+data object TermsDestination
+
+/** A CV: the logged-in candidate's own, or the one behind [applicationId] for the business that owns the offer. */
+@Serializable
+data class CvViewerDestination(val applicationId: String? = null) {
+    companion object {
+        const val ARG_APPLICATION_ID = "applicationId"
+    }
+}
 
 @Serializable
 data object ApplicationsDestination

@@ -26,7 +26,8 @@ interface AuthRepository : SessionRepository, SessionExpiryNotifier {
     suspend fun acknowledgeSessionExpired()
 
     suspend fun login(email: String, password: String): AuthResult
-    suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String): AuthResult
+    /** [acceptedTerms] is the version of the terms the candidate accepted (see [com.example.laburin.domain.model.Terms]). */
+    suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String, acceptedTerms: String): AuthResult
 
     /** [location] places the business (and its offers) on the map. */
     suspend fun signUpBusiness(data: BusinessSignUp, location: GeoLocation): AuthResult

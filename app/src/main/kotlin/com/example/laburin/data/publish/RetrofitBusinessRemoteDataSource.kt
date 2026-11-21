@@ -2,9 +2,11 @@ package com.example.laburin.data.publish
 
 import com.example.laburin.data.remote.OfferDto
 import com.example.laburin.data.remote.SalaryDto
+import com.example.laburin.data.remote.ApiException
 import com.example.laburin.data.remote.apiCall
 import com.example.laburin.data.remote.bearer
 import kotlinx.serialization.Serializable
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -41,6 +43,9 @@ interface BusinessApi {
     @GET("offers/{id}/applicants")
     suspend fun applicants(@Header("Authorization") auth: String, @Path("id") offerId: String): List<ApplicantDto>
 
+    @GET("applications/{id}/cv")
+    suspend fun applicantCv(@Header("Authorization") auth: String, @Path("id") applicationId: String): ResponseBody
+
     @PUT("applications/{id}/review")
     suspend fun review(@Header("Authorization") auth: String, @Path("id") applicationId: String, @Body body: ReviewRequest): ApplicantDto
 }
@@ -59,4 +64,15 @@ class RetrofitBusinessRemoteDataSource @Inject constructor(private val api: Busi
 
     override suspend fun review(token: String, applicationId: String, approve: Boolean) =
         apiCall { api.review(bearer(token), applicationId, ReviewRequest(approve)) }
+
+    override suspend fun applicantCv(token: String, applicationId: String): ByteArray? =
+        try {
+            apiCall { api.applicantCv(bearer(token), applicationId).use { it.bytes() } }
+        } catch (e: ApiException) {
+            if (e.code == HTTP_NOT_FOUND) null else throw e
+        }
+
+    private companion object {
+        const val HTTP_NOT_FOUND = 404
+    }
 }

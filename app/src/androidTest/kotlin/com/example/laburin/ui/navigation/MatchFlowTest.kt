@@ -80,6 +80,15 @@ class MatchFlowTest {
         composeRule.waitFor("Postulante Demo")
         composeRule.onNodeWithText("Contacto oculto hasta aprobar").assertExists()
 
+        // The candidate accepted the terms when signing up, so the business can read the CV before deciding.
+        composeRule.tap("Ver CV")
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Página 1 de 1")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("CV del postulante").assertExists()
+        composeRule.tap("Volver")
+        composeRule.waitFor("Postulante Demo")
+
         composeRule.tap("Aprobar")
         composeRule.waitFor("Aprobación pendiente de envío")
         composeRule.onNodeWithText("Contacto: ${FakeBackend.DEMO_CANDIDATE_EMAIL}").assertDoesNotExist()

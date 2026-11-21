@@ -152,7 +152,7 @@ func TestApplicants_HidesTheContactUntilApproved(t *testing.T) {
 	setup := setupApplicationTest(t)
 	businessID, offerID := uuid.New(), uuid.New()
 	setup.repo.EXPECT().GetOffer(gomock.Any(), offerID).Return(model.Offer{ID: offerID, BusinessID: businessID}, nil)
-	pending := model.Applicant{ApplicationID: uuid.New(), OfferID: offerID, CandidateName: "[NOMBRE]", CandidateEmail: "[email]@a", Status: model.ApplicationStatusSent, CVFileName: null.StringFrom("cv.pdf")}
+	pending := model.Applicant{ApplicationID: uuid.New(), OfferID: offerID, CandidateName: "[NOMBRE]", CandidateEmail: "[email]@a", Status: model.ApplicationStatusSent, CVFileName: null.StringFrom("cv.pdf"), SharesCV: true}
 	approved := model.Applicant{ApplicationID: uuid.New(), OfferID: offerID, CandidateName: "[NOMBRE]", CandidateEmail: "[email]@b", Status: model.ApplicationStatusApproved}
 	rejected := model.Applicant{ApplicationID: uuid.New(), OfferID: offerID, CandidateName: "[NOMBRE]", CandidateEmail: "[email]@c", Status: model.ApplicationStatusRejected}
 	setup.repo.EXPECT().ListApplicants(gomock.Any(), offerID).Return([]model.Applicant{pending, approved, rejected}, nil)
@@ -165,6 +165,23 @@ func TestApplicants_HidesTheContactUntilApproved(t *testing.T) {
 	hiddenPending, hiddenRejected := pending, rejected
 	hiddenPending.CandidateEmail, hiddenRejected.CandidateEmail = "", ""
 	require.Equal(t, []model.Applicant{hiddenPending, approved, hiddenRejected}, got)
+}
+
+func TestApplicants_HidesTheCVOfWhoDidNotAcceptToShareIt(t *testing.T) {
+	// begin
+	setup := setupApplicationTest(t)
+	businessID, offerID := uuid.New(), uuid.New()
+	setup.repo.EXPECT().GetOffer(gomock.Any(), offerID).Return(model.Offer{ID: offerID, BusinessID: businessID}, nil)
+	notShared := model.Applicant{ApplicationID: uuid.New(), OfferID: offerID, CandidateName: "[NOMBRE]", Status: model.ApplicationStatusSent, CVFileName: null.StringFrom("cv.pdf")}
+	setup.repo.EXPECT().ListApplicants(gomock.Any(), offerID).Return([]model.Applicant{notShared}, nil)
+
+	// when
+	got, err := setup.service.Applicants(context.Background(), businessID, offerID)
+
+	// then
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	require.False(t, got[0].CVFileName.Valid)
 }
 
 func TestApplicants_AnotherBusinessOfferIsForbidden(t *testing.T) {
@@ -255,12 +272,25 @@ func TestReview_UnknownApplication(t *testing.T) {
 	require.ErrorIs(t, err, model.ErrNotFound)
 }
 
+func TestApplicantCV_WithoutTheCandidatesConsentIsForbidden(t *testing.T) {
+	// begin
+	setup := setupApplicationTest(t)
+	businessID, applicationID := uuid.New(), uuid.New()
+	setup.repo.EXPECT().GetApplicant(gomock.Any(), applicationID).Return(model.Applicant{ApplicationID: applicationID, BusinessID: businessID, CandidateID: uuid.New()}, nil)
+
+	// when
+	_, err := setup.service.ApplicantCV(context.Background(), businessID, applicationID)
+
+	// then
+	require.ErrorIs(t, err, model.ErrForbidden)
+}
+
 func TestApplicantCV_OwnerGetsTheFile(t *testing.T) {
 	// begin
 	setup := setupApplicationTest(t)
 	businessID, applicationID, candidateID := uuid.New(), uuid.New(), uuid.New()
 	cv := model.CV{FileName: "cv.pdf", Content: []byte("%PDF-1.4")}
-	setup.repo.EXPECT().GetApplicant(gomock.Any(), applicationID).Return(model.Applicant{ApplicationID: applicationID, BusinessID: businessID, CandidateID: candidateID}, nil)
+	setup.repo.EXPECT().GetApplicant(gomock.Any(), applicationID).Return(model.Applicant{ApplicationID: applicationID, BusinessID: businessID, CandidateID: candidateID, SharesCV: true}, nil)
 	setup.repo.EXPECT().GetCV(gomock.Any(), candidateID).Return(cv, nil)
 
 	// when

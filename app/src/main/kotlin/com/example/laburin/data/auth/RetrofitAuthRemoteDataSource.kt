@@ -10,7 +10,13 @@ import javax.inject.Inject
 data class LoginRequest(val email: String, val password: String)
 
 @Serializable
-data class CandidateSignUpRequest(val firstName: String, val lastName: String, val email: String, val password: String)
+data class CandidateSignUpRequest(
+    val firstName: String,
+    val lastName: String,
+    val email: String,
+    val password: String,
+    val acceptedTerms: String,
+)
 
 /** Contract: docs/api/auth.md. */
 interface AuthApi {
@@ -27,8 +33,8 @@ interface AuthApi {
 class RetrofitAuthRemoteDataSource @Inject constructor(private val api: AuthApi) : AuthRemoteDataSource {
     override suspend fun login(email: String, password: String) = apiCall { api.login(LoginRequest(email, password)) }
 
-    override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String) =
-        apiCall { api.signUpCandidate(CandidateSignUpRequest(firstName, lastName, email, password)) }
+    override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String, acceptedTerms: String) =
+        apiCall { api.signUpCandidate(CandidateSignUpRequest(firstName, lastName, email, password, acceptedTerms)) }
 
     override suspend fun signUpBusiness(data: BusinessSignUpDto) = apiCall { api.signUpBusiness(data) }
 }

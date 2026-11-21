@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	null "github.com/guregu/null/v5"
 )
 
 const createBusiness = `-- name: CreateBusiness :exec
@@ -40,8 +41,9 @@ func (q *Queries) CreateBusiness(ctx context.Context, arg CreateBusinessParams) 
 }
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users (id, role, email, password_hash, display_name)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO users (id, role, email, password_hash, display_name, terms_version, terms_accepted_at)
+VALUES ($1, $2, $3, $4, $5, $6,
+        CASE WHEN $6::text IS NULL THEN NULL ELSE now() END)
 `
 
 type CreateUserParams struct {
@@ -50,6 +52,7 @@ type CreateUserParams struct {
 	Email        string
 	PasswordHash string
 	DisplayName  string
+	TermsVersion null.String
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
@@ -59,6 +62,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 		arg.Email,
 		arg.PasswordHash,
 		arg.DisplayName,
+		arg.TermsVersion,
 	)
 	return err
 }
@@ -85,7 +89,7 @@ func (q *Queries) GetBusiness(ctx context.Context, userID uuid.UUID) (Business, 
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, role, email, password_hash, display_name
+SELECT id, role, email, password_hash, display_name, terms_version
 FROM users
 WHERE lower(email) = lower($1)
 `
@@ -96,6 +100,7 @@ type GetUserByEmailRow struct {
 	Email        string
 	PasswordHash string
 	DisplayName  string
+	TermsVersion null.String
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -107,6 +112,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.Email,
 		&i.PasswordHash,
 		&i.DisplayName,
+		&i.TermsVersion,
 	)
 	return i, err
 }

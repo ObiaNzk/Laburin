@@ -76,6 +76,14 @@
     <string name="signup_password_hint">Mínimo 8 caracteres</string>
     <string name="signup_submit">Crear cuenta y seguir</string>
     <string name="signup_cv_later">Podés cargar tu CV antes de postularte.</string>
+    <string name="signup_terms_accept">Acepto los términos y condiciones</string>
+    <string name="signup_terms_read">Leer los términos</string>
+    <string name="signup_error_terms">Tenés que aceptar los términos para crear la cuenta</string>
+    <string name="terms_title">Términos y condiciones</string>
+    <string name="terms_body">Al crear tu cuenta de postulante aceptás que los comercios a los que te postules van a poder ver tu CV completo, incluidos los datos de contacto que hayas escrito en el PDF (por ejemplo, teléfono o email).\n\nLaburIN le muestra tu email al comercio recién cuando aprueba tu postulación (el Match), pero no oculta lo que está escrito dentro de tu CV. Si no querés compartir tus datos de contacto antes del Match, no los pongas en el PDF.\n\nVersión 2026-11-cv-v1.</string>
+    <string name="applicants_view_cv">Ver CV</string>
+    <string name="cv_viewer_title_applicant">CV del postulante</string>
+    <string name="cv_viewer_applicant_not_uploaded">Este postulante no tiene un CV cargado.</string>
     <string name="signup_error_first_name">Ingresá tu nombre</string>
     <string name="signup_error_last_name">Ingresá tu apellido</string>
     <string name="signup_error_email">Ingresá un email válido</string>

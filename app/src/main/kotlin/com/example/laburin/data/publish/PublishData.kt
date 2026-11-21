@@ -35,6 +35,12 @@ interface BusinessRemoteDataSource {
 
     /** Idempotent. The candidate's contact is included only in an approval's response. */
     suspend fun review(token: String, applicationId: String, approve: Boolean): ApplicantDto
+
+    /**
+     * The applicant's PDF, or null when they have no CV.
+     * @throws com.example.laburin.data.remote.ApiException 403 not the owner, or the candidate didn't share their CV
+     */
+    suspend fun applicantCv(token: String, applicationId: String): ByteArray?
 }
 
 /** [status]: PENDING_REVIEW, APPROVED or REJECTED. [contactEmail] is sent only for approved applicants. */

@@ -29,7 +29,8 @@ func (q *Queries) CreateApplication(ctx context.Context, arg CreateApplicationPa
 }
 
 const getApplicant = `-- name: GetApplicant :one
-SELECT a.id, a.offer_id, a.candidate_id, a.status, u.display_name, u.email, c.file_name AS cv_file_name, o.business_id
+SELECT a.id, a.offer_id, a.candidate_id, a.status, u.display_name, u.email, c.file_name AS cv_file_name, o.business_id,
+       (u.terms_version IS NOT NULL)::boolean AS shares_cv
 FROM applications a
 JOIN users u ON u.id = a.candidate_id
 JOIN offers o ON o.id = a.offer_id
@@ -46,6 +47,7 @@ type GetApplicantRow struct {
 	Email       string
 	CvFileName  null.String
 	BusinessID  uuid.UUID
+	SharesCv    bool
 }
 
 func (q *Queries) GetApplicant(ctx context.Context, id uuid.UUID) (GetApplicantRow, error) {
@@ -60,6 +62,7 @@ func (q *Queries) GetApplicant(ctx context.Context, id uuid.UUID) (GetApplicantR
 		&i.Email,
 		&i.CvFileName,
 		&i.BusinessID,
+		&i.SharesCv,
 	)
 	return i, err
 }
@@ -92,7 +95,8 @@ func (q *Queries) GetApplication(ctx context.Context, id uuid.UUID) (GetApplicat
 }
 
 const listApplicants = `-- name: ListApplicants :many
-SELECT a.id, a.offer_id, a.candidate_id, a.status, u.display_name, u.email, c.file_name AS cv_file_name, o.business_id
+SELECT a.id, a.offer_id, a.candidate_id, a.status, u.display_name, u.email, c.file_name AS cv_file_name, o.business_id,
+       (u.terms_version IS NOT NULL)::boolean AS shares_cv
 FROM applications a
 JOIN users u ON u.id = a.candidate_id
 JOIN offers o ON o.id = a.offer_id
@@ -110,6 +114,7 @@ type ListApplicantsRow struct {
 	Email       string
 	CvFileName  null.String
 	BusinessID  uuid.UUID
+	SharesCv    bool
 }
 
 func (q *Queries) ListApplicants(ctx context.Context, offerID uuid.UUID) ([]ListApplicantsRow, error) {
@@ -130,6 +135,7 @@ func (q *Queries) ListApplicants(ctx context.Context, offerID uuid.UUID) ([]List
 			&i.Email,
 			&i.CvFileName,
 			&i.BusinessID,
+			&i.SharesCv,
 		); err != nil {
 			return nil, err
 		}

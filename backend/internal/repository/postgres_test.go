@@ -29,7 +29,7 @@ func newFixture(t *testing.T) fixture {
 }
 
 func (f fixture) candidate(t *testing.T, email string) model.User {
-	user := model.User{ID: uuid.New(), Role: model.RoleCandidate, Email: email, PasswordHash: "hash", DisplayName: "[NOMBRE]"}
+	user := model.User{ID: uuid.New(), Role: model.RoleCandidate, Email: email, PasswordHash: "hash", DisplayName: "[NOMBRE]", TermsVersion: model.CurrentTermsVersion}
 	require.NoError(t, f.repo.CreateCandidate(f.ctx, user))
 	return user
 }
@@ -296,8 +296,8 @@ func TestApplicants_IncludeCVAndOwnerAndReflectTheReview(t *testing.T) {
 	// then
 	require.NoError(t, errList)
 	require.NoError(t, errOne)
-	approved := model.Applicant{ApplicationID: first, OfferID: offerID, CandidateID: withCV.ID, BusinessID: f.business.UserID, CandidateName: "[NOMBRE]", CandidateEmail: "[uno]@test.laburin", CVFileName: null.StringFrom("cv.pdf"), Status: model.ApplicationStatusApproved}
-	pending := model.Applicant{ApplicationID: second, OfferID: offerID, CandidateID: withoutCV.ID, BusinessID: f.business.UserID, CandidateName: "[NOMBRE]", CandidateEmail: "[dos]@test.laburin", Status: model.ApplicationStatusSent}
+	approved := model.Applicant{ApplicationID: first, OfferID: offerID, CandidateID: withCV.ID, BusinessID: f.business.UserID, CandidateName: "[NOMBRE]", CandidateEmail: "[uno]@test.laburin", CVFileName: null.StringFrom("cv.pdf"), Status: model.ApplicationStatusApproved, SharesCV: true}
+	pending := model.Applicant{ApplicationID: second, OfferID: offerID, CandidateID: withoutCV.ID, BusinessID: f.business.UserID, CandidateName: "[NOMBRE]", CandidateEmail: "[dos]@test.laburin", Status: model.ApplicationStatusSent, SharesCV: true}
 	require.Equal(t, []model.Applicant{approved, pending}, list)
 	require.Equal(t, approved, one)
 	_, err := f.repo.GetApplicant(f.ctx, uuid.New())
@@ -354,4 +354,21 @@ func offerIDs(offers []model.Offer) []uuid.UUID {
 		ids[i] = offer.ID
 	}
 	return ids
+}
+
+func TestApplicant_WithoutAcceptedTermsDoesNotShareTheCV(t *testing.T) {
+	// begin
+	f := newFixture(t)
+	legacy := model.User{ID: uuid.New(), Role: model.RoleCandidate, Email: "[viejo]@test.laburin", PasswordHash: "hash", DisplayName: "[NOMBRE]"}
+	require.NoError(t, f.repo.CreateCandidate(f.ctx, legacy))
+	offerID := f.offer(t, testContent)
+	id := uuid.New()
+	require.NoError(t, f.repo.CreateApplication(f.ctx, id, offerID, legacy.ID))
+
+	// when
+	got, err := f.repo.GetApplicant(f.ctx, id)
+
+	// then
+	require.NoError(t, err)
+	require.False(t, got.SharesCV)
 }

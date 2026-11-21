@@ -11,7 +11,8 @@ class SignUpValidatorTest {
         lastName: String = "Pérez",
         email: String = "ana@demo.laburin",
         password: String = "12345678",
-    ) = SignUpValidator.validate(firstName, lastName, email, password)
+        termsAccepted: Boolean = true,
+    ) = SignUpValidator.validate(firstName, lastName, email, password, termsAccepted)
 
     @Test
     fun `valid data has no errors`() {
@@ -26,6 +27,11 @@ class SignUpValidatorTest {
     @Test
     fun `email must look like an email`() {
         assertEquals(setOf(SignUpField.EMAIL), errors(email = "sin-arroba"))
+    }
+
+    @Test
+    fun `the terms must be accepted to sign up`() {
+        assertEquals(setOf(SignUpField.TERMS), errors(termsAccepted = false))
     }
 
     @Test

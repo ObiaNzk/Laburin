@@ -20,6 +20,7 @@ data class SignUpUiState(
     val lastName: String = "",
     val email: String = "",
     val password: String = "",
+    val termsAccepted: Boolean = false,
     val fieldErrors: Set<SignUpField> = emptySet(),
     val isSubmitting: Boolean = false,
     val error: SignUpError? = null,

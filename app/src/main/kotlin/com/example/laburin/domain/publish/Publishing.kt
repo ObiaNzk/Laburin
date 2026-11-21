@@ -104,7 +104,7 @@ object BusinessSignUpValidator {
             if (schedule.isBlank()) add(BusinessSignUpField.SCHEDULE)
             if (address.isBlank()) add(BusinessSignUpField.ADDRESS)
             // Same email and password rules as candidates.
-            val accountErrors = SignUpValidator.validate("x", "x", email, password)
+            val accountErrors = SignUpValidator.validate("x", "x", email, password, termsAccepted = true)
             if (SignUpField.EMAIL in accountErrors) add(BusinessSignUpField.EMAIL)
             if (SignUpField.PASSWORD in accountErrors) add(BusinessSignUpField.PASSWORD)
         }

@@ -65,7 +65,7 @@ func main() {
 	profile := service.NewProfileService(postgres)
 
 	candidate := account(ctx, postgres, "postulante@demo.laburin", func() (service.Session, error) {
-		params := service.SignUpCandidateParams{FirstName: "Postulante", LastName: "Demo", Email: "postulante@demo.laburin", Password: demoPassword}
+		params := service.SignUpCandidateParams{FirstName: "Postulante", LastName: "Demo", Email: "postulante@demo.laburin", Password: demoPassword, AcceptedTerms: model.CurrentTermsVersion}
 		return authService.SignUpCandidate(ctx, params)
 	})
 	cv := model.CV{FileName: "cv-demo.pdf", Content: demoPDF("CV de ejemplo - [NOMBRE] [APELLIDO]")}

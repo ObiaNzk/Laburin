@@ -27,6 +27,15 @@ class FakeBackendReviewTest {
     }
 
     @Test
+    fun `the business can open the CV of who applied to its offer`() = runTest {
+        backend.apply(candidate(), "a-1", "f-4")
+
+        val pdf = backend.applicantCv(business(), "a-1")
+
+        assertEquals(backend.downloadCv(candidate())?.decodeToString(), pdf?.decodeToString())
+    }
+
+    @Test
     fun `approving reveals the contact and the candidate sees the match`() = runTest {
         val candidateToken = candidate()
         backend.apply(candidateToken, "a-1", "f-4")
@@ -59,6 +68,7 @@ class FakeBackendReviewTest {
 
         assertEquals(403, apiCode { backend.applicants(other, "f-4") })
         assertEquals(403, apiCode { backend.review(other, "a-1", approve = true) })
+        assertEquals(403, apiCode { backend.applicantCv(other, "a-1") })
     }
 
     private suspend fun apiCode(block: suspend () -> Unit): Int {

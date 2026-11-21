@@ -1,5 +1,10 @@
 package com.example.laburin.ui.screens.auth
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.semantics.Role
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
@@ -103,6 +108,7 @@ fun LoginContent(
 fun SignUpRoute(
     onSignedUp: () -> Unit,
     onClose: () -> Unit,
+    onOpenTerms: () -> Unit = {},
     viewModel: SignUpViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -112,6 +118,7 @@ fun SignUpRoute(
     SignUpContent(
         state, viewModel::onFirstNameChange, viewModel::onLastNameChange, viewModel::onEmailChange,
         viewModel::onPasswordChange, viewModel::onSubmit, onClose,
+        onTermsAcceptedChange = viewModel::onTermsAcceptedChange, onOpenTerms = onOpenTerms,
     )
 }
 
@@ -124,6 +131,8 @@ fun SignUpContent(
     onPasswordChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onClose: () -> Unit,
+    onTermsAcceptedChange: (Boolean) -> Unit = {},
+    onOpenTerms: () -> Unit = {},
 ) {
     FormScreen(
         title = stringResource(R.string.signup_title),
@@ -141,12 +150,32 @@ fun SignUpContent(
         FormField(stringResource(R.string.auth_password), state.password, onPasswordChange, keyboard = KeyboardType.Password,
             secret = true, placeholder = stringResource(R.string.signup_password_hint),
             error = stringResource(R.string.signup_error_password).takeIf { SignUpField.PASSWORD in errors })
+        TermsCheckbox(state.termsAccepted, onTermsAcceptedChange, onOpenTerms, showError = SignUpField.TERMS in errors)
         state.error?.let { FormError(stringResource(it.messageRes())) }
         SubmitButton(stringResource(R.string.signup_submit), state.isSubmitting, onSubmit)
         Text(
             stringResource(R.string.signup_cv_later), fontSize = 12.sp, color = Color.Gray,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
         )
+    }
+}
+
+/** Provisional terms: accepting them lets the businesses the candidate applies to see the CV (see TermsContent). */
+@Composable
+private fun TermsCheckbox(accepted: Boolean, onChange: (Boolean) -> Unit, onOpenTerms: () -> Unit, showError: Boolean) {
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .toggleable(value = accepted, role = Role.Checkbox, onValueChange = onChange),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(checked = accepted, onCheckedChange = null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.signup_terms_accept))
+        }
+        TextButton(onClick = onOpenTerms) { Text(stringResource(R.string.signup_terms_read)) }
+        if (showError) Text(stringResource(R.string.signup_error_terms), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
     }
 }
 

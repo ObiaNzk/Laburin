@@ -96,7 +96,7 @@ func TestSignUpCandidate_Success(t *testing.T) {
 	setup.users.EXPECT().CreateCandidate(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, got model.User) error {
 		require.NotEqual(t, uuid.Nil, got.ID)
 		require.NoError(t, bcrypt.CompareHashAndPassword([]byte(got.PasswordHash), []byte("demo1234")))
-		expected := model.User{ID: got.ID, Role: model.RoleCandidate, Email: "[email]@demo.laburin", PasswordHash: got.PasswordHash, DisplayName: "[NOMBRE] [APELLIDO]"}
+		expected := model.User{ID: got.ID, Role: model.RoleCandidate, Email: "[email]@demo.laburin", PasswordHash: got.PasswordHash, DisplayName: "[NOMBRE] [APELLIDO]", TermsVersion: model.CurrentTermsVersion}
 		require.Equal(t, expected, got)
 		created = got
 		return nil
@@ -107,7 +107,7 @@ func TestSignUpCandidate_Success(t *testing.T) {
 	})
 
 	// when
-	got, err := setup.service.SignUpCandidate(context.Background(), SignUpCandidateParams{FirstName: " [NOMBRE] ", LastName: "[APELLIDO]", Email: "[EMAIL]@demo.laburin", Password: "demo1234"})
+	got, err := setup.service.SignUpCandidate(context.Background(), SignUpCandidateParams{FirstName: " [NOMBRE] ", LastName: "[APELLIDO]", Email: "[EMAIL]@demo.laburin", Password: "demo1234", AcceptedTerms: model.CurrentTermsVersion})
 
 	// then
 	require.NoError(t, err)
@@ -120,7 +120,7 @@ func TestSignUpCandidate_EmailTaken(t *testing.T) {
 	setup.users.EXPECT().CreateCandidate(gomock.Any(), gomock.Any()).Return(model.ErrConflict)
 
 	// when
-	_, err := setup.service.SignUpCandidate(context.Background(), SignUpCandidateParams{FirstName: "a", LastName: "b", Email: "[email]@demo.laburin", Password: "demo1234"})
+	_, err := setup.service.SignUpCandidate(context.Background(), SignUpCandidateParams{FirstName: "a", LastName: "b", Email: "[email]@demo.laburin", Password: "demo1234", AcceptedTerms: model.CurrentTermsVersion})
 
 	// then
 	require.ErrorIs(t, err, model.ErrConflict)
@@ -128,10 +128,12 @@ func TestSignUpCandidate_EmailTaken(t *testing.T) {
 
 func TestSignUpCandidate_Invalid(t *testing.T) {
 	cases := map[string]SignUpCandidateParams{
-		"short password": {FirstName: "a", LastName: "b", Email: "[email]@demo.laburin", Password: "1234567"},
-		"bad email":      {FirstName: "a", LastName: "b", Email: "sin-arroba", Password: "demo1234"},
-		"blank name":     {FirstName: " ", LastName: "b", Email: "[email]@demo.laburin", Password: "demo1234"},
-		"blank lastname": {FirstName: "a", LastName: "", Email: "[email]@demo.laburin", Password: "demo1234"},
+		"short password":     {FirstName: "a", LastName: "b", Email: "[email]@demo.laburin", Password: "1234567", AcceptedTerms: model.CurrentTermsVersion},
+		"bad email":          {FirstName: "a", LastName: "b", Email: "sin-arroba", Password: "demo1234", AcceptedTerms: model.CurrentTermsVersion},
+		"blank name":         {FirstName: " ", LastName: "b", Email: "[email]@demo.laburin", Password: "demo1234", AcceptedTerms: model.CurrentTermsVersion},
+		"blank lastname":     {FirstName: "a", LastName: "", Email: "[email]@demo.laburin", Password: "demo1234", AcceptedTerms: model.CurrentTermsVersion},
+		"terms not accepted": {FirstName: "a", LastName: "b", Email: "[email]@demo.laburin", Password: "demo1234"},
+		"outdated terms":     {FirstName: "a", LastName: "b", Email: "[email]@demo.laburin", Password: "demo1234", AcceptedTerms: "old-version"},
 	}
 	for name, params := range cases {
 		t.Run(name, func(t *testing.T) {

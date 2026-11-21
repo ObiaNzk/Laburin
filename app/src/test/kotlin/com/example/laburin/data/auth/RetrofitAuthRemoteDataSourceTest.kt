@@ -52,13 +52,13 @@ class RetrofitAuthRemoteDataSourceTest {
     fun `candidate sign up posts the form`() = runTest {
         server.respond(code = 201, body = AUTH_RESPONSE)
 
-        dataSource.signUpCandidate("[NOMBRE]", "[APELLIDO]", "[EMAIL]", "[PASSWORD]")
+        dataSource.signUpCandidate("[NOMBRE]", "[APELLIDO]", "[EMAIL]", "[PASSWORD]", "terms-v1")
 
         val request = server.takeRequest()
         assertEquals("POST", request.method)
         assertEquals("/auth/signup/candidate", request.url.encodedPath)
         assertEquals(
-            json("""{"firstName":"[NOMBRE]","lastName":"[APELLIDO]","email":"[EMAIL]","password":"[PASSWORD]"}"""),
+            json("""{"firstName":"[NOMBRE]","lastName":"[APELLIDO]","email":"[EMAIL]","password":"[PASSWORD]","acceptedTerms":"terms-v1"}"""),
             request.bodyJson(),
         )
     }
@@ -67,7 +67,7 @@ class RetrofitAuthRemoteDataSourceTest {
     fun `an email already registered is reported as 409`() = runTest {
         server.respond(code = 409)
 
-        assertEquals(409, apiErrorCode { dataSource.signUpCandidate("[NOMBRE]", "[APELLIDO]", "[EMAIL]", "[PASSWORD]") })
+        assertEquals(409, apiErrorCode { dataSource.signUpCandidate("[NOMBRE]", "[APELLIDO]", "[EMAIL]", "[PASSWORD]", "terms-v1") })
     }
 
     @Test

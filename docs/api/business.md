@@ -47,15 +47,16 @@ Codifica un **link web**, para que lo pueda abrir la cámara de cualquier celula
 `200 [ { "applicationId", "offerId", "candidateName", "cvFileName", "status": "PENDING_REVIEW" | "APPROVED" | "REJECTED", "contactEmail" } ]`
 
 - `contactEmail` viene **solo** para postulantes aprobados (RNF-05). Para el resto es `null`.
+- `cvFileName` es `null` si el postulante no tiene CV o no aceptó los términos que permiten compartirlo (cuentas creadas antes de los términos).
 - **403**: la oferta no es de ese comercio. **404**: la oferta no existe.
 
 ## `GET /applications/{id}/cv` (requiere el token del comercio dueño de la oferta)
 
 Descarga el PDF del CV del postulante (`Content-Type: application/pdf`, `Content-Disposition: attachment; filename="…"`).
 
-- **403**: la postulación es de una oferta de otro comercio. **404**: no existe la postulación o el postulante ya no tiene CV.
+- **403**: la postulación es de una oferta de otro comercio, o el postulante no aceptó compartir su CV. **404**: no existe la postulación o el postulante ya no tiene CV.
 - **Pendiente en la app**: hoy la lista de postulantes muestra solo el nombre del archivo.
-- **A decidir (RNF-05)**: el back oculta el email hasta el Match, pero el PDF puede traer los datos de contacto que el postulante haya escrito. El back no puede ocultarlos dentro del archivo.
+- **RNF-05, solución provisoria**: el back oculta el email hasta el Match, pero el PDF puede traer los datos de contacto que el postulante haya escrito, y el back no puede ocultarlos dentro del archivo. Por eso el postulante acepta en el registro (`acceptedTerms` en `docs/api/auth.md`) que los comercios a los que se postula vean su CV. Se reemplaza cuando exista la ofuscación de datos personales del PDF.
 
 ## `PUT /applications/{id}/review` (requiere el token del comercio dueño)
 

@@ -364,10 +364,12 @@ type PushToken struct {
 }
 
 type User struct {
-	ID           uuid.UUID
-	Role         UserRole
-	Email        string
-	PasswordHash string
-	DisplayName  string
-	CreatedAt    time.Time
+	ID              uuid.UUID
+	Role            UserRole
+	Email           string
+	PasswordHash    string
+	DisplayName     string
+	CreatedAt       time.Time
+	TermsVersion    null.String
+	TermsAcceptedAt null.Time
 }

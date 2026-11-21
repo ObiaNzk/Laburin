@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/guregu/null/v5"
 	"github.com/laburin/backend/internal/dbmodel"
 	"github.com/laburin/backend/internal/model"
 )
@@ -13,7 +14,7 @@ func (p *Postgres) GetUserByEmail(ctx context.Context, email string) (model.User
 	if err != nil {
 		return model.User{}, mapError(err)
 	}
-	return model.User{ID: row.ID, Role: model.Role(row.Role), Email: row.Email, PasswordHash: row.PasswordHash, DisplayName: row.DisplayName}, nil
+	return model.User{ID: row.ID, Role: model.Role(row.Role), Email: row.Email, PasswordHash: row.PasswordHash, DisplayName: row.DisplayName, TermsVersion: row.TermsVersion.String}, nil
 }
 
 func (p *Postgres) CreateCandidate(ctx context.Context, user model.User) error {
@@ -40,5 +41,5 @@ func (p *Postgres) GetBusiness(ctx context.Context, userID uuid.UUID) (model.Bus
 }
 
 func userParams(user model.User) dbmodel.CreateUserParams {
-	return dbmodel.CreateUserParams{ID: user.ID, Role: dbmodel.UserRole(user.Role), Email: user.Email, PasswordHash: user.PasswordHash, DisplayName: user.DisplayName}
+	return dbmodel.CreateUserParams{ID: user.ID, Role: dbmodel.UserRole(user.Role), Email: user.Email, PasswordHash: user.PasswordHash, DisplayName: user.DisplayName, TermsVersion: null.NewString(user.TermsVersion, user.TermsVersion != "")}
 }

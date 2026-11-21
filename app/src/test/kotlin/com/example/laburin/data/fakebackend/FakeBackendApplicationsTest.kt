@@ -1,6 +1,7 @@
 package com.example.laburin.data.fakebackend
 
 import com.example.laburin.data.remote.ApiException
+import com.example.laburin.domain.model.Terms
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -59,7 +60,7 @@ class FakeBackendApplicationsTest {
 
     @Test
     fun `a new candidate has no CV until uploading one`() = runTest {
-        val token = backend.signUpCandidate("Ana", "Pérez", "ana@demo.laburin", "12345678").token
+        val token = backend.signUpCandidate("Ana", "Pérez", "ana@demo.laburin", "12345678", Terms.CURRENT_VERSION).token
         assertNull(backend.getCv(token))
 
         backend.uploadCv(token, "mi-cv.pdf", byteArrayOf(1, 2, 3))
@@ -77,7 +78,7 @@ class FakeBackendApplicationsTest {
 
     @Test
     fun `the uploaded CV file is the one downloaded`() = runTest {
-        val token = backend.signUpCandidate("[NOMBRE]", "[APELLIDO]", "nuevo@demo.laburin", "12345678").token
+        val token = backend.signUpCandidate("[NOMBRE]", "[APELLIDO]", "nuevo@demo.laburin", "12345678", Terms.CURRENT_VERSION).token
         assertNull(backend.downloadCv(token))
 
         backend.uploadCv(token, "mi-cv.pdf", "%PDF-1.4 cv".toByteArray())

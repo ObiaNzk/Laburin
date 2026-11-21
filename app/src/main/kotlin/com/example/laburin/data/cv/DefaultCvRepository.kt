@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.laburin.data.applications.ApplicationsRemoteDataSource
 import com.example.laburin.data.auth.SessionStore
+import com.example.laburin.data.publish.BusinessRemoteDataSource
 import com.example.laburin.data.remote.ApiException
 import com.example.laburin.domain.model.CvFileResult
 import com.example.laburin.domain.model.CvInfo
@@ -44,6 +45,7 @@ interface CvFileStore {
 @OptIn(ExperimentalCoroutinesApi::class)
 class DefaultCvRepository @Inject constructor(
     private val remote: ApplicationsRemoteDataSource,
+    private val business: BusinessRemoteDataSource,
     private val session: SessionStore,
     private val cache: CvCache,
     private val files: CvFileStore,
@@ -82,10 +84,10 @@ class DefaultCvRepository @Inject constructor(
         return CvUploadResult.Success
     }
 
-    override suspend fun openFile(): CvFileResult {
+    override suspend fun openFile(applicationId: String?): CvFileResult {
         val stored = session.stored.first() ?: return CvFileResult.ServerError(HTTP_UNAUTHORIZED)
         val bytes = try {
-            remote.downloadCv(stored.token)
+            if (applicationId == null) remote.downloadCv(stored.token) else business.applicantCv(stored.token, applicationId)
         } catch (e: IOException) {
             return CvFileResult.NetworkError
         } catch (e: ApiException) {

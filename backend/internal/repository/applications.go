@@ -79,5 +79,6 @@ func applicantFromRow(row dbmodel.GetApplicantRow) model.Applicant {
 	return model.Applicant{
 		ApplicationID: row.ID, OfferID: row.OfferID, CandidateID: row.CandidateID, BusinessID: row.BusinessID,
 		CandidateName: row.DisplayName, CandidateEmail: row.Email, CVFileName: row.CvFileName, Status: model.ApplicationStatus(row.Status),
+		SharesCV: row.SharesCv,
 	}
 }

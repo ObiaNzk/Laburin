@@ -11,11 +11,13 @@ Body: `{ "email": "…", "password": "…" }`
 
 ## `POST /auth/signup/candidate`
 
-Body: `{ "firstName": "…", "lastName": "…", "email": "…", "password": "…" }` (contraseña de 8 caracteres como mínimo; la app ya lo valida).
+Body: `{ "firstName": "…", "lastName": "…", "email": "…", "password": "…", "acceptedTerms": "2026-11-cv-v1" }` (contraseña de 8 caracteres como mínimo; la app ya lo valida).
+
+`acceptedTerms` es la versión de los términos y condiciones que la persona aceptó en el registro. Tiene que ser la vigente (`2026-11-cv-v1`). El back guarda la versión y la fecha. **Provisorio:** al aceptarlos, el postulante permite que los comercios a los que se postule vean su CV, incluidos los datos de contacto que tenga, hasta que exista la ofuscación de datos personales del PDF.
 
 - **201**: misma respuesta que el login, porque el usuario queda logueado.
 - **409**: ya existe una cuenta con ese email (el email no distingue mayúsculas).
-- **400**: faltan campos, el email no es válido o la contraseña tiene menos de 8 caracteres.
+- **400**: faltan campos, el email no es válido, la contraseña tiene menos de 8 caracteres o no se aceptaron los términos vigentes.
 
 ## Reglas que la app asume
 

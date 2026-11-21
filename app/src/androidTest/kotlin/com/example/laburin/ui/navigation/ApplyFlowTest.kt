@@ -13,6 +13,7 @@ import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.example.laburin.MainActivity
 import com.example.laburin.data.fakebackend.FakeBackend
+import com.example.laburin.domain.model.Terms
 import com.example.laburin.data.local.LaburinDatabase
 import com.example.laburin.data.sync.WorkManagerSyncScheduler
 import com.example.laburin.domain.repository.AuthRepository
@@ -81,7 +82,7 @@ class ApplyFlowTest {
 
     @Test
     fun applyingWithoutACvLeadsToTheProfileToUploadIt() {
-        runBlocking { auth.signUpCandidate("Ana", "Pérez", "ana.sincv@demo.laburin", "12345678") }
+        runBlocking { auth.signUpCandidate("Ana", "Pérez", "ana.sincv@demo.laburin", "12345678", Terms.CURRENT_VERSION) }
         openOffer("Vendedor/a")
 
         composeRule.tap("Postularme")

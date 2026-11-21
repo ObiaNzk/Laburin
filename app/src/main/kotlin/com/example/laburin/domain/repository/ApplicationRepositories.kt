@@ -28,8 +28,11 @@ interface CvRepository {
 
     suspend fun upload(fileName: String, mimeType: String?, bytes: ByteArray): CvUploadResult
 
-    /** Downloads the uploaded PDF so the user can see exactly what businesses get. */
-    suspend fun openFile(): CvFileResult
+    /**
+     * Downloads a CV to show it: the user's own when [applicationId] is null (to see exactly what businesses get), or
+     * the CV of the candidate behind that application for the business that owns the offer.
+     */
+    suspend fun openFile(applicationId: String? = null): CvFileResult
 
     /** Deletes the copy made by [openFile]; a CV must not stay around once it is no longer shown. */
     fun closeFile()

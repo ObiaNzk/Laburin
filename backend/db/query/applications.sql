@@ -16,7 +16,8 @@ WHERE a.candidate_id = @candidate_id
 ORDER BY a.created_at DESC;
 
 -- name: ListApplicants :many
-SELECT a.id, a.offer_id, a.candidate_id, a.status, u.display_name, u.email, c.file_name AS cv_file_name, o.business_id
+SELECT a.id, a.offer_id, a.candidate_id, a.status, u.display_name, u.email, c.file_name AS cv_file_name, o.business_id,
+       (u.terms_version IS NOT NULL)::boolean AS shares_cv
 FROM applications a
 JOIN users u ON u.id = a.candidate_id
 JOIN offers o ON o.id = a.offer_id
@@ -25,7 +26,8 @@ WHERE a.offer_id = @offer_id
 ORDER BY a.created_at;
 
 -- name: GetApplicant :one
-SELECT a.id, a.offer_id, a.candidate_id, a.status, u.display_name, u.email, c.file_name AS cv_file_name, o.business_id
+SELECT a.id, a.offer_id, a.candidate_id, a.status, u.display_name, u.email, c.file_name AS cv_file_name, o.business_id,
+       (u.terms_version IS NOT NULL)::boolean AS shares_cv
 FROM applications a
 JOIN users u ON u.id = a.candidate_id
 JOIN offers o ON o.id = a.offer_id

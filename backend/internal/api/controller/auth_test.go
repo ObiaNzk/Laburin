@@ -73,11 +73,11 @@ func TestLoginController_MalformedBody(t *testing.T) {
 func TestSignUpCandidateController_Created(t *testing.T) {
 	// begin
 	setup := setupAuthController(t)
-	params := service.SignUpCandidateParams{FirstName: "[NOMBRE]", LastName: "[APELLIDO]", Email: "[email]@demo.laburin", Password: "demo1234"}
+	params := service.SignUpCandidateParams{FirstName: "[NOMBRE]", LastName: "[APELLIDO]", Email: "[email]@demo.laburin", Password: "demo1234", AcceptedTerms: "terms-v1"}
 	setup.auth.EXPECT().SignUpCandidate(gomock.Any(), params).Return(service.Session{Token: "t-1", User: sessionUser}, nil)
 
 	// when
-	rec := do(setup.router, http.MethodPost, "/auth/signup/candidate", `{"firstName":"[NOMBRE]","lastName":"[APELLIDO]","email":"[email]@demo.laburin","password":"demo1234"}`)
+	rec := do(setup.router, http.MethodPost, "/auth/signup/candidate", `{"firstName":"[NOMBRE]","lastName":"[APELLIDO]","email":"[email]@demo.laburin","password":"demo1234","acceptedTerms":"terms-v1"}`)
 
 	// then
 	require.Equal(t, http.StatusCreated, rec.Code)

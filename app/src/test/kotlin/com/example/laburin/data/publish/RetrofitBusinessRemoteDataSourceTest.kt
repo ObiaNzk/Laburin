@@ -138,4 +138,23 @@ class RetrofitBusinessRemoteDataSourceTest {
 
         assertEquals(409, apiErrorCode { dataSource.closeOffer("t-1", "o-1") })
     }
+
+    @Test
+    fun `an applicant's CV is downloaded with the business token`() = runTest {
+        server.respond(body = "%PDF-1.4 cv")
+
+        val bytes = dataSource.applicantCv("t-1", "a-1")
+
+        val request = server.takeRequest()
+        assertEquals("/applications/a-1/cv", request.url.encodedPath)
+        assertEquals("Bearer t-1", request.headers["Authorization"])
+        assertEquals("%PDF-1.4 cv", bytes?.decodeToString())
+    }
+
+    @Test
+    fun `an applicant without a CV is null, not an error`() = runTest {
+        server.respond(code = 404)
+
+        assertEquals(null, dataSource.applicantCv("t-1", "a-1"))
+    }
 }

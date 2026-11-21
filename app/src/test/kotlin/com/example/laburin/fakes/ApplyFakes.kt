@@ -30,7 +30,8 @@ class FakeCvRepository(initial: CvInfo? = CvInfo("cv.pdf")) : CvRepository {
     var nextOpen: CvFileResult = CvFileResult.Ready("/cache/cv/mi-cv.pdf")
     var openCalls = 0
     var closed = false
-    override suspend fun openFile(): CvFileResult { openCalls++; return nextOpen }
+    val openedFor = mutableListOf<String?>()
+    override suspend fun openFile(applicationId: String?): CvFileResult { openCalls++; openedFor += applicationId; return nextOpen }
     override fun closeFile() { closed = true }
 }
 

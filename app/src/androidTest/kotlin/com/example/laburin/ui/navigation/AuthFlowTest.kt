@@ -63,6 +63,7 @@ class AuthFlowTest {
         composeRule.typeInField(1, "Pérez")
         composeRule.typeInField(2, "ana.e2e@demo.laburin")
         composeRule.typeInField(3, "12345678")
+        composeRule.tap("Acepto los términos y condiciones")
         composeRule.tap("Crear cuenta y seguir")
 
         composeRule.waitFor("Qué buscamos") // Only the full (logged-in) detail shows it.

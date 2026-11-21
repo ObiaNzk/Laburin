@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.example.laburin.domain.model.AuthResult
 import com.example.laburin.domain.model.SignUpField
+import com.example.laburin.domain.model.Terms
 import com.example.laburin.fakes.FakeAuthRepository
 import com.example.laburin.fakes.MainDispatcherRule
 import com.example.laburin.fakes.afterProcessDeath
@@ -26,6 +27,7 @@ class SignUpViewModelTest {
         vm.onLastNameChange("Pérez")
         vm.onEmailChange("ana@demo.laburin")
         vm.onPasswordChange("12345678")
+        vm.onTermsAcceptedChange(true)
     }
 
     @Test
@@ -54,9 +56,20 @@ class SignUpViewModelTest {
         vm.onSubmit()
 
         assertEquals(
-            setOf(SignUpField.FIRST_NAME, SignUpField.LAST_NAME, SignUpField.EMAIL, SignUpField.PASSWORD),
+            setOf(SignUpField.FIRST_NAME, SignUpField.LAST_NAME, SignUpField.EMAIL, SignUpField.PASSWORD, SignUpField.TERMS),
             vm.uiState.value.fieldErrors,
         )
+        assertTrue(auth.calls.isEmpty())
+    }
+
+    @Test
+    fun `without accepting the terms nothing is sent`() = runTest {
+        fillValid()
+        vm.onTermsAcceptedChange(false)
+
+        vm.onSubmit()
+
+        assertEquals(setOf(SignUpField.TERMS), vm.uiState.value.fieldErrors)
         assertTrue(auth.calls.isEmpty())
     }
 
@@ -68,7 +81,7 @@ class SignUpViewModelTest {
             vm.onSubmit()
             assertEquals(SignUpEffect.SignedUp, awaitItem())
         }
-        assertEquals(listOf("signUp:Ana Pérez:ana@demo.laburin"), auth.calls)
+        assertEquals(listOf("signUp:Ana Pérez:ana@demo.laburin:${Terms.CURRENT_VERSION}"), auth.calls)
     }
 
     @Test
@@ -98,6 +111,6 @@ class SignUpViewModelTest {
 
         vm.onFirstNameChange("Ana")
 
-        assertEquals(setOf(SignUpField.LAST_NAME, SignUpField.EMAIL, SignUpField.PASSWORD), vm.uiState.value.fieldErrors)
+        assertEquals(setOf(SignUpField.LAST_NAME, SignUpField.EMAIL, SignUpField.PASSWORD, SignUpField.TERMS), vm.uiState.value.fieldErrors)
     }
 }

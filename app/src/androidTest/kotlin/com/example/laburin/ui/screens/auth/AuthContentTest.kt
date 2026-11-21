@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.laburin.domain.model.SignUpField
 import com.example.laburin.ui.theme.LaburinTheme
@@ -39,6 +40,7 @@ class AuthContentTest {
             SignUpContent(
                 state = state,
                 onFirstNameChange = {}, onLastNameChange = {}, onEmailChange = {}, onPasswordChange = {},
+                onTermsAcceptedChange = { clicks += "terms:$it" }, onOpenTerms = { clicks += "openTerms" },
                 onSubmit = { clicks += "submit" }, onClose = { clicks += "close" },
             )
         }
@@ -118,4 +120,23 @@ class AuthContentTest {
 
     private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onNodeWithContentDescription(text: String) =
         onNode(androidx.compose.ui.test.hasContentDescription(text))
+
+    // --- Terms (provisional: the CV is shared with the businesses the candidate applies to) ---
+
+    @Test
+    fun signUpAsksToAcceptTheTermsAndLinksToThem() {
+        showSignUp(SignUpUiState())
+
+        composeRule.onNodeWithText("Acepto los términos y condiciones").performScrollTo().performClick()
+        composeRule.onNodeWithText("Leer los términos").performScrollTo().performClick()
+
+        assertEquals(listOf("terms:true", "openTerms"), clicks)
+    }
+
+    @Test
+    fun signUpWithoutAcceptingTheTermsSaysWhy() {
+        showSignUp(SignUpUiState(fieldErrors = setOf(com.example.laburin.domain.model.SignUpField.TERMS)))
+
+        composeRule.onNodeWithText("Tenés que aceptar los términos para crear la cuenta").performScrollTo().assertIsDisplayed()
+    }
 }

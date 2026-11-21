@@ -28,8 +28,8 @@ class DefaultAuthRepository @Inject constructor(
     override suspend fun login(email: String, password: String): AuthResult =
         authenticate { remote.login(email.trim(), password) }
 
-    override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String) =
-        authenticate { remote.signUpCandidate(firstName.trim(), lastName.trim(), email.trim(), password) }
+    override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String, acceptedTerms: String) =
+        authenticate { remote.signUpCandidate(firstName.trim(), lastName.trim(), email.trim(), password, acceptedTerms) }
 
     override suspend fun signUpBusiness(data: BusinessSignUp, location: GeoLocation) = authenticate {
         remote.signUpBusiness(

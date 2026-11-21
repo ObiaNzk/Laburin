@@ -6,10 +6,11 @@ object SignUpValidator {
     const val MIN_PASSWORD_LENGTH = 8
     private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 
-    fun validate(firstName: String, lastName: String, email: String, password: String): Set<SignUpField> = buildSet {
+    fun validate(firstName: String, lastName: String, email: String, password: String, termsAccepted: Boolean): Set<SignUpField> = buildSet {
         if (firstName.isBlank()) add(SignUpField.FIRST_NAME)
         if (lastName.isBlank()) add(SignUpField.LAST_NAME)
         if (!EMAIL.matches(email.trim())) add(SignUpField.EMAIL)
         if (password.length < MIN_PASSWORD_LENGTH) add(SignUpField.PASSWORD)
+        if (!termsAccepted) add(SignUpField.TERMS)
     }
 }

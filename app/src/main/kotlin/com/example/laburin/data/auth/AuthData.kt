@@ -28,7 +28,7 @@ interface AuthRemoteDataSource {
      * @throws com.example.laburin.data.remote.ApiException 401 wrong credentials, 409 email taken
      */
     suspend fun login(email: String, password: String): AuthResponseDto
-    suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String): AuthResponseDto
+    suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String, acceptedTerms: String): AuthResponseDto
     suspend fun signUpBusiness(data: BusinessSignUpDto): AuthResponseDto
 }
 

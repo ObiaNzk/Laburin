@@ -32,10 +32,11 @@ type LoginReq struct {
 }
 
 type SignUpCandidateReq struct {
-	FirstName string `json:"firstName" binding:"required"`
-	LastName  string `json:"lastName" binding:"required"`
-	Email     string `json:"email" binding:"required"`
-	Password  string `json:"password" binding:"required"`
+	AcceptedTerms string `json:"acceptedTerms"`
+	FirstName     string `json:"firstName" binding:"required"`
+	LastName      string `json:"lastName" binding:"required"`
+	Email         string `json:"email" binding:"required"`
+	Password      string `json:"password" binding:"required"`
 }
 
 type SignUpBusinessReq struct {
@@ -83,7 +84,7 @@ func (a *AuthController) SignUpCandidate(c *gin.Context) {
 		response.WriteError(c, fmt.Errorf("%w: %v", model.ErrInvalid, err))
 		return
 	}
-	params := service.SignUpCandidateParams{FirstName: req.FirstName, LastName: req.LastName, Email: req.Email, Password: req.Password}
+	params := service.SignUpCandidateParams{FirstName: req.FirstName, LastName: req.LastName, Email: req.Email, Password: req.Password, AcceptedTerms: req.AcceptedTerms}
 	session, err := a.auth.SignUpCandidate(c.Request.Context(), params)
 	if err != nil {
 		response.WriteError(c, err)

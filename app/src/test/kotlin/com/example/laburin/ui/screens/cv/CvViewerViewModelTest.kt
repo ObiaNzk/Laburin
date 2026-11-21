@@ -1,6 +1,8 @@
 package com.example.laburin.ui.screens.cv
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
+import com.example.laburin.ui.navigation.CvViewerDestination
 import com.example.laburin.domain.model.CvFileResult
 import com.example.laburin.fakes.FakeCvRepository
 import com.example.laburin.fakes.MainDispatcherRule
@@ -21,22 +23,33 @@ class CvViewerViewModelTest {
     fun `opening the viewer shows the downloaded CV`() = runTest {
         cv.nextOpen = CvFileResult.Ready("/cache/cv/mi-cv.pdf")
 
-        val vm = CvViewerViewModel(cv)
+        val vm = CvViewerViewModel(SavedStateHandle(), cv)
 
         assertEquals(CvViewerUiState.Ready("/cache/cv/mi-cv.pdf"), vm.uiState.value)
+        assertEquals(listOf(null), cv.openedFor)
+        assertEquals(true, vm.isOwnCv)
+    }
+
+    @Test
+    fun `from an applicant it opens that applicant's CV`() = runTest {
+        val vm = CvViewerViewModel(SavedStateHandle(mapOf(CvViewerDestination.ARG_APPLICATION_ID to "a-1")), cv)
+
+        assertEquals(CvViewerUiState.Ready("/cache/cv/mi-cv.pdf"), vm.uiState.value)
+        assertEquals(listOf("a-1"), cv.openedFor)
+        assertEquals(false, vm.isOwnCv)
     }
 
     @Test
     fun `without an uploaded CV it says so`() = runTest {
         cv.nextOpen = CvFileResult.NotUploaded
 
-        assertEquals(CvViewerUiState.NotUploaded, CvViewerViewModel(cv).uiState.value)
+        assertEquals(CvViewerUiState.NotUploaded, CvViewerViewModel(SavedStateHandle(), cv).uiState.value)
     }
 
     @Test
     fun `without network it offers to retry, and retrying downloads again`() = runTest {
         cv.nextOpen = CvFileResult.NetworkError
-        val vm = CvViewerViewModel(cv)
+        val vm = CvViewerViewModel(SavedStateHandle(), cv)
         assertEquals(CvViewerUiState.Error(CvViewerError.Network), vm.uiState.value)
 
         cv.nextOpen = CvFileResult.Ready("/cache/cv/mi-cv.pdf")
@@ -50,12 +63,12 @@ class CvViewerViewModelTest {
     fun `server errors are shown as such`() = runTest {
         cv.nextOpen = CvFileResult.ServerError(500)
 
-        assertEquals(CvViewerUiState.Error(CvViewerError.Server), CvViewerViewModel(cv).uiState.value)
+        assertEquals(CvViewerUiState.Error(CvViewerError.Server), CvViewerViewModel(SavedStateHandle(), cv).uiState.value)
     }
 
     @Test
     fun `a PDF the phone cannot render is reported`() = runTest {
-        val vm = CvViewerViewModel(cv)
+        val vm = CvViewerViewModel(SavedStateHandle(), cv)
 
         vm.onRenderFailed()
 
@@ -64,7 +77,7 @@ class CvViewerViewModelTest {
 
     @Test
     fun `leaving the viewer deletes the downloaded copy`() = runTest {
-        val store = ViewModelStore().apply { put("cv", CvViewerViewModel(cv)) }
+        val store = ViewModelStore().apply { put("cv", CvViewerViewModel(SavedStateHandle(), cv)) }
 
         store.clear() // what the back stack does when the user leaves the screen
 

@@ -21,8 +21,8 @@ class FakeAuthRepository(initial: Session? = null) : AuthRepository {
 
     override suspend fun login(email: String, password: String) = respond("login:$email")
 
-    override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String) =
-        respond("signUp:$firstName $lastName:$email")
+    override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String, acceptedTerms: String) =
+        respond("signUp:$firstName $lastName:$email:$acceptedTerms")
 
     var lastBusinessLocation: GeoLocation? = null
 

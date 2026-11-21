@@ -1,5 +1,6 @@
 package com.example.laburin.data.fakebackend
 
+import com.example.laburin.domain.model.Terms
 import com.example.laburin.data.applications.ApplicationDto
 import com.example.laburin.data.applications.ApplicationsRemoteDataSource
 import com.example.laburin.data.applications.CvDto
@@ -65,7 +66,8 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
         AuthResponseDto(token = newToken(account.user.id), user = account.user)
     }
 
-    override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String) = call {
+    override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String, acceptedTerms: String) = call {
+        if (acceptedTerms != Terms.CURRENT_VERSION) throw ApiException(400)
         if (accounts.containsKey(email.lowercase())) throw ApiException(409)
         val user = addAccount(UUID.randomUUID().toString(), "CANDIDATE", "$firstName $lastName", email, password)
         AuthResponseDto(token = newToken(user.id), user = user)
@@ -168,6 +170,13 @@ class FakeBackend @Inject constructor() : AuthRemoteDataSource, ApplicationsRemo
     override suspend fun getCv(token: String): CvDto? = call { cvs[userFor(token)] }
 
     override suspend fun downloadCv(token: String): ByteArray? = call { cvFiles[userFor(token)] }
+
+    /** Every candidate here signed up accepting the terms, so their CV is shared with the businesses they apply to. */
+    override suspend fun applicantCv(token: String, applicationId: String): ByteArray? = call {
+        val record = applications[applicationId] ?: throw ApiException(404)
+        if (offerOwners[record.offerId] != userFor(token)) throw ApiException(403)
+        cvFiles[record.candidateId]
+    }
 
     // --- Internals ---
 

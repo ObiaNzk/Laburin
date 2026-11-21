@@ -40,6 +40,7 @@ import com.example.laburin.ui.screens.auth.SignUpRoute
 import com.example.laburin.ui.screens.detail.OfferDetailRoute
 import com.example.laburin.ui.screens.map.MapRoute
 import com.example.laburin.ui.screens.cv.CvViewerRoute
+import com.example.laburin.ui.screens.terms.TermsContent
 import com.example.laburin.ui.screens.profile.ProfileRoute
 import com.example.laburin.ui.screens.publish.BusinessSignUpRoute
 import com.example.laburin.ui.screens.publish.PublishRoute
@@ -133,7 +134,11 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                 SignUpRoute(
                     onSignedUp = { navController.leaveAuthFlow() },
                     onClose = { navController.popBackStack() },
+                    onOpenTerms = { navController.navigate(TermsDestination) },
                 )
+            }
+            composable<TermsDestination> {
+                TermsContent(onBack = { navController.popBackStack() })
             }
             composable<PublishDestination> {
                 PublishRoute(
@@ -157,6 +162,7 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                 PublishedOfferRoute(
                     onBack = { navController.popBackStack() },
                     onEdit = { offerId -> navController.navigate(EditOfferDestination(offerId)) },
+                    onViewCv = { applicationId -> navController.navigate(CvViewerDestination(applicationId)) },
                 )
             }
             composable<EditOfferDestination> {
@@ -173,7 +179,7 @@ fun LaburinNavHost(modifier: Modifier = Modifier, shell: AppShellViewModel = hil
                     onLoggedOut = { navController.openTab(MapDestination) },
                     onLogin = { navController.navigate(LoginDestination) },
                     onMyOfferClick = { offerId -> navController.navigate(PublishedOfferDestination(offerId)) },
-                    onViewCv = { navController.navigate(CvViewerDestination) },
+                    onViewCv = { navController.navigate(CvViewerDestination()) },
                 )
             }
             composable<CvViewerDestination> {

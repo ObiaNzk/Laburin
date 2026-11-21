@@ -35,6 +35,8 @@ type SignUpCandidateParams struct {
 	LastName  string
 	Email     string
 	Password  string
+	// AcceptedTerms must be model.CurrentTermsVersion.
+	AcceptedTerms string
 }
 
 type SignUpBusinessParams struct {
@@ -80,10 +82,14 @@ func (s *AuthService) SignUpCandidate(ctx context.Context, params SignUpCandidat
 	if firstName == "" || lastName == "" {
 		return Session{}, fmt.Errorf("%w: first and last name are required", model.ErrInvalid)
 	}
+	if params.AcceptedTerms != model.CurrentTermsVersion {
+		return Session{}, fmt.Errorf("%w: the terms %q must be accepted", model.ErrInvalid, model.CurrentTermsVersion)
+	}
 	user, err := s.newUser(model.RoleCandidate, params.Email, params.Password, firstName+" "+lastName)
 	if err != nil {
 		return Session{}, err
 	}
+	user.TermsVersion = params.AcceptedTerms
 	if err := s.users.CreateCandidate(ctx, user); err != nil {
 		return Session{}, err
 	}

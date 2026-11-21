@@ -107,7 +107,13 @@ type User struct {
 	Email        string
 	PasswordHash string
 	DisplayName  string
+	// TermsVersion is the version of the terms a candidate accepted when signing up; empty when none.
+	TermsVersion string
 }
+
+// CurrentTermsVersion is the version of the terms a candidate must accept to sign up. Provisional: by accepting it
+// the candidate lets businesses they apply to see their CV, contact details included, until the CV can be redacted.
+const CurrentTermsVersion = "2026-11-cv-v1"
 
 type Business struct {
 	UserID    uuid.UUID
@@ -159,6 +165,8 @@ type Applicant struct {
 	CandidateEmail string
 	CVFileName     null.String
 	Status         ApplicationStatus
+	// SharesCV is true when the candidate accepted the terms that let businesses see their CV.
+	SharesCV bool
 }
 
 type CV struct {

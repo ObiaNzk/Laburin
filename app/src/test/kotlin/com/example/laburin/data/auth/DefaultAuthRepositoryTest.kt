@@ -4,6 +4,7 @@ import com.example.laburin.data.remote.ApiException
 import com.example.laburin.domain.model.AuthResult
 import com.example.laburin.domain.model.BusinessSignUp
 import com.example.laburin.domain.model.Category
+import com.example.laburin.domain.model.Terms
 import com.example.laburin.domain.model.GeoLocation
 import com.example.laburin.domain.model.Session
 import com.example.laburin.domain.model.UserRole
@@ -63,15 +64,16 @@ class DefaultAuthRepositoryTest {
     fun `sign up with a taken email reports it`() = runTest {
         remote.respond = { throw ApiException(409) }
 
-        assertEquals(AuthResult.EmailAlreadyRegistered, repository.signUpCandidate("A", "B", "[EMAIL]", "12345678"))
+        assertEquals(AuthResult.EmailAlreadyRegistered, repository.signUpCandidate("A", "B", "[EMAIL]", "12345678", Terms.CURRENT_VERSION))
     }
 
     @Test
     fun `successful sign up logs the user in`() = runTest {
         remote.respond = { AuthResponseDto(token = "t-2", user = user) }
 
-        assertEquals(AuthResult.Success, repository.signUpCandidate("A", "B", "[EMAIL]", "12345678"))
+        assertEquals(AuthResult.Success, repository.signUpCandidate("A", "B", "[EMAIL]", "12345678", Terms.CURRENT_VERSION))
         assertEquals("u-1", repository.session.first()?.userId)
+        assertEquals(Terms.CURRENT_VERSION, remote.lastAcceptedTerms)
     }
 
     @Test
@@ -154,7 +156,11 @@ class DefaultAuthRepositoryTest {
     private class FakeAuthRemote : AuthRemoteDataSource {
         var respond: () -> AuthResponseDto = { error("not configured") }
         override suspend fun login(email: String, password: String) = respond()
-        override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String) = respond()
+        var lastAcceptedTerms: String? = null
+        override suspend fun signUpCandidate(firstName: String, lastName: String, email: String, password: String, acceptedTerms: String): AuthResponseDto {
+            lastAcceptedTerms = acceptedTerms
+            return respond()
+        }
         var lastBusiness: BusinessSignUpDto? = null
         override suspend fun signUpBusiness(data: BusinessSignUpDto): AuthResponseDto { lastBusiness = data; return respond() }
     }

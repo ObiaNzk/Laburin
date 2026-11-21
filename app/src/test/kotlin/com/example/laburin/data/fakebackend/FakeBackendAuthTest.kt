@@ -1,6 +1,7 @@
 package com.example.laburin.data.fakebackend
 
 import com.example.laburin.data.remote.ApiException
+import com.example.laburin.domain.model.Terms
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -13,7 +14,7 @@ class FakeBackendAuthTest {
 
     @Test
     fun `a candidate who signs up can log in`() = runTest {
-        backend.signUpCandidate("Ana", "Pérez", "ana@demo.laburin", "12345678")
+        backend.signUpCandidate("Ana", "Pérez", "ana@demo.laburin", "12345678", Terms.CURRENT_VERSION)
 
         val response = backend.login("ana@demo.laburin", "12345678")
 
@@ -40,7 +41,12 @@ class FakeBackendAuthTest {
 
     @Test
     fun `registering an existing email is rejected with 409`() = runTest {
-        assertEquals(409, apiCode { backend.signUpCandidate("Otra", "Persona", FakeBackend.DEMO_CANDIDATE_EMAIL, "12345678") })
+        assertEquals(409, apiCode { backend.signUpCandidate("Otra", "Persona", FakeBackend.DEMO_CANDIDATE_EMAIL, "12345678", Terms.CURRENT_VERSION) })
+    }
+
+    @Test
+    fun `signing up without the current terms is rejected with 400`() = runTest {
+        assertEquals(400, apiCode { backend.signUpCandidate("[NOMBRE]", "[APELLIDO]", "sin-terminos@demo.laburin", "12345678", "vieja") })
     }
 
     @Test

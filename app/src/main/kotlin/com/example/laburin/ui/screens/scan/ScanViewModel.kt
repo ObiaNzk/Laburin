@@ -40,6 +40,11 @@ class ScanViewModel @Inject constructor() : ViewModel() {
         _uiState.value = if (granted) ScanUiState.Scanning else ScanUiState.PermissionDenied
     }
 
+    /** The scanner became visible again (onStart): the camera may have been allowed in Settings meanwhile. */
+    fun onCameraPermissionRechecked(granted: Boolean) {
+        if (granted && _uiState.value == ScanUiState.PermissionDenied) _uiState.value = ScanUiState.Scanning
+    }
+
     fun onCodeScanned(text: String) {
         if (handled || _uiState.value != ScanUiState.Scanning) return
         val offerId = OfferLink.parse(text)

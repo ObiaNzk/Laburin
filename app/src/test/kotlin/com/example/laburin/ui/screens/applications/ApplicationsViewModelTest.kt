@@ -6,6 +6,7 @@ import com.example.laburin.fakes.CANDIDATE_SESSION
 import com.example.laburin.fakes.FakeApplicationRepository
 import com.example.laburin.fakes.FakeAuthRepository
 import com.example.laburin.fakes.MainDispatcherRule
+import com.example.laburin.fakes.MutableClock
 import com.example.laburin.fakes.testApplication
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -15,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import java.time.Duration
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ApplicationsViewModelTest {
@@ -24,11 +26,32 @@ class ApplicationsViewModelTest {
 
     private val applications = FakeApplicationRepository()
     private val auth = FakeAuthRepository(CANDIDATE_SESSION)
+    private val clock = MutableClock()
 
     private fun TestScope.createViewModel(): ApplicationsViewModel {
-        val vm = ApplicationsViewModel(applications, auth)
+        val vm = ApplicationsViewModel(applications, auth, clock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
+    }
+
+    @Test
+    fun `coming back to the screen after a while asks the server for the latest statuses`() = runTest {
+        val vm = createViewModel()
+
+        clock.advance(Duration.ofMinutes(5))
+        vm.onScreenStarted()
+
+        assertEquals(2, applications.refreshCalls)
+    }
+
+    @Test
+    fun `coming back right away does not ask the server again`() = runTest {
+        val vm = createViewModel()
+
+        clock.advance(Duration.ofMinutes(4))
+        vm.onScreenStarted()
+
+        assertEquals(1, applications.refreshCalls)
     }
 
     @Test

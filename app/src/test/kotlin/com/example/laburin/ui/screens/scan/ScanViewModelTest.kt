@@ -35,6 +35,25 @@ class ScanViewModelTest {
     }
 
     @Test
+    fun `camera permission granted in Settings starts scanning when coming back`() {
+        vm.onCameraPermissionResult(granted = false)
+
+        vm.onCameraPermissionRechecked(granted = true)
+
+        assertEquals(ScanUiState.Scanning, vm.uiState.value)
+    }
+
+    @Test
+    fun `coming back does not hide the invalid QR message`() {
+        vm.onCameraPermissionResult(granted = true)
+        vm.onCodeScanned("https://example.com/otra-cosa")
+
+        vm.onCameraPermissionRechecked(granted = true)
+
+        assertEquals(ScanUiState.InvalidQr, vm.uiState.value)
+    }
+
+    @Test
     fun `an offer QR opens that offer`() = runTest {
         vm.onCameraPermissionResult(granted = true)
 

@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.example.laburin.ui.screens.common.RefreshThrottle
+import java.time.Clock
 import javax.inject.Inject
 
 sealed interface ApplicationsUiState {
@@ -24,6 +26,7 @@ sealed interface ApplicationsUiState {
 class ApplicationsViewModel @Inject constructor(
     private val applications: ApplicationRepository,
     session: SessionRepository,
+    private val clock: Clock,
 ) : ViewModel() {
 
     val uiState: StateFlow<ApplicationsUiState> = combine(
@@ -36,9 +39,14 @@ class ApplicationsViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ApplicationsUiState.Loading)
 
+    private val refreshOnReturn = RefreshThrottle(clock)
+
     init {
-        onRefresh()
+        refreshOnReturn.ifStale(::onRefresh)
     }
+
+    /** The screen became visible again (onStart): statuses may have changed on the server meanwhile. */
+    fun onScreenStarted() = refreshOnReturn.ifStale(::onRefresh)
 
     /** Statuses come from the server (approved, rejected, closed); a failure keeps what is cached. */
     fun onRefresh() {

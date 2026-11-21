@@ -1,5 +1,6 @@
 package com.example.laburin.ui.screens.auth
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.laburin.domain.auth.SignUpValidator
@@ -18,9 +19,19 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class SignUpViewModel @Inject constructor(private val auth: AuthRepository) : ViewModel() {
+class SignUpViewModel @Inject constructor(
+    private val savedState: SavedStateHandle,
+    private val auth: AuthRepository,
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SignUpUiState())
+    // Everything but the password survives the process being killed: a secret is never written to saved state.
+    private val _uiState = MutableStateFlow(
+        SignUpUiState(
+            firstName = savedState[FIRST_NAME] ?: "",
+            lastName = savedState[LAST_NAME] ?: "",
+            email = savedState[EMAIL] ?: "",
+        ),
+    )
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<SignUpEffect>()
@@ -52,6 +63,17 @@ class SignUpViewModel @Inject constructor(private val auth: AuthRepository) : Vi
         }
     }
 
-    private fun edit(field: SignUpField, change: SignUpUiState.() -> SignUpUiState) =
+    private fun edit(field: SignUpField, change: SignUpUiState.() -> SignUpUiState) {
         _uiState.update { it.change().copy(fieldErrors = it.fieldErrors - field, error = null) }
+        val s = _uiState.value
+        savedState[FIRST_NAME] = s.firstName
+        savedState[LAST_NAME] = s.lastName
+        savedState[EMAIL] = s.email
+    }
+
+    private companion object {
+        const val FIRST_NAME = "signUp.firstName"
+        const val LAST_NAME = "signUp.lastName"
+        const val EMAIL = "signUp.email"
+    }
 }

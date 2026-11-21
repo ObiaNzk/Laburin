@@ -69,6 +69,7 @@ class ManageOfferFlowTest {
         composeRule.waitFor("Editar")
         composeRule.tap("Editar")
         composeRule.waitFor("Editar búsqueda")
+        composeRule.waitFor("Cocinero/a") // the stored offer has loaded into the form; saving earlier is ignored
         composeRule.replaceInField(0, "Cocinero/a con experiencia")
         composeRule.tap("Guardar cambios")
         composeRule.waitFor("Cambios pendientes de envío")

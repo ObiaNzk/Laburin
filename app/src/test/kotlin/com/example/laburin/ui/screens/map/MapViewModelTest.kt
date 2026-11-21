@@ -93,6 +93,28 @@ class MapViewModelTest {
     }
 
     @Test
+    fun `permission granted in Settings after denying it centers on the user when coming back`() = runTest {
+        val vm = createViewModel()
+        vm.onLocationPermissionResult(granted = false)
+        location.result = LocationResult.Located(palermo)
+
+        vm.onLocationPermissionRechecked(granted = true)
+
+        assertEquals(LocationStatus.Granted, vm.uiState.value.locationStatus)
+        assertEquals(palermo, vm.uiState.value.center)
+    }
+
+    @Test
+    fun `coming back with the permission already granted does not ask for the location again`() = runTest {
+        val vm = createViewModel()
+        vm.onLocationPermissionResult(granted = true)
+
+        vm.onLocationPermissionRechecked(granted = true)
+
+        assertEquals(1, location.calls)
+    }
+
+    @Test
     fun `with a real GPS fix the user location is shown on the map`() = runTest {
         location.result = LocationResult.Located(palermo)
         val vm = createViewModel()

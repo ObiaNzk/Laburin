@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.example.laburin.ui.screens.common.RefreshThrottle
+import java.time.Clock
 import javax.inject.Inject
 
 sealed interface ProfileUiState {
@@ -47,6 +49,7 @@ class ProfileViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val cv: CvRepository,
     private val myOffers: MyOffersRepository,
+    private val clock: Clock,
 ) : ViewModel() {
 
     private data class CvUpload(val isUploading: Boolean = false, val error: CvError? = null)
@@ -63,8 +66,17 @@ class ProfileViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState.Loading)
 
+    private val refreshOnReturn = RefreshThrottle(clock)
+
     init {
-        // Brings the server's CV into the local cache (e.g. right after logging in on a new device).
+        refreshOnReturn.ifStale(::refreshFromServer)
+    }
+
+    /** The screen became visible again (onStart): the CV or the offers may have changed on the server meanwhile. */
+    fun onScreenStarted() = refreshOnReturn.ifStale(::refreshFromServer)
+
+    // Brings the server's CV into the local cache (e.g. right after logging in on a new device).
+    private fun refreshFromServer() {
         viewModelScope.launch {
             when (auth.session.first()?.role) {
                 UserRole.CANDIDATE -> cv.current()

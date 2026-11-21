@@ -41,6 +41,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.example.laburin.ui.screens.common.RefreshThrottle
+import java.time.Clock
 import javax.inject.Inject
 
 data class PublishUiState(
@@ -53,7 +55,9 @@ data class PublishUiState(
     val salaryPeriod: SalaryPeriod = SalaryPeriod.MONTH,
     val fieldErrors: Set<PublishField> = emptySet(),
     val isPublishing: Boolean = false,
-)
+) {
+    companion object
+}
 
 sealed interface PublishEffect {
     data object NeedsBusinessAccount : PublishEffect
@@ -62,9 +66,12 @@ sealed interface PublishEffect {
 
 /** The form survives the detour to register the business: this ViewModel stays on the back stack. */
 @HiltViewModel
-class PublishViewModel @Inject constructor(private val publishOffer: PublishOfferUseCase) : ViewModel() {
+class PublishViewModel @Inject constructor(
+    private val savedState: SavedStateHandle,
+    private val publishOffer: PublishOfferUseCase,
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PublishUiState())
+    private val _uiState = MutableStateFlow(savedState.restoreOfferForm()?.let(PublishUiState::from) ?: PublishUiState())
     val uiState: StateFlow<PublishUiState> = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<PublishEffect>()
@@ -83,9 +90,7 @@ class PublishViewModel @Inject constructor(private val publishOffer: PublishOffe
         if (state.isPublishing) return
         _uiState.update { it.copy(isPublishing = true) }
         viewModelScope.launch {
-            val result = publishOffer(
-                OfferDraft(state.title, state.category, state.schedule, state.description, state.salaryMin, state.salaryMax, state.salaryPeriod),
-            )
+            val result = publishOffer(state.draft())
             _uiState.update { it.copy(isPublishing = false) }
             when (result) {
                 PublishResult.NeedsBusinessAccount -> _effects.emit(PublishEffect.NeedsBusinessAccount)
@@ -95,9 +100,18 @@ class PublishViewModel @Inject constructor(private val publishOffer: PublishOffe
         }
     }
 
-    private fun edit(field: PublishField, change: PublishUiState.() -> PublishUiState) =
+    private fun edit(field: PublishField, change: PublishUiState.() -> PublishUiState) {
         _uiState.update { it.change().copy(fieldErrors = it.fieldErrors - field) }
+        savedState.saveOfferForm(_uiState.value.draft())
+    }
 }
+
+private fun PublishUiState.draft() = OfferDraft(title, category, schedule, description, salaryMin, salaryMax, salaryPeriod)
+
+private fun PublishUiState.Companion.from(d: OfferDraft) = PublishUiState(
+    title = d.title, category = d.category, schedule = d.schedule, description = d.description,
+    salaryMin = d.salaryMin, salaryMax = d.salaryMax, salaryPeriod = d.salaryPeriod,
+)
 
 data class BusinessSignUpUiState(
     val name: String = "",
@@ -119,11 +133,21 @@ sealed interface BusinessSignUpEffect {
 
 @HiltViewModel
 class BusinessSignUpViewModel @Inject constructor(
+    private val savedState: SavedStateHandle,
     private val auth: AuthRepository,
     private val location: LocationProvider,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(BusinessSignUpUiState())
+    // Everything but the password survives the process being killed: a secret is never written to saved state.
+    private val _uiState = MutableStateFlow(
+        BusinessSignUpUiState(
+            name = savedState[BUSINESS_NAME] ?: "",
+            category = savedState.get<String>(BUSINESS_CATEGORY)?.let { name -> Category.entries.firstOrNull { it.name == name } },
+            schedule = savedState[BUSINESS_SCHEDULE] ?: "",
+            address = savedState[BUSINESS_ADDRESS] ?: "",
+            email = savedState[BUSINESS_EMAIL] ?: "",
+        ),
+    )
     val uiState: StateFlow<BusinessSignUpUiState> = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<BusinessSignUpEffect>()
@@ -160,8 +184,23 @@ class BusinessSignUpViewModel @Inject constructor(
         }
     }
 
-    private fun edit(field: BusinessSignUpField, change: BusinessSignUpUiState.() -> BusinessSignUpUiState) =
+    private fun edit(field: BusinessSignUpField, change: BusinessSignUpUiState.() -> BusinessSignUpUiState) {
         _uiState.update { it.change().copy(fieldErrors = it.fieldErrors - field, error = null) }
+        val s = _uiState.value
+        savedState[BUSINESS_NAME] = s.name
+        savedState[BUSINESS_CATEGORY] = s.category?.name
+        savedState[BUSINESS_SCHEDULE] = s.schedule
+        savedState[BUSINESS_ADDRESS] = s.address
+        savedState[BUSINESS_EMAIL] = s.email
+    }
+
+    private companion object {
+        const val BUSINESS_NAME = "businessSignUp.name"
+        const val BUSINESS_CATEGORY = "businessSignUp.category"
+        const val BUSINESS_SCHEDULE = "businessSignUp.schedule"
+        const val BUSINESS_ADDRESS = "businessSignUp.address"
+        const val BUSINESS_EMAIL = "businessSignUp.email"
+    }
 }
 
 sealed interface PublishedOfferUiState {
@@ -185,6 +224,7 @@ class PublishedOfferViewModel @Inject constructor(
     private val applicants: ApplicantsRepository,
     private val reviewApplicant: ReviewApplicantUseCase,
     private val closeOffer: CloseOfferUseCase,
+    private val clock: Clock,
 ) : ViewModel() {
 
     private val offerId: String = checkNotNull(savedStateHandle[PublishedOfferDestination.ARG_OFFER_ID])
@@ -193,7 +233,16 @@ class PublishedOfferViewModel @Inject constructor(
         offer?.let { PublishedOfferUiState.Content(it, OfferLink.build(it.id), list) } ?: PublishedOfferUiState.NotFound
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PublishedOfferUiState.Loading)
 
+    private val refreshOnReturn = RefreshThrottle(clock)
+
     init {
+        refreshOnReturn.ifStale(::refreshApplicants)
+    }
+
+    /** The screen became visible again (onStart): new applicants may have arrived meanwhile. */
+    fun onScreenStarted() = refreshOnReturn.ifStale(::refreshApplicants)
+
+    private fun refreshApplicants() {
         viewModelScope.launch { applicants.refresh(offerId) }
     }
 
@@ -240,12 +289,12 @@ sealed interface EditOfferEffect {
 
 @HiltViewModel
 class EditOfferViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedState: SavedStateHandle,
     private val offers: MyOffersRepository,
     private val editOffer: EditOfferUseCase,
 ) : ViewModel() {
 
-    private val offerId: String = checkNotNull(savedStateHandle[EditOfferDestination.ARG_OFFER_ID])
+    private val offerId: String = checkNotNull(savedState[EditOfferDestination.ARG_OFFER_ID])
 
     private val _uiState = MutableStateFlow(EditOfferUiState())
     val uiState: StateFlow<EditOfferUiState> = _uiState.asStateFlow()
@@ -254,8 +303,10 @@ class EditOfferViewModel @Inject constructor(
     val effects: SharedFlow<EditOfferEffect> = _effects.asSharedFlow()
 
     init {
+        val unsaved = savedState.restoreOfferForm()
+        if (unsaved != null) _uiState.value = EditOfferUiState(isLoading = false).withDraft(unsaved)
         // Loaded once: the form then belongs to the user until they save.
-        viewModelScope.launch {
+        else viewModelScope.launch {
             val offer = offers.observe(offerId).first()
             _uiState.update {
                 if (offer == null) {
@@ -286,10 +337,7 @@ class EditOfferViewModel @Inject constructor(
         if (state.isSaving || state.isLoading) return
         _uiState.update { it.copy(isSaving = true, error = null) }
         viewModelScope.launch {
-            val result = editOffer(
-                offerId,
-                OfferDraft(state.title, state.category, state.schedule, state.description, state.salaryMin, state.salaryMax, state.salaryPeriod),
-            )
+            val result = editOffer(offerId, state.draft())
             _uiState.update { it.copy(isSaving = false) }
             when (result) {
                 EditResult.Queued -> _effects.emit(EditOfferEffect.Saved)
@@ -301,6 +349,15 @@ class EditOfferViewModel @Inject constructor(
         }
     }
 
-    private fun edit(field: PublishField, change: EditOfferUiState.() -> EditOfferUiState) =
+    private fun edit(field: PublishField, change: EditOfferUiState.() -> EditOfferUiState) {
         _uiState.update { it.change().copy(fieldErrors = it.fieldErrors - field, error = null) }
+        savedState.saveOfferForm(_uiState.value.draft())
+    }
 }
+
+private fun EditOfferUiState.draft() = OfferDraft(title, category, schedule, description, salaryMin, salaryMax, salaryPeriod)
+
+private fun EditOfferUiState.withDraft(d: OfferDraft) = copy(
+    title = d.title, category = d.category, schedule = d.schedule, description = d.description,
+    salaryMin = d.salaryMin, salaryMax = d.salaryMax, salaryPeriod = d.salaryPeriod,
+)
